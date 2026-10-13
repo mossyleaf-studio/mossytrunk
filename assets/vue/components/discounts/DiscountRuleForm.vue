@@ -300,7 +300,9 @@ async function onSubmit() {
 .discount-rule-form__condition-kinds { grid-area: kinds; }
 .discount-rule-form__target-row :deep(.discount-rule-form__remove-target) { grid-area: remove-target; }
 .discount-rule-form__condition :deep(.discount-rule-form__remove) { grid-area: remove; }
-.discount-rule-form__target { grid-area: target; display: grid; grid-template-columns: minmax(0, 1fr); grid-auto-columns: auto; grid-auto-flow: column; gap: var(--space-2); }
+.discount-rule-form__target { grid-area: target; display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.discount-rule-form__target > * { flex: 1 1 12rem; min-width: 0; }
+.discount-rule-form__target > :first-child { flex-basis: 100%; }
 .discount-rule-form__condition-error { grid-column: 1 / -1; margin: 0; color: var(--color-danger); font-size: var(--font-size-md); }
 .discount-rule-form__add { align-self: flex-start; }
 
@@ -313,7 +315,6 @@ async function onSubmit() {
 
 @container form (max-width: 28rem) {
     .discount-rule-form__condition { grid-template-areas: "quantity times . remove" "group group group group"; }
-    .discount-rule-form__target { grid-auto-flow: row; }
 }
 .discount-rule-form__priced-on { display: block; color: var(--color-muted); font-size: var(--font-size-xs); }
 </style>
