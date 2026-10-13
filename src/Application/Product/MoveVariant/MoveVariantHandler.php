@@ -15,6 +15,7 @@ use App\Domain\Product\Exception\VariantMovedOntoItself;
 use App\Domain\Product\Product;
 use App\Domain\Product\ProductRepository;
 use App\Domain\Shared\OptionalText;
+use App\Domain\Stock\StockRepository;
 use Symfony\Component\Uid\Ulid;
 
 final readonly class MoveVariantHandler
@@ -26,6 +27,8 @@ final readonly class MoveVariantHandler
         private ExternalItemRepository $externalItems,
         private NewProducts $newProducts,
         private StockKeeper $stock,
+        private StockRepository $stockItems,
+        private MovedSales $movedSales,
         private Transaction $transaction,
     ) {
     }
@@ -49,9 +52,10 @@ final readonly class MoveVariantHandler
             $target->addVariant($targetVariant);
         }
         $to = $target->sellable($targetVariant);
+        $unitCost = $this->stockItems->find($target->id(), $targetVariant)?->firstPurchaseUnitCost() ?? $target->buyingPrice();
 
         foreach ($this->orders->selling($source->id()) as $order) {
-            $order->moveSales($source->id(), $variant, $to);
+            $this->movedSales->move($order, $source->id(), $variant, $target, $targetVariant, $unitCost);
         }
         $this->stock->move($source, $variant, $target, $targetVariant);
         foreach ($this->externalItems->linkedTo($source->id()) as $item) {

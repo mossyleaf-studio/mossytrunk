@@ -532,11 +532,18 @@ class Order implements Referenced
         return array_values($this->lines->toArray());
     }
 
-    public function moveSales(Ulid $productId, ?string $variant, SellableItem $to): void
+    public function moveSales(Ulid $productId, ?string $variant, SellableItem $to, ?Money $unitCost = null, ?string $raisedPricesDiscount = null): void
     {
+        $raised = Money::zero();
         foreach ($this->lines() as $line) {
             if (!$line->isFor($productId, $variant)) {
                 continue;
+            }
+            if (null !== $raisedPricesDiscount) {
+                $raised = $raised->add($line->raiseTo($to->sellingPrice));
+            }
+            if (null !== $unitCost && !$unitCost->isZero() && $line->hasUnknownCost()) {
+                $line->costAt($unitCost);
             }
 
             $twin = $this->lineSelling($to, $line);
@@ -547,7 +554,28 @@ class Order implements Referenced
             $twin->add($line->quantity(), $line->cost());
             $this->lines->removeElement($line);
         }
+        if (null !== $raisedPricesDiscount && $raised->isPositive()) {
+            $this->appliedDiscounts = self::withDiscount($this->appliedDiscounts(), $raisedPricesDiscount, $raised);
+        }
         $this->recordSales();
+    }
+
+    /**
+     * @param list<AppliedDiscount> $discounts
+     *
+     * @return list<array{label: string, amount: int, ruleId: ?string}>
+     */
+    private static function withDiscount(array $discounts, string $label, Money $amount): array
+    {
+        $added = false;
+        foreach ($discounts as $index => $discount) {
+            if (!$added && null === $discount->ruleId && $label === $discount->label) {
+                $discounts[$index] = new AppliedDiscount($label, $discount->amount->add($amount));
+                $added = true;
+            }
+        }
+
+        return array_map(static fn (AppliedDiscount $discount): array => $discount->toArray(), $added ? $discounts : [...$discounts, new AppliedDiscount($label, $amount)]);
     }
 
     private function line(Ulid $lineId): OrderLine

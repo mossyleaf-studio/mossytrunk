@@ -8,7 +8,10 @@ use App\Application\Discount\CreateDiscountRule\CreateDiscountRuleHandler;
 use App\Application\Discount\ListDiscountRules\ListDiscountRulesHandler;
 use App\Application\Event\ScheduleEvent\ScheduleEvent;
 use App\Application\Event\ScheduleEvent\ScheduleEventHandler;
+use App\Application\Integration\ConfigureConnection\AddConnectionHandler;
+use App\Application\Integration\ImportSales\ImportSalesHandler;
 use App\Application\Order\GetOrder\GetOrderHandler;
+use App\Application\Order\ListOrders\ListOrdersHandler;
 use App\Application\Order\PlaceOrder\PlaceOrder;
 use App\Application\Order\PlaceOrder\PlaceOrderHandler;
 use App\Application\Order\RequestedLine;
@@ -18,9 +21,12 @@ use App\Application\Product\MoveVariant\MoveVariantHandler;
 use App\Domain\Product\Exception\SoldWithoutVariant;
 use App\Domain\Product\Exception\UnknownVariant;
 use App\Domain\Product\Exception\VariantMovedOntoItself;
+use App\Domain\Shared\Money;
+use App\Infrastructure\Connector\SumUp\FakeSumUpGateway;
 use App\Tests\Support\ActsAsUser;
 use App\Tests\Support\CreatesProducts;
 use App\Tests\Support\DiscountRules;
+use App\Tests\Support\ExternalSales;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class MoveVariantTest extends KernelTestCase
@@ -50,6 +56,24 @@ final class MoveVariantTest extends KernelTestCase
         $lines = self::getContainer()->get(GetOrderHandler::class)($order)->lines;
         self::assertEqualsCanonicalizing([['Mug — Lichen', 2], ['Mug — Fougère', 1]], array_map(static fn (array $line): array => [$line['label'], $line['quantity']], $lines));
         self::assertSame(3_600, self::getContainer()->get(GetOrderHandler::class)($order)->total, 'prices of past sales are kept');
+    }
+
+    public function testSalesOfAProductCreatedByASumUpImportTakeTheTargetPriceAndCostWhenMoved(): void
+    {
+        ExternalSales::connect(self::getContainer()->get(AddConnectionHandler::class), 'sumup', ['merchant_code' => 'MCODE', 'api_key' => 'sup_sk_test']);
+        $bobcat = self::createProduct('Bobcat', 300, 80);
+        self::getContainer()->get(FakeSumUpGateway::class)->willReturn([
+            ExternalSales::sumUp('TX-BOB', new \DateTimeImmutable('2030-03-14T12:00:00Z'), Money::cents(450), [ExternalSales::line('Mossy Bobcat Print', Money::cents(250), 2)]),
+        ]);
+        self::getContainer()->get(ImportSalesHandler::class)('sumup');
+        $created = array_column($this->products(), 'id', 'name')['Mossy Bobcat Print'];
+        $order = self::getContainer()->get(ListOrdersHandler::class)()[0]->id;
+
+        $this->move(new MoveVariant($created, null, $bobcat, null, null));
+
+        $view = self::getContainer()->get(GetOrderHandler::class)($order);
+        self::assertSame([['Bobcat', 2, 300]], array_map(static fn (array $line): array => [$line['label'], $line['quantity'], $line['unitPrice']], $view->lines));
+        self::assertSame([450, 150, 160], [$view->total, $view->discounts[0]['amount'], $view->costOfGoods]);
     }
 
     public function testAVariantMovesToAnotherProductAndMergesWithItsSales(): void

@@ -130,6 +130,17 @@ class OrderLine
         return true;
     }
 
+    public function raiseTo(Money $unitPrice): Money
+    {
+        if (!$unitPrice->greaterThan($this->unitPrice)) {
+            return Money::zero();
+        }
+        $raise = $unitPrice->subtract($this->unitPrice)->multiply($this->quantity);
+        $this->unitPrice = $unitPrice;
+
+        return $raise;
+    }
+
     public function sameUnitAmountsAs(self $other): bool
     {
         return $this->unitPrice->equals($other->unitPrice);

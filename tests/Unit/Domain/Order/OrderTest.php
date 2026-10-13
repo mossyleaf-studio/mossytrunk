@@ -359,6 +359,19 @@ final class OrderTest extends TestCase
         self::assertCount(2, $order2->lines());
     }
 
+    public function testImportedSalesMovedOntoAProductTakeItsPriceAndCostWhileTheChargedTotalStays(): void
+    {
+        $created = Product::create(TestWorkspace::get(), 'BOB', 'Bobcat', Money::cents(250), TestProductType::get());
+        $print = Product::create(TestWorkspace::get(), 'PRI', 'Print Bobcat', Money::cents(300), TestProductType::get());
+        $order = Order::imported('CMD-1', TestWorkspace::get(), 'sumup', 'TX1', 'TX1', $this->event, self::at('2026-07-10 15:00'), [new OrderedItem($created->sellable(null), 2)], Money::cents(450), Money::zero(), PaymentMethod::Card, [], 'Remise SumUp');
+
+        $order->moveSales($created->id(), null, $print->sellable(null), Money::cents(80), 'Remise SumUp');
+
+        self::assertSame([600, 160], [$order->lines()[0]->total()->amount(), $order->costOfGoods()->amount()]);
+        self::assertEquals([new AppliedDiscount('Remise SumUp', Money::cents(150))], $order->appliedDiscounts());
+        self::assertSame(450, $order->total()->amount());
+    }
+
     public function testAmountsWithoutProductStayOnTheirOwnLines(): void
     {
         $order = Order::place('CMD-1', $this->event, self::at('2026-07-10 15:00'), [
