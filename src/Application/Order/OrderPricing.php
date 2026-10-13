@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\Order;
 
+use App\Domain\Design\DesignCollectionRepository;
 use App\Domain\Discount\AppliedDiscount;
 use App\Domain\Discount\BasketLine;
 use App\Domain\Discount\DiscountCalculator;
@@ -20,6 +21,7 @@ final readonly class OrderPricing
         private ProductRepository $products,
         private DiscountRuleRepository $discountRules,
         private DiscountCalculator $calculator,
+        private DesignCollectionRepository $collections,
     ) {
     }
 
@@ -57,8 +59,13 @@ final readonly class OrderPricing
      */
     public function discounts(array $items, \DateTimeImmutable $placedAt, ?array $rules = null): array
     {
-        $basket = array_values(array_filter(array_map(static fn (OrderedItem $ordered): ?BasketLine => BasketLine::of($ordered->item, $ordered->quantity), $items)));
+        $rules ??= $this->rules();
+        $collections = array_any($rules, static fn (DiscountRule $rule): bool => $rule->filtersByCollection()) ? $this->collections->byProduct() : [];
+        $basket = array_values(array_filter(array_map(
+            static fn (OrderedItem $ordered): ?BasketLine => BasketLine::of($ordered->item, $ordered->quantity, ($collections[(string) $ordered->item->productId] ?? null)?->id()),
+            $items,
+        )));
 
-        return $this->calculator->calculate($basket, $rules ?? $this->rules(), $placedAt);
+        return $this->calculator->calculate($basket, $rules, $placedAt);
     }
 }

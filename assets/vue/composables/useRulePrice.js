@@ -4,7 +4,9 @@ import { formatDate, localDay } from './useDate.js';
 import { sameVariant } from './useVariantStock.js';
 
 const offers = (product, variant) => !variant || product.variants.some((candidate) => sameVariant(candidate, variant));
-const targets = (product, target) => (target.kind === 'type' ? product.typeId === target.id : product.id === target.id);
+const targets = (product, target) => (target.kind === 'type'
+    ? product.typeId === target.id && (!target.collectionId || product.collectionId === target.collectionId)
+    : product.id === target.id);
 const chosen = (condition) => condition.targets.filter((target) => target.id);
 
 export function pricingDay(startsOn, endsOn, today = localDay()) {

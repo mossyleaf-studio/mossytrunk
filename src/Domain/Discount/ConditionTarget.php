@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Discount;
 
+use App\Domain\Design\DesignCollection;
 use App\Domain\Product\Product;
 use App\Domain\Product\ProductType;
 use App\Domain\Product\VariantLabel;
@@ -29,6 +30,10 @@ abstract class ConditionTarget
     #[ORM\Column(length: 100, nullable: true)]
     protected ?string $variant = null;
 
+    #[ORM\ManyToOne(targetEntity: DesignCollection::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'CASCADE')]
+    protected ?DesignCollection $collection = null;
+
     protected function __construct(DiscountCondition $condition)
     {
         $this->id = new Ulid();
@@ -39,7 +44,7 @@ abstract class ConditionTarget
     {
         return $spec->target instanceof Product
             ? new ProductTarget($condition, $spec->target, $spec->variant)
-            : new TypeTarget($condition, $spec->target, $spec->variant);
+            : new TypeTarget($condition, $spec->target, $spec->variant, $spec->collection);
     }
 
     abstract protected function matchesSubject(Ulid $productId, Ulid $typeId): bool;
@@ -54,9 +59,11 @@ abstract class ConditionTarget
 
     abstract public function kind(): string;
 
-    public function matches(Ulid $productId, Ulid $typeId, ?string $variant): bool
+    public function matches(Ulid $productId, Ulid $typeId, ?string $variant, ?Ulid $collectionId = null): bool
     {
-        return $this->matchesSubject($productId, $typeId) && (null === $this->variant || VariantLabel::same($this->variant, $variant));
+        return $this->matchesSubject($productId, $typeId)
+            && (null === $this->variant || VariantLabel::same($this->variant, $variant))
+            && (null === $this->collection || true === $collectionId?->equals($this->collection->id()));
     }
 
     public function concernsProduct(Product $product): bool
@@ -64,19 +71,24 @@ abstract class ConditionTarget
         return $this->matchesSubject($product->id(), $product->type()->id());
     }
 
-    public function is(Product|ProductType $subject, ?string $variant): bool
+    public function is(Product|ProductType $subject, ?string $variant, ?DesignCollection $collection = null): bool
     {
-        return $subject === $this->subject() && VariantLabel::same($this->variant, $variant);
+        return $subject === $this->subject() && VariantLabel::same($this->variant, $variant) && $collection === $this->collection;
     }
 
     public function specificity(): int
     {
-        return $this->specificityOfSubject() + (null === $this->variant ? 0 : 1);
+        return $this->specificityOfSubject() + (null === $this->variant ? 0 : 1) + (null === $this->collection ? 0 : 1);
     }
 
     public function name(): string
     {
-        return null === $this->variant ? $this->nameOfSubject() : \sprintf('%s · %s', $this->nameOfSubject(), $this->variant);
+        return implode(' · ', array_filter([$this->nameOfSubject(), $this->collection?->name(), $this->variant], static fn (?string $part): bool => null !== $part));
+    }
+
+    public function isIn(DesignCollection $collection): bool
+    {
+        return $collection === $this->collection;
     }
 
     public function renameVariant(string $from, string $to): void
@@ -94,5 +106,10 @@ abstract class ConditionTarget
     public function variant(): ?string
     {
         return $this->variant;
+    }
+
+    public function collection(): ?DesignCollection
+    {
+        return $this->collection;
     }
 }

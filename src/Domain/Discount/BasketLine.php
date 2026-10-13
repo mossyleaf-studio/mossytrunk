@@ -16,11 +16,12 @@ final readonly class BasketLine
         public int $quantity,
         public Ulid $typeId,
         public ?string $variant = null,
+        public ?Ulid $collectionId = null,
     ) {
     }
 
-    public static function of(SellableItem $item, int $quantity): ?self
+    public static function of(SellableItem $item, int $quantity, ?Ulid $collectionId = null): ?self
     {
-        return null === $item->productId || null === $item->typeId ? null : new self($item->productId, $item->sellingPrice, $quantity, $item->typeId, $item->variant);
+        return null === $item->productId || null === $item->typeId ? null : new self($item->productId, $item->sellingPrice, $quantity, $item->typeId, $item->variant, $collectionId);
     }
 }

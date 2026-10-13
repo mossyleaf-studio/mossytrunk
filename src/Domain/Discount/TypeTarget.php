@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Discount;
 
+use App\Domain\Design\DesignCollection;
 use App\Domain\Product\Exception\UnknownTypeVariant;
 use App\Domain\Product\ProductType;
 use App\Domain\Product\VariantLabel;
@@ -17,10 +18,11 @@ class TypeTarget extends ConditionTarget
     #[ORM\JoinColumn(nullable: true, onDelete: 'CASCADE')]
     private ProductType $type;
 
-    public function __construct(DiscountCondition $condition, ProductType $type, ?string $variant = null)
+    public function __construct(DiscountCondition $condition, ProductType $type, ?string $variant = null, ?DesignCollection $collection = null)
     {
         parent::__construct($condition);
         $this->type = $type;
+        $this->collection = $collection;
         $this->variant = null === $variant ? null : (VariantLabel::find($type->variants(), $variant) ?? throw new UnknownTypeVariant($type->name(), $variant));
     }
 

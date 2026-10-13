@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Application\Discount;
 
+use App\Application\Design\CreateCollection\CreateCollectionHandler;
+use App\Application\Design\CreateGabarit\CreateGabarit;
+use App\Application\Design\CreateGabarit\CreateGabaritHandler;
+use App\Application\Design\DeleteCollection\DeleteCollectionHandler;
+use App\Application\Design\DesignProduct\DesignProductHandler;
 use App\Application\Discount\CreateDiscountRule\CreateDiscountRuleHandler;
 use App\Application\Discount\DeleteDiscountRule\DeleteDiscountRuleHandler;
 use App\Application\Discount\DiscountRuleDefinition;
@@ -18,6 +23,7 @@ use App\Application\Order\PreviewOrder\PreviewOrderHandler;
 use App\Application\Order\RequestedLine;
 use App\Application\Product\CreateProduct\CreateProductHandler;
 use App\Application\Product\CreateProductType\CreateProductTypeHandler;
+use App\Domain\Discount\Exception\OnlyEligibleCollection;
 use App\Domain\Product\Exception\UnknownTypeVariant;
 use App\Domain\Shared\Exception\NotFound;
 use App\Tests\Support\ActsAsUser;
@@ -158,6 +164,33 @@ final class DiscountRuleUseCasesTest extends KernelTestCase
         DomainExceptions::assertThrown(
             new UnknownTypeVariant('Print', 'A3'),
             static fn () => self::getContainer()->get(CreateDiscountRuleHandler::class)(new DiscountRuleDefinition('A3', [DiscountRules::type($print, 1, 'A3')], 'amountOff', 300)),
+        );
+    }
+
+    public function testADiscountOnATypeOfOneCollectionOnlyAppliesToItsProductsOfThatCollection(): void
+    {
+        $stickers = (string) self::getContainer()->get(CreateProductTypeHandler::class)('Sticker')->id();
+        $gabarit = (string) self::getContainer()->get(CreateGabaritHandler::class)(new CreateGabarit('Sticker 5 cm', $stickers, 400, [], []))->id();
+        $eeveeCollection = (string) self::getContainer()->get(CreateCollectionHandler::class)('Eevee', null);
+        $eevee = self::createProduct('Évoli', 400, typeId: $stickers);
+        $sylveon = self::createProduct('Nymphali', 400, typeId: $stickers);
+        $mossy = self::createProduct('Mossy', 500, typeId: $stickers);
+        self::getContainer()->get(DesignProductHandler::class)($eevee, $gabarit, $eeveeCollection);
+        self::getContainer()->get(DesignProductHandler::class)($sylveon, $gabarit, $eeveeCollection);
+        $rule = (string) self::getContainer()->get(CreateDiscountRuleHandler::class)(new DiscountRuleDefinition(
+            '1 sticker Eevee : −1 €',
+            [DiscountRules::anyOf(1, DiscountRules::typeTarget($stickers, collectionId: $eeveeCollection))],
+            'amountOff',
+            100,
+        ));
+
+        $preview = self::getContainer()->get(PreviewOrderHandler::class)(new \DateTimeImmutable('2030-03-14 12:00'), [new RequestedLine($eevee, null, 1), new RequestedLine($sylveon, null, 1), new RequestedLine($mossy, null, 2)]);
+
+        self::assertSame([['label' => '1 sticker Eevee : −1 € ×2', 'amount' => 200, 'ruleId' => $rule]], $preview->discounts);
+        self::assertSame(['Sticker · Eevee'], DiscountRules::names(self::getContainer()->get(ListDiscountRulesHandler::class)()[0]));
+        DomainExceptions::assertThrown(
+            new OnlyEligibleCollection('1 sticker Eevee : −1 €', 'Eevee'),
+            static fn () => self::getContainer()->get(DeleteCollectionHandler::class)($eeveeCollection),
         );
     }
 }

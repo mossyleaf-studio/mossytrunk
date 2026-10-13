@@ -31,7 +31,8 @@ function describe(target) {
     return { name: product?.displayName ?? target.name, color: typesById.value.get(product?.typeId)?.color ?? null };
 }
 
-const conditionKey = (condition) => condition.targets.map((target) => `${target.kind}-${target.id}-${target.variant}`).join('|');
+const targetKey = (target) => `${target.kind}-${target.id}-${target.collectionId}-${target.variant}`;
+const conditionKey = (condition) => condition.targets.map(targetKey).join('|');
 
 const period = (rule) => describePeriod(rule.startsOn, rule.endsOn);
 
@@ -72,8 +73,8 @@ const savings = computed(() => new Map(props.rules.map((rule) => [rule.id, savin
                         <span v-if="index > 0" class="discount-rule-list__plus">+</span>{{ ' ' }}
                         <span class="discount-rule-list__condition">
                             <span class="discount-rule-list__quantity">{{ condition.quantity }} ×</span>
-                            <template v-for="(target, position) in condition.targets" :key="`${target.kind}-${target.id}-${target.variant}`">
-                                {{ ' ' }}<span v-if="position > 0" class="discount-rule-list__or">{{ t('discounts.list.or') }}</span>{{ position > 0 ? ' ' : '' }}<TypeMark :color="describe(target).color" /> <span>{{ describe(target).name }}</span> <span v-if="target.variant" class="discount-rule-list__variant">{{ target.variant }}</span>
+                            <template v-for="(target, position) in condition.targets" :key="targetKey(target)">
+                                {{ ' ' }}<span v-if="position > 0" class="discount-rule-list__or">{{ t('discounts.list.or') }}</span>{{ position > 0 ? ' ' : '' }}<TypeMark :color="describe(target).color" /> <span>{{ describe(target).name }}</span> <span v-if="target.collectionName" class="discount-rule-list__variant">{{ target.collectionName }}</span> <span v-if="target.variant" class="discount-rule-list__variant">{{ target.variant }}</span>
                             </template>
                         </span>{{ ' ' }}
                     </template>

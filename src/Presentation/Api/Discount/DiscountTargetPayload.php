@@ -17,11 +17,13 @@ final readonly class DiscountTargetPayload
         public string $id = '',
         #[Assert\Length(max: 100)]
         public ?string $variant = null,
+        #[Assert\Ulid(message: 'collection.invalid')]
+        public ?string $collectionId = null,
     ) {
     }
 
     public function toDefinition(): TargetDefinition
     {
-        return new TargetDefinition($this->kind, $this->id, $this->variant);
+        return new TargetDefinition($this->kind, $this->id, $this->variant, $this->collectionId);
     }
 }

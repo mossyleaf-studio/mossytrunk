@@ -18,6 +18,7 @@ design:
     unknown_adjustment: 'Adaptation inconnue « {adjustment} ».'
 discount:
     only_eligible_type: 'La remise « {rule} » ne concerne que le type « {type} » : modifiez ou supprimez-la avant de supprimer le type.'
+    only_eligible_collection: 'La remise « {rule} » ne concerne que la collection « {collection} » : modifiez ou supprimez-la avant de supprimer la collection.'
     condition_quantity_too_small: 'Une condition porte sur au moins 1 article.'
     expired: '« {name} » est expirée : modifiez ses dates pour la relancer.'
     not_running: '« {name} » n''est pas en cours.'

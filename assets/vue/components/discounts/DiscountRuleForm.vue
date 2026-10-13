@@ -35,12 +35,12 @@ const ACTIONS = [
     { value: 'percentOff', label: 'discounts.form.percentOff', valueLabel: 'discounts.form.percent' },
 ];
 
-const emptyTarget = () => ({ kind: 'type', id: '', variant: '' });
+const emptyTarget = () => ({ kind: 'type', id: '', variant: '', collectionId: '' });
 const emptyCondition = () => ({ quantity: 1, targets: [emptyTarget()] });
 const emptyForm = () => ({ name: '', conditions: [emptyCondition()], actionKind: 'fixedPrice', amount: null, percent: null, startsOn: '', endsOn: '' });
 const fromRule = (rule) => ({
     name: rule.name,
-    conditions: rule.conditions.map(({ quantity, targets }) => ({ quantity, targets: targets.map(({ kind, id, variant }) => ({ kind, id, variant: variant ?? '' })) })),
+    conditions: rule.conditions.map(({ quantity, targets }) => ({ quantity, targets: targets.map(({ kind, id, variant, collectionId }) => ({ kind, id, variant: variant ?? '', collectionId: collectionId ?? '' })) })),
     actionKind: rule.action.kind,
     amount: rule.action.kind === 'percentOff' ? null : rule.action.value,
     percent: rule.action.kind === 'percentOff' ? rule.action.value / 100 : null,
@@ -64,6 +64,13 @@ const variantsOf = (target) => (subjectOf(target)?.variants ?? [])
 const variantOptions = (target) => [
     { value: '', label: t('discounts.form.allVariants') },
     ...variantsOf(target).map((variant) => ({ value: variant, label: variant })),
+];
+const collectionsOf = (target) => (target.kind === 'type' ? [...new Map(props.products
+    .filter((product) => product.typeId === target.id && product.collectionId)
+    .map((product) => [product.collectionId, product.collectionName])).entries()] : []);
+const collectionOptions = (target) => [
+    { value: '', label: t('discounts.form.allCollections') },
+    ...collectionsOf(target).map(([value, label]) => ({ value, label })),
 ];
 const targetNumber = (index, position) => (position === 0 ? `${index + 1}` : t('discounts.form.targetNumber', { condition: index + 1, target: position + 1 }));
 
@@ -98,6 +105,7 @@ function setKind(target, kind) {
         target.kind = kind;
         target.id = '';
         target.variant = '';
+        target.collectionId = '';
     }
 }
 
@@ -105,11 +113,12 @@ function setSubject(target, id) {
     if (id !== target.id) {
         target.id = id;
         target.variant = '';
+        target.collectionId = '';
     }
 }
 
 const conditionError = (index) => errors.value[`conditions[${index}].quantity`] ?? errors.value[`conditions[${index}].targets`];
-const targetError = (index, position) => errors.value[`conditions[${index}].targets[${position}].id`] ?? errors.value[`conditions[${index}].targets[${position}].variant`];
+const targetError = (index, position) => ['id', 'variant', 'collectionId'].map((field) => errors.value[`conditions[${index}].targets[${position}].${field}`]).find(Boolean);
 
 function removeCondition(index) {
     form.conditions.splice(index, 1);
@@ -121,7 +130,7 @@ async function onSubmit() {
             name: form.name,
             conditions: form.conditions.map((condition) => ({
                 quantity: Number(condition.quantity) || 0,
-                targets: condition.targets.map((target) => ({ kind: target.kind, id: target.id, variant: target.variant || null })),
+                targets: condition.targets.map((target) => ({ kind: target.kind, id: target.id, variant: target.variant || null, collectionId: target.collectionId || null })),
             })),
             action: action.value,
             startsOn: form.startsOn || null,
@@ -172,13 +181,19 @@ async function onSubmit() {
                                         :label="t('discounts.form.removeTarget', { number: targetNumber(index, position) })"
                                         @click="condition.targets.splice(position, 1)"
                                     />
-                                    <div :class="['discount-rule-form__target', { 'discount-rule-form__target--with-variant': variantsOf(target).length }]">
+                                    <div class="discount-rule-form__target">
                                         <BaseCombobox
                                             :model-value="target.id"
                                             :options="optionsFor(target)"
                                             :aria-label="target.kind === 'type' ? t('discounts.form.conditionType', { number: targetNumber(index, position) }) : t('discounts.form.conditionProduct', { number: targetNumber(index, position) })"
                                             :placeholder="target.kind === 'type' ? t('discounts.form.chooseType') : t('discounts.form.searchProduct')"
                                             @update:model-value="(id) => setSubject(target, id ?? '')"
+                                        />
+                                        <BaseSelect
+                                            v-if="collectionsOf(target).length"
+                                            v-model="target.collectionId"
+                                            :options="collectionOptions(target)"
+                                            :aria-label="t('discounts.form.conditionCollection', { number: targetNumber(index, position) })"
                                         />
                                         <BaseSelect
                                             v-if="variantsOf(target).length"
@@ -285,8 +300,7 @@ async function onSubmit() {
 .discount-rule-form__condition-kinds { grid-area: kinds; }
 .discount-rule-form__target-row :deep(.discount-rule-form__remove-target) { grid-area: remove-target; }
 .discount-rule-form__condition :deep(.discount-rule-form__remove) { grid-area: remove; }
-.discount-rule-form__target { grid-area: target; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-2); }
-.discount-rule-form__target--with-variant { grid-template-columns: minmax(0, 1fr) auto; }
+.discount-rule-form__target { grid-area: target; display: grid; grid-template-columns: minmax(0, 1fr); grid-auto-columns: auto; grid-auto-flow: column; gap: var(--space-2); }
 .discount-rule-form__condition-error { grid-column: 1 / -1; margin: 0; color: var(--color-danger); font-size: var(--font-size-md); }
 .discount-rule-form__add { align-self: flex-start; }
 
@@ -299,7 +313,7 @@ async function onSubmit() {
 
 @container form (max-width: 28rem) {
     .discount-rule-form__condition { grid-template-areas: "quantity times . remove" "group group group group"; }
-    .discount-rule-form__target--with-variant { grid-template-columns: minmax(0, 1fr); }
+    .discount-rule-form__target { grid-auto-flow: row; }
 }
 .discount-rule-form__priced-on { display: block; color: var(--color-muted); font-size: var(--font-size-xs); }
 </style>

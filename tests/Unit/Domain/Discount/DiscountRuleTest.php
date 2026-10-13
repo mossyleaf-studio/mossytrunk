@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Domain\Discount;
 
+use App\Domain\Design\DesignCollection;
 use App\Domain\Discount\ConditionSpec;
 use App\Domain\Discount\DiscountAction;
 use App\Domain\Discount\DiscountCondition;
@@ -12,6 +13,7 @@ use App\Domain\Discount\DiscountStatus;
 use App\Domain\Discount\Exception\ConditionWithoutTarget;
 use App\Domain\Discount\Exception\DuplicateConditionTarget;
 use App\Domain\Discount\Exception\InvalidDiscountRule;
+use App\Domain\Discount\Exception\OnlyEligibleCollection;
 use App\Domain\Discount\Exception\OnlyEligibleProduct;
 use App\Domain\Discount\Exception\OnlyEligibleType;
 use App\Domain\Discount\TargetSpec;
@@ -185,7 +187,7 @@ final class DiscountRuleTest extends TestCase
         $rule = $this->rule([ConditionSpec::on(1, $this->print), ConditionSpec::on(1, $this->print, 'A3'), ConditionSpec::on(1, $forest), ConditionSpec::on(1, $forest, 'A3')]);
 
         self::assertSame(
-            [['Print Forêt · A3', 3], ['Print Forêt', 2], ['Print · A3', 1], ['Print', 0]],
+            [['Print Forêt · A3', 4], ['Print Forêt', 3], ['Print · A3', 1], ['Print', 0]],
             array_map(static fn (DiscountCondition $c): array => [$c->name(), $c->specificity()], $rule->conditionsMostSpecificFirst()),
         );
     }
@@ -306,6 +308,29 @@ final class DiscountRuleTest extends TestCase
 
         $this->expectException(OnlyEligibleType::class);
         $this->rule([ConditionSpec::on(2, $this->print)])->withdrawType($this->print);
+    }
+
+    public function testATypeCanBeNarrowedToACollectionNextToThePlainType(): void
+    {
+        $eevee = DesignCollection::start(TestWorkspace::get(), 'Eevee');
+        $rule = $this->rule([new ConditionSpec(1, [new TargetSpec($this->print, collection: $eevee)]), ConditionSpec::on(1, $this->print)]);
+
+        self::assertSame([['Print · Eevee', 1], ['Print', 1]], $this->targets($rule));
+        self::assertSame(1, $rule->conditions()[0]->specificity());
+
+        $this->expectException(DuplicateConditionTarget::class);
+        $this->rule([new ConditionSpec(1, [new TargetSpec($this->print, collection: $eevee), new TargetSpec($this->print, collection: $eevee)])]);
+    }
+
+    public function testACollectionCanBeWithdrawnUnlessItIsTheOnlyCondition(): void
+    {
+        $eevee = DesignCollection::start(TestWorkspace::get(), 'Eevee');
+        $both = $this->rule([new ConditionSpec(1, [new TargetSpec($this->print, collection: $eevee), new TargetSpec($this->sticker)]), ConditionSpec::on(1, $this->print)]);
+        $both->withdrawCollection($eevee);
+        self::assertSame([['Sticker', 1], ['Print', 1]], $this->targets($both));
+
+        $this->expectException(OnlyEligibleCollection::class);
+        $this->rule([new ConditionSpec(1, [new TargetSpec($this->print, collection: $eevee)])])->withdrawCollection($eevee);
     }
 
     public function testAConditionCanBeMetByAnyProductOrTypeOfItsGroup(): void

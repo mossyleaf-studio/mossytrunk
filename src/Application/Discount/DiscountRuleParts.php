@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\Discount;
 
+use App\Domain\Design\DesignCollectionRepository;
 use App\Domain\Discount\ConditionSpec;
 use App\Domain\Discount\DiscountAction;
 use App\Domain\Discount\DiscountActionKind;
@@ -18,6 +19,7 @@ final readonly class DiscountRuleParts
     public function __construct(
         private ProductRepository $products,
         private ProductTypeRepository $types,
+        private DesignCollectionRepository $collections,
     ) {
     }
 
@@ -44,11 +46,14 @@ final readonly class DiscountRuleParts
 
     private function target(TargetDefinition $target): TargetSpec
     {
+        $isType = TargetDefinition::TYPE === $target->kind;
+
         return new TargetSpec(
-            TargetDefinition::TYPE === $target->kind
+            $isType
                 ? $this->types->get(Ulid::fromString($target->targetId))
                 : $this->products->get(Ulid::fromString($target->targetId)),
             null === $target->variant || '' === trim($target->variant) ? null : $target->variant,
+            $isType && null !== $target->collectionId && '' !== $target->collectionId ? $this->collections->get(Ulid::fromString($target->collectionId)) : null,
         );
     }
 

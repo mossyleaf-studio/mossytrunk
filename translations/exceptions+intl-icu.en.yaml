@@ -18,6 +18,7 @@ design:
     unknown_adjustment: 'Unknown adjustment “{adjustment}”.'
 discount:
     only_eligible_type: 'The discount “{rule}” only applies to the type “{type}”: edit or delete it before deleting the type.'
+    only_eligible_collection: 'The discount “{rule}” only applies to the collection “{collection}”: edit or delete it before deleting the collection.'
     condition_quantity_too_small: 'A condition applies to at least 1 item.'
     expired: '“{name}” has expired: change its dates to restart it.'
     not_running: '“{name}” is not running.'

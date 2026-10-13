@@ -38,9 +38,10 @@ final readonly class DoctrineDiscountRuleRepository implements DiscountRuleRepos
 
     public function all(): array
     {
-        $rules = $this->scope->restrict($this->entityManager->createQueryBuilder()->select('r', 'c', 't')->from(DiscountRule::class, 'r'), 'r')
+        $rules = $this->scope->restrict($this->entityManager->createQueryBuilder()->select('r', 'c', 't', 'tc')->from(DiscountRule::class, 'r'), 'r')
             ->leftJoin('r.conditions', 'c')
             ->leftJoin('c.targets', 't')
+            ->leftJoin('t.collection', 'tc')
             ->orderBy('r.name', 'ASC')
             ->addOrderBy('c.id', 'ASC')
             ->addOrderBy('t.id', 'ASC')

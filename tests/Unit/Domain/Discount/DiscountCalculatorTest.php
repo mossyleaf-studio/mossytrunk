@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Domain\Discount;
 
+use App\Domain\Design\DesignCollection;
 use App\Domain\Discount\AppliedDiscount;
 use App\Domain\Discount\BasketLine;
 use App\Domain\Discount\ConditionSpec;
@@ -18,6 +19,7 @@ use App\Domain\Shared\Money;
 use App\Tests\Support\TestProductType;
 use App\Tests\Support\TestWorkspace;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Uid\Ulid;
 
 final class DiscountCalculatorTest extends TestCase
 {
@@ -191,6 +193,28 @@ final class DiscountCalculatorTest extends TestCase
         self::assertEquals([new AppliedDiscount('5 prints pour 60 €', Money::cents(5_400), $rule->id())], $this->calculator->calculate($basket, [$rule], $this->now));
     }
 
+    public function testATypeCollectionConditionOnlyMatchesTheTypesProductsOfThatCollection(): void
+    {
+        $eevee = DesignCollection::start(TestWorkspace::get(), 'Eevee');
+        $rule = $this->rule('1 sticker Eevee : −1 €', [new ConditionSpec(1, [new TargetSpec($this->stickerType, collection: $eevee)])], DiscountAction::amountOff(Money::cents(100)));
+
+        self::assertSame([], $this->calculator->calculate([$this->line($this->holoSticker, 1), $this->line($this->sticker, 1, collectionId: DesignCollection::start(TestWorkspace::get(), 'Mossy')->id())], [$rule], $this->now));
+        self::assertEquals(
+            [new AppliedDiscount('1 sticker Eevee : −1 €', Money::cents(100), $rule->id())],
+            $this->calculator->calculate([$this->line($this->holoSticker, 1), $this->line($this->sticker, 1, collectionId: $eevee->id())], [$rule], $this->now),
+        );
+    }
+
+    public function testATypeCollectionConditionPicksBeforeAPlainTypeCondition(): void
+    {
+        $eevee = DesignCollection::start(TestWorkspace::get(), 'Eevee');
+        $rule = $this->rule('1 sticker Eevee + 1 sticker', [ConditionSpec::on(1, $this->stickerType), new ConditionSpec(1, [new TargetSpec($this->stickerType, collection: $eevee)])], DiscountAction::fixedPrice(Money::cents(500)));
+
+        $discounts = $this->calculator->calculate([$this->line($this->holoSticker, 1, collectionId: $eevee->id()), $this->line($this->sticker, 1)], [$rule], $this->now);
+
+        self::assertEquals([new AppliedDiscount('1 sticker Eevee + 1 sticker', Money::cents(500), $rule->id())], $discounts);
+    }
+
     /**
      * @param list<ConditionSpec> $conditions
      */
@@ -199,8 +223,8 @@ final class DiscountCalculatorTest extends TestCase
         return DiscountRule::create(TestWorkspace::get(), $name, $conditions, $action, $validity);
     }
 
-    private function line(Product $product, int $quantity, ?string $variant = null): BasketLine
+    private function line(Product $product, int $quantity, ?string $variant = null, ?Ulid $collectionId = null): BasketLine
     {
-        return new BasketLine($product->id(), $product->sellingPrice(), $quantity, $product->type()->id(), $variant);
+        return new BasketLine($product->id(), $product->sellingPrice(), $quantity, $product->type()->id(), $variant, $collectionId);
     }
 }

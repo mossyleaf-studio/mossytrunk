@@ -57,10 +57,10 @@ final class DiscountRuleApiTest extends WebTestCase
         $client->jsonRequest('GET', '/api/discount-rules');
         $conditions = Json::array(Json::decode((string) $client->getResponse()->getContent()), 0, 'conditions');
         self::assertSame([
-            ['quantity' => 2, 'targets' => [['kind' => 'type', 'id' => $print, 'name' => 'Print · A3', 'variant' => 'A3']]],
+            ['quantity' => 2, 'targets' => [['kind' => 'type', 'id' => $print, 'name' => 'Print · A3', 'variant' => 'A3', 'collectionId' => null, 'collectionName' => null]]],
             ['quantity' => 1, 'targets' => [
-                ['kind' => 'product', 'id' => $forest, 'name' => 'Print Forêt · A4', 'variant' => 'A4'],
-                ['kind' => 'product', 'id' => $forest, 'name' => 'Print Forêt', 'variant' => null],
+                ['kind' => 'product', 'id' => $forest, 'name' => 'Print Forêt · A4', 'variant' => 'A4', 'collectionId' => null, 'collectionName' => null],
+                ['kind' => 'product', 'id' => $forest, 'name' => 'Print Forêt', 'variant' => null, 'collectionId' => null, 'collectionName' => null],
             ]],
         ], $conditions);
     }

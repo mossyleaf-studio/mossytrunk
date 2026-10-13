@@ -49,14 +49,14 @@ final class DiscountCalculator
     /**
      * @param list<BasketLine> $basket
      *
-     * @return array<int, array{productId: Ulid, typeId: Ulid, variant: ?string, price: Money}>
+     * @return array<int, array{productId: Ulid, typeId: Ulid, variant: ?string, collectionId: ?Ulid, price: Money}>
      */
     private function expand(array $basket): array
     {
         $units = [];
         foreach ($basket as $line) {
             for ($i = 0; $i < $line->quantity; ++$i) {
-                $units[] = ['productId' => $line->productId, 'typeId' => $line->typeId, 'variant' => $line->variant, 'price' => $line->unitPrice];
+                $units[] = ['productId' => $line->productId, 'typeId' => $line->typeId, 'variant' => $line->variant, 'collectionId' => $line->collectionId, 'price' => $line->unitPrice];
             }
         }
 
@@ -66,8 +66,8 @@ final class DiscountCalculator
     }
 
     /**
-     * @param array<int, array{productId: Ulid, typeId: Ulid, variant: ?string, price: Money}> $units
-     * @param list<DiscountRule>                                                               $rules
+     * @param array<int, array{productId: Ulid, typeId: Ulid, variant: ?string, collectionId: ?Ulid, price: Money}> $units
+     * @param list<DiscountRule>                                                                                    $rules
      *
      * @return array{DiscountRule, list<int>, Money}|null
      */
@@ -91,7 +91,7 @@ final class DiscountCalculator
     }
 
     /**
-     * @param array<int, array{productId: Ulid, typeId: Ulid, variant: ?string, price: Money}> $units
+     * @param array<int, array{productId: Ulid, typeId: Ulid, variant: ?string, collectionId: ?Ulid, price: Money}> $units
      *
      * @return list<int>|null
      */
@@ -99,7 +99,7 @@ final class DiscountCalculator
     {
         $taken = [];
         foreach ($rule->conditionsMostSpecificFirst() as $condition) {
-            $matching = array_keys(array_filter($units, static fn (array $unit): bool => $condition->matches($unit['productId'], $unit['typeId'], $unit['variant'])));
+            $matching = array_keys(array_filter($units, static fn (array $unit): bool => $condition->matches($unit['productId'], $unit['typeId'], $unit['variant'], $unit['collectionId'])));
             if (\count($matching) < $condition->quantity()) {
                 return null;
             }

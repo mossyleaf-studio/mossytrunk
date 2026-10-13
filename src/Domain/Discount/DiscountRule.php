@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Domain\Discount;
 
+use App\Domain\Design\DesignCollection;
 use App\Domain\Discount\Exception\DiscountExpired;
 use App\Domain\Discount\Exception\DiscountNotRunning;
 use App\Domain\Discount\Exception\DuplicateConditionTarget;
 use App\Domain\Discount\Exception\EmptyDiscountName;
 use App\Domain\Discount\Exception\NoDiscountCondition;
+use App\Domain\Discount\Exception\OnlyEligibleCollection;
 use App\Domain\Discount\Exception\OnlyEligibleProduct;
 use App\Domain\Discount\Exception\OnlyEligibleType;
 use App\Domain\Identity\Workspace;
@@ -83,7 +85,7 @@ class DiscountRule
         foreach ($conditions as $spec) {
             $condition = new DiscountCondition($this, $spec->quantity, $spec->targets);
             foreach ($condition->targets() as $target) {
-                if (array_any($built, static fn (DiscountCondition $other): bool => $other->has($target->subject(), $target->variant()))) {
+                if (array_any($built, static fn (DiscountCondition $other): bool => $other->has($target->subject(), $target->variant(), $target->collection()))) {
                     throw new DuplicateConditionTarget($target->name());
                 }
             }
@@ -128,6 +130,24 @@ class DiscountRule
             throw new OnlyEligibleType($this->name, $type->name());
         }
         $this->withdraw($type);
+    }
+
+    public function withdrawCollection(DesignCollection $collection): void
+    {
+        if ($this->conditions->forAll(static fn (int $key, DiscountCondition $condition): bool => $condition->onlyTargetsCollection($collection))) {
+            throw new OnlyEligibleCollection($this->name, $collection->name());
+        }
+        foreach ($this->conditions() as $condition) {
+            $condition->withdrawCollection($collection);
+            if ($condition->isEmpty()) {
+                $this->conditions->removeElement($condition);
+            }
+        }
+    }
+
+    public function filtersByCollection(): bool
+    {
+        return $this->conditions->exists(static fn (int $key, DiscountCondition $condition): bool => $condition->filtersByCollection());
     }
 
     public function renameVariant(ProductType $type, string $from, string $to): void

@@ -30,6 +30,8 @@
         "conditionProduct": "Product for condition {number}",
         "conditionVariant": "Variant for condition {number}",
         "allVariants": "All variants",
+        "allCollections": "All collections",
+        "conditionCollection": "Collection for condition {number}",
         "chooseType": "Choose a type…",
         "searchProduct": "Search for a product…",
         "removeCondition": "Remove condition {number}",

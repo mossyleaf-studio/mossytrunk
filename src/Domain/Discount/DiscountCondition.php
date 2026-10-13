@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Discount;
 
+use App\Domain\Design\DesignCollection;
 use App\Domain\Discount\Exception\ConditionQuantityTooSmall;
 use App\Domain\Discount\Exception\ConditionWithoutTarget;
 use App\Domain\Discount\Exception\DuplicateConditionTarget;
@@ -53,16 +54,16 @@ class DiscountCondition
         $this->targets = new ArrayCollection();
         foreach ($targets as $spec) {
             $target = ConditionTarget::of($this, $spec);
-            if ($this->has($target->subject(), $target->variant())) {
+            if ($this->has($target->subject(), $target->variant(), $target->collection())) {
                 throw new DuplicateConditionTarget($target->name());
             }
             $this->targets->add($target);
         }
     }
 
-    public function matches(Ulid $productId, Ulid $typeId, ?string $variant): bool
+    public function matches(Ulid $productId, Ulid $typeId, ?string $variant, ?Ulid $collectionId = null): bool
     {
-        return $this->targets->exists(static fn (int $key, ConditionTarget $target): bool => $target->matches($productId, $typeId, $variant));
+        return $this->targets->exists(static fn (int $key, ConditionTarget $target): bool => $target->matches($productId, $typeId, $variant, $collectionId));
     }
 
     public function concernsProduct(Product $product): bool
@@ -70,9 +71,28 @@ class DiscountCondition
         return $this->targets->exists(static fn (int $key, ConditionTarget $target): bool => $target->concernsProduct($product));
     }
 
-    public function has(Product|ProductType $subject, ?string $variant): bool
+    public function has(Product|ProductType $subject, ?string $variant, ?DesignCollection $collection = null): bool
     {
-        return $this->targets->exists(static fn (int $key, ConditionTarget $target): bool => $target->is($subject, $variant));
+        return $this->targets->exists(static fn (int $key, ConditionTarget $target): bool => $target->is($subject, $variant, $collection));
+    }
+
+    public function filtersByCollection(): bool
+    {
+        return $this->targets->exists(static fn (int $key, ConditionTarget $target): bool => null !== $target->collection());
+    }
+
+    public function onlyTargetsCollection(DesignCollection $collection): bool
+    {
+        return array_all($this->targets(), static fn (ConditionTarget $target): bool => $target->isIn($collection));
+    }
+
+    public function withdrawCollection(DesignCollection $collection): void
+    {
+        foreach ($this->targets() as $target) {
+            if ($target->isIn($collection)) {
+                $this->targets->removeElement($target);
+            }
+        }
     }
 
     public function specificity(): int

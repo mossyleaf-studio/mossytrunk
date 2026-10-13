@@ -36,9 +36,9 @@ final class DiscountRules
         return new TargetDefinition(TargetDefinition::PRODUCT, $productId, $variant);
     }
 
-    public static function typeTarget(string $typeId, ?string $variant = null): TargetDefinition
+    public static function typeTarget(string $typeId, ?string $variant = null, ?string $collectionId = null): TargetDefinition
     {
-        return new TargetDefinition(TargetDefinition::TYPE, $typeId, $variant);
+        return new TargetDefinition(TargetDefinition::TYPE, $typeId, $variant, $collectionId);
     }
 
     /**

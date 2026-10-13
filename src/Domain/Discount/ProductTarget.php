@@ -51,7 +51,7 @@ class ProductTarget extends ConditionTarget
 
     protected function specificityOfSubject(): int
     {
-        return 2;
+        return 3;
     }
 
     protected function nameOfSubject(): string

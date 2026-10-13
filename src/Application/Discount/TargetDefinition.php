@@ -13,6 +13,7 @@ final readonly class TargetDefinition
         public string $kind,
         public string $targetId,
         public ?string $variant = null,
+        public ?string $collectionId = null,
     ) {
     }
 }

@@ -11,8 +11,8 @@ use App\Domain\Discount\DiscountRule;
 final readonly class DiscountRuleView
 {
     /**
-     * @param list<array{quantity: int, targets: list<array{kind: string, id: string, name: string, variant: ?string}>}> $conditions
-     * @param array{kind: string, value: int}                                                                            $action
+     * @param list<array{quantity: int, targets: list<array{kind: string, id: string, name: string, variant: ?string, collectionId: ?string, collectionName: ?string}>}> $conditions
+     * @param array{kind: string, value: int}                                                                                                                            $action
      */
     public function __construct(
         public string $id,
@@ -38,6 +38,8 @@ final readonly class DiscountRuleView
                     'id' => (string) $target->subjectId(),
                     'name' => $target->name(),
                     'variant' => $target->variant(),
+                    'collectionId' => null === $target->collection() ? null : (string) $target->collection()->id(),
+                    'collectionName' => $target->collection()?->name(),
                 ], $condition->targets()),
             ], $rule->conditions()),
             ['kind' => $rule->action()->kind()->value, 'value' => $rule->action()->value()],
