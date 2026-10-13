@@ -30,6 +30,34 @@ final class EventApiTest extends WebTestCase
         self::assertSame(30_000, $event['expensesTotal']);
     }
 
+    public function testDonationsRaiseTheResultWithoutCountingAsTurnover(): void
+    {
+        $client = self::signedInClient();
+        $id = $this->schedule($client, '2026-07-09');
+        $client->jsonRequest('POST', "/api/events/$id/expenses", ['label' => 'Stand', 'amount' => 1_000]);
+
+        $client->jsonRequest('POST', "/api/events/$id/donations", ['label' => 'Boîte à dons', 'amount' => 2_500]);
+        self::assertResponseStatusCodeSame(201);
+        $client->jsonRequest('POST', "/api/events/$id/donations", ['amount' => 500]);
+        $unlabelled = Json::string(Json::decode((string) $client->getResponse()->getContent()), 'id');
+        $client->jsonRequest('POST', "/api/events/$id/donations", ['amount' => 0]);
+        self::assertResponseStatusCodeSame(422);
+
+        $client->jsonRequest('GET', "/api/events/$id");
+        $event = Json::decode((string) $client->getResponse()->getContent());
+        self::assertSame([['Boîte à dons', 2_500], [null, 500]], array_map(static fn (mixed $donation): array => [Json::at($donation, 'label'), Json::int($donation, 'amount')], Json::array($event, 'donations')));
+        self::assertSame(3_000, $event['donationsTotal']);
+
+        $client->jsonRequest('GET', "/api/events/$id/report");
+        $total = Json::array(Json::decode((string) $client->getResponse()->getContent()), 'total');
+        self::assertSame([0, 0, 3_000, 2_000], [$total['turnover'], $total['urssaf'], $total['donations'], $total['result']]);
+
+        $client->jsonRequest('DELETE', "/api/events/$id/donations/$unlabelled");
+        self::assertResponseStatusCodeSame(204);
+        $client->jsonRequest('GET', "/api/events/$id");
+        self::assertSame(2_500, Json::int(Json::decode((string) $client->getResponse()->getContent()), 'donationsTotal'));
+    }
+
     public function testASharedExpenseIsSplitWithTheNextEvent(): void
     {
         $client = self::signedInClient();

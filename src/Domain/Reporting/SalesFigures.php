@@ -19,15 +19,17 @@ final readonly class SalesFigures
         public Money $consumedSupplies,
         public Money $channelCosts,
         public Money $expenses,
+        public Money $donations,
         public Money $urssaf,
         public Money $result,
     ) {
     }
 
-    public static function of(SalesTotals $sales, Money $expenses, ?Money $consumedSupplies = null): self
+    public static function of(SalesTotals $sales, Money $expenses, ?Money $consumedSupplies = null, ?Money $donations = null): self
     {
         $turnover = $sales->turnover();
         $consumedSupplies ??= Money::zero();
+        $donations ??= Money::zero();
         $urssaf = UrssafContribution::on($turnover);
 
         return new self(
@@ -41,8 +43,9 @@ final readonly class SalesFigures
             $consumedSupplies,
             $sales->channelCosts,
             $expenses,
+            $donations,
             $urssaf,
-            $turnover->subtract($sales->costOfGoods)->subtract($sales->supplies)->subtract($consumedSupplies)->subtract($sales->channelCosts)->subtract($expenses)->subtract($urssaf),
+            $turnover->subtract($sales->costOfGoods)->subtract($sales->supplies)->subtract($consumedSupplies)->subtract($sales->channelCosts)->subtract($expenses)->subtract($urssaf)->add($donations),
         );
     }
 
@@ -64,13 +67,14 @@ final readonly class SalesFigures
             $this->consumedSupplies->add($other->consumedSupplies),
             $this->channelCosts->add($other->channelCosts),
             $this->expenses->add($other->expenses),
+            $this->donations->add($other->donations),
             $this->urssaf->add($other->urssaf),
             $this->result->add($other->result),
         );
     }
 
     /**
-     * @return array{orderCount: int, grossSales: int, discounts: int, shipping: int, turnover: int, costOfGoods: int, supplies: int, consumedSupplies: int, channelCosts: int, expenses: int, urssaf: int, result: int}
+     * @return array{orderCount: int, grossSales: int, discounts: int, shipping: int, turnover: int, costOfGoods: int, supplies: int, consumedSupplies: int, channelCosts: int, expenses: int, donations: int, urssaf: int, result: int}
      */
     public function toArray(): array
     {
@@ -85,6 +89,7 @@ final readonly class SalesFigures
             'consumedSupplies' => $this->consumedSupplies->amount(),
             'channelCosts' => $this->channelCosts->amount(),
             'expenses' => $this->expenses->amount(),
+            'donations' => $this->donations->amount(),
             'urssaf' => $this->urssaf->amount(),
             'result' => $this->result->amount(),
         ];

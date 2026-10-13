@@ -37,6 +37,7 @@ event:
     orders_outside_period: '{count, plural, one {# commande de cet événement tomberait} other {# commandes de cet événement tomberaient}} en dehors des nouvelles dates.'
     overlapping: 'Ces dates chevauchent l''événement « {name} ». Deux événements ne peuvent pas avoir lieu en même temps.'
     unknown_expense: 'Dépense introuvable ({id}).'
+    unknown_donation: 'Don introuvable ({id}).'
     sharing_ends_before_event: 'La répartition ne peut pas se terminer avant le début de l''événement.'
     too_few_sharing_events: 'Une dépense répartie compte pour au moins 2 événements.'
 identity:
@@ -139,7 +140,7 @@ sales:
 shared:
     date_range_ends_before_start: 'La date de fin doit être postérieure ou égale à la date de début.'
     negative_amount: '{subject, select, price {Le prix ne peut pas être négatif.} paid_price {Le prix payé ne peut pas être négatif.} selling_price {Le prix de vente ne peut pas être négatif.} buying_price {Le prix d''achat ne peut pas être négatif.} overall_discount {La remise globale ne peut pas être négative.} delivery_cost {Les frais de livraison ne peuvent pas être négatifs.} channel_cost {Un frais de canal ne peut pas être négatif.} payment_fee {Les frais de paiement ne peuvent pas être négatifs.} other {Le montant ne peut pas être négatif.}}'
-    non_positive_amount: '{subject, select, price {Le prix doit être supérieur à zéro.} discount {La remise doit être supérieure à zéro.} expense_amount {Le montant de la dépense doit être supérieur à zéro.} other {Le montant doit être supérieur à zéro.}}'
+    non_positive_amount: '{subject, select, price {Le prix doit être supérieur à zéro.} discount {La remise doit être supérieure à zéro.} expense_amount {Le montant de la dépense doit être supérieur à zéro.} donation_amount {Le montant du don doit être supérieur à zéro.} other {Le montant doit être supérieur à zéro.}}'
     not_found: '{subject, select, external_item {Article} order {Commande} supplier_order {Commande fournisseur} product {Produit} product_type {Type de produit} price {Prix} discount {Remise} supplier {Fournisseur} stock_check {Inventaire} stock_check_line {Ligne d''inventaire} design {Design} adaptation {Déclinaison} template {Gabarit} collection {Collection} sales_channel {Canal de vente} event {Événement} workspace {Espace de travail} user {Utilisateur} service {Service} other {Élément}} introuvable ({id}).'
 stock:
     counted_twice: '« {item} » est compté deux fois.'

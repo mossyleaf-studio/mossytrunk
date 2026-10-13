@@ -28,6 +28,13 @@ final class EventFiguresTest extends TestCase
         self::assertSame(1_280, UrssafContribution::on(Money::cents(10_000))->amount());
     }
 
+    public function testDonationsAddToTheResultButNotToTheTurnoverNorUrssaf(): void
+    {
+        $figures = SalesFigures::of(SalesTotals::zero(), Money::cents(1_000), null, Money::cents(2_500));
+
+        self::assertSame([0, 0, 2_500, 1_500], [$figures->turnover->amount(), $figures->urssaf->amount(), $figures->donations->amount(), $figures->result->amount()]);
+    }
+
     public function testTheEventResultSubtractsCostOfGoodsExpensesAndUrssafFromTheTurnover(): void
     {
         $event = Event::schedule(TestWorkspace::get(), 'Japan Expo', 'Villepinte', DateRange::fromDates(new \DateTimeImmutable('2026-07-09'), new \DateTimeImmutable('2026-07-12')));

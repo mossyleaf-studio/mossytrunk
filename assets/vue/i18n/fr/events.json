@@ -22,7 +22,12 @@
         "expenseAdded": "Dépense « {label} » ajoutée.",
         "expenseUpdated": "Dépense « {label} » modifiée.",
         "expenseRemoved": "Dépense « {label} » supprimée.",
-        "discrepancyDismissed": "Écart de « {label} » classé."
+        "discrepancyDismissed": "Écart de « {label} » classé.",
+        "addDonation": "Ajouter un don",
+        "donations": "Dons",
+        "newDonation": "Nouveau don",
+        "donationAdded": "Don de {amount} ajouté.",
+        "donationRemoved": "Don de {amount} supprimé."
     },
     "comparison": {
         "event": "Événement",
@@ -64,7 +69,8 @@
         "seeOrders": "Voir les commandes",
         "supplies": "Fournitures",
         "channelCosts": "Frais des canaux",
-        "consumedSupplies": "Fournitures consommées (inventaire)"
+        "consumedSupplies": "Fournitures consommées (inventaire)",
+        "donations": "Dons reçus"
     },
     "expenseForm": {
         "label": "Libellé",
@@ -94,5 +100,19 @@
         "itemCount": "{count} art.",
         "unknownCost": "Coût d'achat inconnu (0 €)",
         "untyped": "Sans type"
+    },
+    "donationForm": {
+        "amount": "Montant",
+        "label": "Libellé",
+        "labelPlaceholder": "Boîte à dons, soutien…",
+        "add": "Ajouter le don"
+    },
+    "donations": {
+        "label": "Libellé",
+        "amount": "Montant",
+        "actions": "Actions",
+        "unlabelled": "Don",
+        "remove": "Supprimer {label}",
+        "total": "Total"
     }
 }

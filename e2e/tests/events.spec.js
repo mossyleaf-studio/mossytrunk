@@ -66,6 +66,27 @@ test('share an expense with the next event', async ({ page, request }) => {
     await expect(shared.getByRole('button', { name: 'Modifier Nappe' })).toHaveCount(0);
 });
 
+test('record donations received at an event', async ({ page, request }) => {
+    const { createEvent } = await import('./support/api.js');
+    const event = await createEvent(request, { startDate: uniqueDay() });
+
+    await page.goto(`/events/${event.id}`);
+    for (const [label, amount] of [['Boîte à dons', '25'], ['', '5']]) {
+        await page.getByRole('button', { name: 'Ajouter un don' }).click();
+        const donation = page.getByRole('dialog', { name: 'Nouveau don' });
+        await donation.getByLabel('Montant').fill(amount);
+        await donation.getByLabel('Libellé').fill(label);
+        await donation.getByRole('button', { name: 'Ajouter le don' }).click();
+        await expect(donation).toHaveCount(0);
+    }
+
+    const donations = page.getByRole('region', { name: 'Dons' });
+    await expect(donations.getByRole('row', { name: /Total/ })).toContainText('30,00');
+    await donations.getByRole('button', { name: 'Supprimer Don', exact: true }).click();
+    await expect(page.getByTestId('toast').last()).toContainText('Don de 5,00');
+    await expect(donations.getByRole('row', { name: /Total/ })).toContainText('25,00');
+});
+
 test('refuses overlapping events', async ({ page }) => {
     const day = uniqueDay();
     await page.goto('/events');

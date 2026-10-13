@@ -37,6 +37,7 @@ event:
     orders_outside_period: '{count, plural, one {# order of this event would fall} other {# orders of this event would fall}} outside the new dates.'
     overlapping: 'These dates overlap the event “{name}”. Two events cannot take place at the same time.'
     unknown_expense: 'Expense not found ({id}).'
+    unknown_donation: 'Donation not found ({id}).'
     sharing_ends_before_event: 'The sharing cannot end before the event starts.'
     too_few_sharing_events: 'A shared expense counts for at least 2 events.'
 identity:
@@ -139,7 +140,7 @@ sales:
 shared:
     date_range_ends_before_start: 'The end date must be on or after the start date.'
     negative_amount: '{subject, select, price {The price} paid_price {The price paid} selling_price {The selling price} buying_price {The buying price} overall_discount {The overall discount} delivery_cost {The delivery cost} channel_cost {A channel cost} payment_fee {A payment fee} other {The amount}} cannot be negative.'
-    non_positive_amount: '{subject, select, price {The price} discount {The discount} expense_amount {The expense amount} other {The amount}} must be greater than zero.'
+    non_positive_amount: '{subject, select, price {The price} discount {The discount} expense_amount {The expense amount} donation_amount {The donation amount} other {The amount}} must be greater than zero.'
     not_found: '{subject, select, external_item {Item} order {Order} supplier_order {Supplier order} product {Product} product_type {Product type} price {Price} discount {Discount} supplier {Supplier} stock_check {Stock check} stock_check_line {Stock check line} design {Design} adaptation {Adaptation} template {Template} collection {Collection} sales_channel {Sales channel} event {Event} workspace {Workspace} user {User} service {Service} other {Item}} not found ({id}).'
 stock:
     counted_twice: '“{item}” is counted twice.'

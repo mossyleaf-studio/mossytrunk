@@ -22,7 +22,8 @@
         "urssafRate": "12.8%",
         "supplies": "Supplies",
         "channelCosts": "Channel costs",
-        "consumedSupplies": "Supplies used up (inventory)"
+        "consumedSupplies": "Supplies used up (inventory)",
+        "donations": "Donations received"
     },
     "summary": "{orders} across {events}",
     "orderCount": "{count} order | {count} orders",

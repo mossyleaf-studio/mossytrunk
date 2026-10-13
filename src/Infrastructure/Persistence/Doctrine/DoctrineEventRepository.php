@@ -64,10 +64,13 @@ final readonly class DoctrineEventRepository implements EventRepository
 
     public function all(): array
     {
-        return $this->scope->restrict($this->entityManager->createQueryBuilder()->select('e', 'x')->from(Event::class, 'e'), 'e')
+        return $this->scope->restrict($this->entityManager->createQueryBuilder()->select('e', 'x', 'd')->from(Event::class, 'e'), 'e')
             ->leftJoin('e.expenses', 'x')
+            ->leftJoin('e.donations', 'd')
             ->orderBy('e.period.start', 'DESC')
             ->addOrderBy('x.createdAt', 'ASC')
+            ->addOrderBy('x.id', 'ASC')
+            ->addOrderBy('d.id', 'ASC')
             ->getQuery()
             ->getResult();
     }

@@ -27,15 +27,17 @@ final readonly class MonthlyResults
     {
         $expensesByMonth = [];
         $consumedByMonth = [];
+        $donationsByMonth = [];
         foreach ($events as $event) {
             $month = BusinessTime::month($event->period()->start());
             $expensesByMonth[$month] = ($expensesByMonth[$month] ?? Money::zero())->add($shares->totalOf($event));
             $consumedByMonth[$month] = ($consumedByMonth[$month] ?? Money::zero())->add($consumedSuppliesByEvent[(string) $event->id()] ?? Money::zero());
+            $donationsByMonth[$month] = ($donationsByMonth[$month] ?? Money::zero())->add($event->donationsTotal());
         }
 
         $months = [];
         foreach (array_unique([...array_keys($salesByMonth), ...array_keys($expensesByMonth)]) as $month) {
-            $months[$month] = SalesFigures::of($salesByMonth[$month] ?? SalesTotals::zero(), $expensesByMonth[$month] ?? Money::zero(), $consumedByMonth[$month] ?? Money::zero());
+            $months[$month] = SalesFigures::of($salesByMonth[$month] ?? SalesTotals::zero(), $expensesByMonth[$month] ?? Money::zero(), $consumedByMonth[$month] ?? Money::zero(), $donationsByMonth[$month] ?? Money::zero());
         }
 
         return new self($months);

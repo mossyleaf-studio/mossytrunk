@@ -104,7 +104,7 @@ final readonly class GetDashboardHandler
             if (!$event->startsIn($year)) {
                 continue;
             }
-            $result = SalesFigures::of($sales[(string) $event->id()] ?? SalesTotals::zero(), $shares->totalOf($event), $consumed[(string) $event->id()] ?? null);
+            $result = SalesFigures::of($sales[(string) $event->id()] ?? SalesTotals::zero(), $shares->totalOf($event), $consumed[(string) $event->id()] ?? null, $event->donationsTotal());
             $rows[] = [
                 'id' => (string) $event->id(),
                 'name' => $event->name(),

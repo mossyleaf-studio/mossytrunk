@@ -34,7 +34,7 @@ final readonly class GetEventReportHandler
 
         return EventReportView::of(
             $event,
-            SalesFigures::of($this->sales->totalsOfEvent($event->id()), $shares->totalOf($event), $this->consumedSupplies->atEvent($event->id())),
+            SalesFigures::of($this->sales->totalsOfEvent($event->id()), $shares->totalOf($event), $this->consumedSupplies->atEvent($event->id()), $event->donationsTotal()),
             $shares,
             $productSales,
             $this->products->findByIds(ProductSales::productIds($productSales)),

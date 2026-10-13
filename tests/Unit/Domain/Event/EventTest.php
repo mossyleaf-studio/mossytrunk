@@ -9,10 +9,12 @@ use App\Domain\Event\EventTiming;
 use App\Domain\Event\Exception\InvalidEvent;
 use App\Domain\Event\Exception\SharingEndsBeforeEvent;
 use App\Domain\Event\Exception\TooFewSharingEvents;
+use App\Domain\Event\Exception\UnknownDonation;
 use App\Domain\Event\ExpenseShares;
 use App\Domain\Event\ExpenseSpread;
 use App\Domain\Shared\DateRange;
 use App\Domain\Shared\Exception\InvalidMoney;
+use App\Domain\Shared\Exception\NonPositiveAmount;
 use App\Domain\Shared\Money;
 use App\Tests\Support\TestWorkspace;
 use PHPUnit\Framework\TestCase;
@@ -58,6 +60,29 @@ final class EventTest extends TestCase
         $event->removeExpense($stand->id());
         self::assertSame(8_950, ExpenseShares::among([$event])->totalOf($event)->amount());
         self::assertCount(1, $event->expenses());
+    }
+
+    public function testDonationsAreSummedAndRemovable(): void
+    {
+        $event = Event::schedule(TestWorkspace::get(), 'Japan Expo', 'Villepinte', self::period());
+        $box = $event->receiveDonation('Boîte à dons', Money::cents(2_500));
+        $event->receiveDonation('  ', Money::cents(500));
+
+        self::assertSame(3_000, $event->donationsTotal()->amount());
+        self::assertNull($event->donations()[1]->label());
+
+        $event->removeDonation($box->id());
+        self::assertSame(500, $event->donationsTotal()->amount());
+
+        $this->expectException(UnknownDonation::class);
+        $event->removeDonation($box->id());
+    }
+
+    public function testADonationIsPositive(): void
+    {
+        $this->expectException(NonPositiveAmount::class);
+
+        Event::schedule(TestWorkspace::get(), 'Japan Expo', 'Villepinte', self::period())->receiveDonation(null, Money::zero());
     }
 
     public function testExpenseCanBeRevisedWithTheSameRules(): void

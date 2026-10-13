@@ -17,7 +17,8 @@ supplies           = Σ order supply costs (O17)
 supplies consumed  = Σ cost of supplies missing at the event's inventories (K17)
 channel costs      = Σ order channel charges + postage (O18)
 URSSAF             = 12.8 % × turnover   (rounded to the cent, half up)
-result (Résultat)  = turnover − cost of goods − supplies − supplies consumed − channel costs − expenses − URSSAF
+donations          = Σ donations received at the event (events.md E9)
+result (Résultat)  = turnover − cost of goods − supplies − supplies consumed − channel costs − expenses − URSSAF + donations
 ```
 
 | # | Rule | Where | Tests |
@@ -28,6 +29,7 @@ result (Résultat)  = turnover − cost of goods − supplies − supplies consu
 | R4 | The result can be negative (loss) | `SalesFigures::of()` | `EventFiguresTest` |
 | R5 | Supplies and channel costs of the event's orders lower the result; they do not change the turnover nor URSSAF (rows shown only when not zero) | `SalesFigures::of()` | `ChannelCostTest` |
 | R6 | Supplies found missing at the event's inventories (flyers, giveaways) are consumed by the event: « Fournitures consommées (inventaire) » lowers its result, in the list of events and the dashboard too (month the event starts, like its expenses) | `ConsumedSupplies`, `GetEventReportHandler`, `MonthlyResults::of()` | `StockUseCasesTest` |
+| R7 | Donations raise the result only: neither turnover nor URSSAF; shown as « + Dons reçus » after URSSAF when not zero, in the report and the dashboard | `SalesFigures::of()`, `useResultLines.js` | `EventFiguresTest`, `EventApiTest` |
 
 ## Display (visual grouping only — not domain concepts)
 

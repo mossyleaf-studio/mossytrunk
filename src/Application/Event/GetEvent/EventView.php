@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Application\Event\GetEvent;
 
 use App\Application\Event\ExpenseShareRow;
+use App\Domain\Event\Donation;
 use App\Domain\Event\Event;
 use App\Domain\Event\EventTiming;
 use App\Domain\Event\ExpenseShare;
@@ -14,6 +15,7 @@ final readonly class EventView
 {
     /**
      * @param list<array{id: string, label: string, amount: int, fullAmount: int, sharedBy: int, sharedOverEvents: int|null, sharedUntil: string|null, own: bool, originId: string, originName: string}> $expenses
+     * @param list<array{id: string, label: ?string, amount: int}>                                                                                                                                       $donations
      */
     public function __construct(
         public string $id,
@@ -24,6 +26,8 @@ final readonly class EventView
         public array $expenses,
         public int $expensesTotal,
         public string $timing,
+        public array $donations,
+        public int $donationsTotal,
     ) {
     }
 
@@ -38,6 +42,8 @@ final readonly class EventView
             array_map(static fn (ExpenseShare $share): array => ExpenseShareRow::of($share, $event), $shares->of($event)),
             $shares->totalOf($event)->amount(),
             $timing->value,
+            array_map(static fn (Donation $donation): array => ['id' => (string) $donation->id(), 'label' => $donation->label(), 'amount' => $donation->amount()->amount()], $event->donations()),
+            $event->donationsTotal()->amount(),
         );
     }
 }

@@ -7,6 +7,7 @@ namespace App\Domain\Event;
 use App\Domain\Event\Exception\EmptyEventLocation;
 use App\Domain\Event\Exception\EmptyEventName;
 use App\Domain\Event\Exception\SharingEndsBeforeEvent;
+use App\Domain\Event\Exception\UnknownDonation;
 use App\Domain\Event\Exception\UnknownExpense;
 use App\Domain\Identity\Workspace;
 use App\Domain\Shared\DateRange;
@@ -43,11 +44,17 @@ class Event
     #[ORM\OrderBy(['createdAt' => 'ASC'])]
     private Collection $expenses;
 
+    /** @var Collection<int, Donation> */
+    #[ORM\OneToMany(targetEntity: Donation::class, mappedBy: 'event', cascade: ['persist'], orphanRemoval: true)]
+    #[ORM\OrderBy(['createdAt' => 'ASC'])]
+    private Collection $donations;
+
     private function __construct(Ulid $id, Workspace $workspace, string $name, string $location, DateRange $period)
     {
         $this->id = $id;
         $this->workspace = $workspace;
         $this->expenses = new ArrayCollection();
+        $this->donations = new ArrayCollection();
         $this->describe($name, $location);
         $this->period = $period;
     }
@@ -109,6 +116,35 @@ class Event
     {
         return $this->expenses->findFirst(static fn (int $key, Expense $expense): bool => $expense->id()->equals($expenseId))
             ?? throw new UnknownExpense((string) $expenseId);
+    }
+
+    public function receiveDonation(?string $label, Money $amount): Donation
+    {
+        $donation = new Donation($this, $label, $amount);
+        $this->donations->add($donation);
+
+        return $donation;
+    }
+
+    public function removeDonation(Ulid $donationId): void
+    {
+        $this->donations->removeElement(
+            $this->donations->findFirst(static fn (int $key, Donation $donation): bool => $donation->id()->equals($donationId))
+                ?? throw new UnknownDonation((string) $donationId),
+        );
+    }
+
+    /**
+     * @return list<Donation>
+     */
+    public function donations(): array
+    {
+        return array_values($this->donations->toArray());
+    }
+
+    public function donationsTotal(): Money
+    {
+        return Money::sum(array_map(static fn (Donation $donation): Money => $donation->amount(), $this->donations()));
     }
 
     public function covers(\DateTimeImmutable $moment): bool

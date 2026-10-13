@@ -7,11 +7,14 @@ import BaseModal from '../components/ui/BaseModal.vue';
 import BackLink from '../components/ui/BackLink.vue';
 import EventForm from '../components/events/EventForm.vue';
 import EventHeader from '../components/events/EventHeader.vue';
+import DonationForm from '../components/events/DonationForm.vue';
+import DonationList from '../components/events/DonationList.vue';
 import EventReport from '../components/events/EventReport.vue';
 import ExpenseForm from '../components/events/ExpenseForm.vue';
 import ExpenseList from '../components/events/ExpenseList.vue';
 import StockDiscrepancies from '../components/stock/StockDiscrepancies.vue';
 import { useEvent } from '../composables/useEvents.js';
+import { formatCents } from '../composables/useMoney.js';
 import { useStock } from '../composables/useStock.js';
 import { listUrl } from '../composables/useQueryState.js';
 import { useToast } from '../composables/useToast.js';
@@ -21,7 +24,7 @@ const props = defineProps({
     eventId: { type: String, required: true },
 });
 
-const { event, report, load, update, addExpense, reviseExpense, removeExpense } = useEvent(props.eventId);
+const { event, report, load, update, addExpense, reviseExpense, removeExpense, receiveDonation, removeDonation } = useEvent(props.eventId);
 const { colors: typeColors, load: loadTypes } = useTypeColors();
 const toast = useToast();
 const { t } = useI18n();
@@ -31,6 +34,7 @@ const loadChecks = () => stockChecks(props.eventId, checks);
 const editOpen = ref(false);
 const expenseOpen = ref(false);
 const editingExpense = ref(null);
+const donationOpen = ref(false);
 
 const submitExpense = (payload) => (editingExpense.value ? reviseExpense(editingExpense.value.id, payload) : addExpense(payload));
 
@@ -63,6 +67,18 @@ async function onExpenseRemoved(expense) {
     await load();
 }
 
+async function onDonationSaved(amount) {
+    donationOpen.value = false;
+    toast.success(t('events.detail.donationAdded', { amount: formatCents(amount) }));
+    await load();
+}
+
+async function onDonationRemoved(donation) {
+    await removeDonation(donation.id);
+    toast.success(t('events.detail.donationRemoved', { amount: formatCents(donation.amount) }));
+    await load();
+}
+
 onMounted(() => Promise.all([load(), loadTypes(), loadChecks()]));
 </script>
 
@@ -74,6 +90,7 @@ onMounted(() => Promise.all([load(), loadTypes(), loadChecks()]));
                 <BaseButton variant="secondary" @click="editOpen = true">{{ t('common.edit') }}</BaseButton>
                 <BaseButton variant="secondary" :href="`/events/${event.id}/check`">{{ t('events.detail.checkOrders') }}</BaseButton>
                 <BaseButton variant="secondary" :href="`/events/${event.id}/stock-check`">{{ t('events.detail.stockCheck') }}</BaseButton>
+                <BaseButton variant="secondary" @click="donationOpen = true">{{ t('events.detail.addDonation') }}</BaseButton>
                 <BaseButton @click="openExpense()">{{ t('events.detail.addExpense') }}</BaseButton>
             </template>
         </template>
@@ -88,6 +105,10 @@ onMounted(() => Promise.all([load(), loadTypes(), loadChecks()]));
                         <h3 id="event-expenses" class="event-detail-page__expenses-title">{{ t('events.detail.expenses') }}</h3>
                         <ExpenseList :expenses="event.expenses" :total="event.expensesTotal" @edit="openExpense" @remove="onExpenseRemoved" />
                     </section>
+                    <section v-if="event.donations.length" class="event-detail-page__expenses" aria-labelledby="event-donations">
+                        <h3 id="event-donations" class="event-detail-page__expenses-title">{{ t('events.detail.donations') }}</h3>
+                        <DonationList :donations="event.donations" :total="event.donationsTotal" @remove="onDonationRemoved" />
+                    </section>
                 </template>
             </EventReport>
         </div>
@@ -98,10 +119,14 @@ onMounted(() => Promise.all([load(), loadTypes(), loadChecks()]));
         <BaseModal v-model:open="expenseOpen" :title="editingExpense ? t('events.detail.editExpense') : t('events.detail.newExpense')">
             <ExpenseForm :expense="editingExpense" :submit="submitExpense" @saved="onExpenseSaved" @cancel="expenseOpen = false" />
         </BaseModal>
+        <BaseModal v-model:open="donationOpen" :title="t('events.detail.newDonation')">
+            <DonationForm :submit="receiveDonation" @saved="onDonationSaved" @cancel="donationOpen = false" />
+        </BaseModal>
     </AppLayout>
 </template>
 
 <style scoped>
 .event-detail-page { display: flex; flex-direction: column; gap: var(--space-5); }
+.event-detail-page__expenses + .event-detail-page__expenses { margin-top: var(--space-5); }
 .event-detail-page__expenses-title { margin: 0 0 var(--space-2); font-size: 1.2rem; color: var(--color-muted); }
 </style>

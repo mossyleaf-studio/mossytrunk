@@ -9,5 +9,6 @@ export function resultLines(total, { label, urssafHint, turnoverOpen = false }) 
         ...OPTIONAL_COSTS.filter((key) => total[key] > 0).map(cost),
         cost('expenses'),
         { key: 'urssaf', label: 'URSSAF', hint: urssafHint, amount: total.urssaf, sign: MINUS },
+        ...(total.donations > 0 ? [{ key: 'donations', label: label('donations'), amount: total.donations, sign: '+' }] : []),
     ];
 }

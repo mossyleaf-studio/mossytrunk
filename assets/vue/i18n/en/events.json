@@ -22,7 +22,12 @@
         "expenseAdded": "Expense “{label}” added.",
         "expenseUpdated": "Expense “{label}” updated.",
         "expenseRemoved": "Expense “{label}” deleted.",
-        "discrepancyDismissed": "Discrepancy for “{label}” dismissed."
+        "discrepancyDismissed": "Discrepancy for “{label}” dismissed.",
+        "addDonation": "Add a donation",
+        "donations": "Donations",
+        "newDonation": "New donation",
+        "donationAdded": "Donation of {amount} added.",
+        "donationRemoved": "Donation of {amount} removed."
     },
     "comparison": {
         "event": "Event",
@@ -64,7 +69,8 @@
         "seeOrders": "See orders",
         "supplies": "Supplies",
         "channelCosts": "Channel costs",
-        "consumedSupplies": "Supplies used up (inventory)"
+        "consumedSupplies": "Supplies used up (inventory)",
+        "donations": "Donations received"
     },
     "expenseForm": {
         "label": "Label",
@@ -94,5 +100,19 @@
         "itemCount": "{count} items",
         "unknownCost": "Unknown buying cost (€0)",
         "untyped": "Untyped"
+    },
+    "donationForm": {
+        "amount": "Amount",
+        "label": "Label",
+        "labelPlaceholder": "Donation box, support…",
+        "add": "Add the donation"
+    },
+    "donations": {
+        "label": "Label",
+        "amount": "Amount",
+        "actions": "Actions",
+        "unlabelled": "Donation",
+        "remove": "Remove {label}",
+        "total": "Total"
     }
 }

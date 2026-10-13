@@ -44,7 +44,7 @@ final readonly class ListEventsHandler
         $views = [];
         foreach ($events as $event) {
             $key = (string) $event->id();
-            $views[] = EventSummaryView::of($event, SalesFigures::of($sales[$key] ?? SalesTotals::zero(), $shares->totalOf($event), $consumed[$key] ?? null), $event->timingOn($today), $unexplained[$key] ?? 0);
+            $views[] = EventSummaryView::of($event, SalesFigures::of($sales[$key] ?? SalesTotals::zero(), $shares->totalOf($event), $consumed[$key] ?? null, $event->donationsTotal()), $event->timingOn($today), $unexplained[$key] ?? 0);
         }
 
         return $views;

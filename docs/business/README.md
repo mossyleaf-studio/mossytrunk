@@ -39,6 +39,7 @@ Module 1 = **Order Management**. This folder is the reference for business rules
 | Article vendable | `Domain\Product\SellableItem` | Validated (product ULID, variant) tuple + prices at sale time |
 | Marché / salon (événement) | `Domain\Event\Event` | Convention/market with an inclusive day period and a location |
 | Dépense | `Domain\Event\Expense` | Money spent for an event |
+| Don | `Domain\Event\Donation` | Money given at an event without a sale (donation box, support): raises its result, not its turnover nor URSSAF |
 | Commande | `Domain\Order\Order` | A sale during an event |
 | Ligne de commande | `Domain\Order\OrderLine` | Quantity of one tuple, with name/price/cost snapshots |
 | Remise | `Domain\Discount\DiscountRule` | Conditions (quantity of a type or product) + action (prix fixe, remise en € ou en %) + validity period |

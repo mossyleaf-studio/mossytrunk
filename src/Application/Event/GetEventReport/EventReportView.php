@@ -18,7 +18,7 @@ final readonly class EventReportView
      * @param array{count: int, grossSales: int, discounts: int, turnover: int, costOfGoods: int, groups: list<array{type: string|null, products: list<array{name: string, variants: list<array{variant: string, quantity: int, sales: int, cost: int, unknownCost: bool}>, quantity: int, sales: int, cost: int, unknownCost: bool}>, quantity: int, sales: int, cost: int, unknownCost: bool}>} $orders
      * @param array{items: list<array{label: string, amount: int, sharedBy: int}>, total: int}                                                                                                                                                                                                                                                                                                    $expenses
      * @param array{rate: int|float, base: int, amount: int}                                                                                                                                                                                                                                                                                                                                      $urssaf
-     * @param array{turnover: int, costOfGoods: int, supplies: int, consumedSupplies: int, channelCosts: int, expenses: int, urssaf: int, result: int}                                                                                                                                                                                                                                            $total
+     * @param array{turnover: int, costOfGoods: int, supplies: int, consumedSupplies: int, channelCosts: int, expenses: int, donations: int, urssaf: int, result: int}                                                                                                                                                                                                                            $total
      */
     public function __construct(
         public array $orders,
@@ -59,6 +59,7 @@ final readonly class EventReportView
                 'consumedSupplies' => $result->consumedSupplies->amount(),
                 'channelCosts' => $result->channelCosts->amount(),
                 'expenses' => $result->expenses->amount(),
+                'donations' => $result->donations->amount(),
                 'urssaf' => $result->urssaf->amount(),
                 'result' => $result->result->amount(),
             ],

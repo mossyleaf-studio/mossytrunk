@@ -9,7 +9,7 @@ Model: `src/Domain/Reporting/SalesFigures.php` (the formula, shared with the [ev
 
 | # | Rule | Where | Tests |
 |---|---|---|---|
-| B1 | Same formula as an event: turnover = Σ order totals (Etsy orders included, with their shipping); URSSAF = 12.8 % × turnover; result = turnover − cost of goods − expenses − URSSAF | `SalesFigures::of()` | `MonthlyResultsTest`, `EventResultTest` |
+| B1 | Same formula as an event: turnover = Σ order totals (Etsy orders included, with their shipping); URSSAF = 12.8 % × turnover; result = turnover − cost of goods − expenses − URSSAF + donations (counted in the month the event starts, like its expenses, B3) | `SalesFigures::of()` | `MonthlyResultsTest`, `EventResultTest` |
 | B2 | An order counts in the **month of its date** (Europe/Paris) | `MonthlyResults::of()` | `MonthlyResultsTest` (UTC/Paris boundary) |
 | B3 | An event's expenses (its shares of shared expenses, [events.md](events.md) E8) count in the **month the event starts** (even when it spans two months) | `MonthlyResults::of()` | `MonthlyResultsTest` |
 | B4 | A year is the **sum of its months** (URSSAF rounded per month, then summed) | `MonthlyResults::year()`, `SalesFigures::add()` | `MonthlyResultsTest` |

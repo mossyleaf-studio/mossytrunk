@@ -22,7 +22,8 @@
         "urssafRate": "12,8 %",
         "supplies": "Fournitures",
         "channelCosts": "Frais des canaux",
-        "consumedSupplies": "Fournitures consommées (inventaire)"
+        "consumedSupplies": "Fournitures consommées (inventaire)",
+        "donations": "Dons reçus"
     },
     "summary": "{orders} sur {events}",
     "orderCount": "{count} commande | {count} commandes",

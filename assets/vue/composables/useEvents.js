@@ -38,5 +38,8 @@ export function useEvent(eventId) {
     const reviseExpense = (expenseId, payload) => api.put(`/api/events/${eventId}/expenses/${expenseId}`, payload);
     const removeExpense = (expenseId) => api.del(`/api/events/${eventId}/expenses/${expenseId}`);
 
-    return { event, report, load, update, addExpense, reviseExpense, removeExpense };
+    const receiveDonation = (payload) => api.post(`/api/events/${eventId}/donations`, payload);
+    const removeDonation = (donationId) => api.del(`/api/events/${eventId}/donations/${donationId}`);
+
+    return { event, report, load, update, addExpense, reviseExpense, removeExpense, receiveDonation, removeDonation };
 }
