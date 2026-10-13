@@ -83,6 +83,22 @@ test('create a type inline with its colour and display products as "Type Nom"', 
     await expect(page.getByRole('row').filter({ hasText: `${typeName} Forêt` })).toContainText(typeName);
 });
 
+test('shift + click selects every product between two checkboxes', async ({ page, request }) => {
+    const type = await createType(request, unique('Plage'));
+    for (const name of ['Algue', 'Bigorneau', 'Coquillage', 'Dune']) {
+        await createProduct(request, { name, type });
+    }
+
+    await page.goto('/products');
+    await page.getByRole('group', { name: 'Filtrer par type' }).getByRole('button', { name: type.name }).click();
+    await page.getByRole('checkbox', { name: `Sélectionner ${type.name} Algue` }).click();
+    await page.getByRole('checkbox', { name: `Sélectionner ${type.name} Coquillage` }).click({ modifiers: ['Shift'] });
+
+    await expect(page.getByRole('region', { name: 'Sélection' })).toContainText('3 produits sélectionnés');
+    await expect(page.getByRole('checkbox', { name: `Sélectionner ${type.name} Bigorneau` })).toBeChecked();
+    await expect(page.getByRole('checkbox', { name: `Sélectionner ${type.name} Dune` })).not.toBeChecked();
+});
+
 test('filter by type and edit the selection in batch', async ({ page, request }) => {
     const sticker = await createType(request, unique('Sticker'));
     const mousse = await createProduct(request, { name: 'Mousse', sellingPrice: 400, type: sticker });

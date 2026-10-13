@@ -14,6 +14,7 @@ import StatusBadge from '../ui/StatusBadge.vue';
 import StockBadge from './StockBadge.vue';
 import TypeMark from '../ui/TypeMark.vue';
 import { formatRatio } from '../../composables/useMoney.js';
+import { useCheckedRange } from '../../composables/useCheckedRange.js';
 import { useSort } from '../../composables/useSort.js';
 import { variantStock } from '../../composables/useVariantStock.js';
 import { mainChannelOf, otherChannelsOf, ownPriceOn, priceOn } from '../../composables/useChannelPrices.js';
@@ -59,9 +60,7 @@ const salesYear = computed(() => props.products[0]?.salesYear ?? new Date().getF
 
 const checkedSet = computed(() => new Set(checkedIds.value));
 
-function setChecked(id, checked) {
-    checkedIds.value = checked ? [...checkedIds.value, id] : checkedIds.value.filter((existing) => existing !== id);
-}
+const { noteShift, setChecked } = useCheckedRange(checkedIds, () => sorted.value.map((product) => product.id));
 </script>
 
 <template>
@@ -95,6 +94,8 @@ function setChecked(id, checked) {
                     <BaseCheckbox
                         :model-value="checkedSet.has(product.id)"
                         :aria-label="t('products.list.select', { name: product.displayName })"
+                        @pointerdown="noteShift"
+                        @keydown="noteShift"
                         @update:model-value="setChecked(product.id, $event)"
                     />
                 </td>

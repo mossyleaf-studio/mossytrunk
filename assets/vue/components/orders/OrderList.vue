@@ -8,6 +8,7 @@ import EmptyState from '../ui/EmptyState.vue';
 import MoneyAmount from '../ui/MoneyAmount.vue';
 import StatusBadge from '../ui/StatusBadge.vue';
 import PaymentMethod from './PaymentMethod.vue';
+import { useCheckedRange } from '../../composables/useCheckedRange.js';
 import { formatDay, formatTime } from '../../composables/useDate.js';
 
 const props = defineProps({
@@ -43,9 +44,7 @@ function checkAll(checked) {
     checkedIds.value = checked ? props.orders.map((order) => order.id) : [];
 }
 
-function setChecked(id, checked) {
-    checkedIds.value = checked ? [...checkedIds.value, id] : checkedIds.value.filter((existing) => existing !== id);
-}
+const { noteShift, setChecked } = useCheckedRange(checkedIds, () => grouped.value.map((order) => order.id));
 
 const withDayHeaders = (rows) => rows.map((order, index) => ({
     order,
@@ -88,6 +87,8 @@ const withDayHeaders = (rows) => rows.map((order, index) => ({
                         <BaseCheckbox
                             :model-value="checkedSet.has(order.id)"
                             :aria-label="t('orders.list.select', { reference: order.reference })"
+                            @pointerdown="noteShift"
+                            @keydown="noteShift"
                             @update:model-value="setChecked(order.id, $event)"
                         />
                     </td>
