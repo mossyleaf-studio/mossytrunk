@@ -45,7 +45,7 @@ final class OrderApiTest extends WebTestCase
         $client->jsonRequest('GET', '/api/sales-channels');
         $main = Json::string(Json::decode((string) $client->getResponse()->getContent()), 0, 'id');
 
-        $client->jsonRequest('POST', '/api/orders/supplies', ['orderIds' => [$order], 'supplyId' => $sleeve, 'quantity' => 1]);
+        $client->jsonRequest('POST', '/api/orders/supplies', ['orderIds' => [$order], 'supplies' => [['supplyId' => $sleeve, 'quantity' => 1]]]);
         self::assertResponseStatusCodeSame(422);
 
         $client->jsonRequest('PUT', "/api/sales-channels/$main/supplies", ['supplyIds' => [$sleeve]]);
@@ -53,9 +53,9 @@ final class OrderApiTest extends WebTestCase
         $client->jsonRequest('GET', "/api/sales-channels/$main");
         self::assertSame([['id' => $sleeve, 'name' => 'Pochette', 'variants' => []]], Json::at(Json::decode((string) $client->getResponse()->getContent()), 'supplies'));
 
-        $client->jsonRequest('POST', '/api/orders/supplies', ['orderIds' => [$order], 'supplyId' => $sleeve, 'quantity' => 0]);
+        $client->jsonRequest('POST', '/api/orders/supplies', ['orderIds' => [$order], 'supplies' => [['supplyId' => $sleeve, 'quantity' => 0]]]);
         self::assertResponseStatusCodeSame(422);
-        $client->jsonRequest('POST', '/api/orders/supplies', ['orderIds' => [$order], 'supplyId' => $sleeve, 'quantity' => 2]);
+        $client->jsonRequest('POST', '/api/orders/supplies', ['orderIds' => [$order], 'supplies' => [['supplyId' => $sleeve, 'quantity' => 2]]]);
         self::assertSame(['updated' => 1], Json::decode((string) $client->getResponse()->getContent()));
 
         $client->jsonRequest('GET', "/api/orders/$order");

@@ -117,6 +117,18 @@ final class OrderSuppliesTest extends KernelTestCase
         self::getContainer()->get(OfferSuppliesHandler::class)((string) self::getContainer()->get(SalesChannelRepository::class)->main()->id(), $supplyIds);
     }
 
+    public function testSeveralSuppliesAreAddedAtOnce(): void
+    {
+        $flyer = (string) self::getContainer()->get(CreateProductHandler::class)(new CreateProduct('Flyer', 0, kind: ProductKind::Supply));
+        $this->offerOnMain([$this->sleeve, $flyer]);
+        $order = $this->placeOrder();
+
+        self::getContainer()->get(AddOrderSuppliesHandler::class)(new AddOrderSupplies([$order], [new RequestedLine($this->sleeve, null, 2), new RequestedLine($flyer, null, 1)]));
+
+        $supplies = self::getContainer()->get(GetOrderHandler::class)($order)->supplies;
+        self::assertEqualsCanonicalizing([['Pochette', 2], ['Flyer', 1]], array_map(static fn (array $supply): array => [$supply['label'], $supply['quantity']], $supplies));
+    }
+
     private function placeOrder(): string
     {
         return (string) self::getContainer()->get(PlaceOrderHandler::class)(new PlaceOrder(new \DateTimeImmutable('2030-03-14 12:00'), [new RequestedLine($this->sticker, null, 1)]))->id();
@@ -127,7 +139,7 @@ final class OrderSuppliesTest extends KernelTestCase
      */
     private function add(array $orderIds, int $quantity): int
     {
-        return self::getContainer()->get(AddOrderSuppliesHandler::class)(new AddOrderSupplies($orderIds, $this->sleeve, null, $quantity));
+        return self::getContainer()->get(AddOrderSuppliesHandler::class)(new AddOrderSupplies($orderIds, [new RequestedLine($this->sleeve, null, $quantity)]));
     }
 
     private function sleevesOnHand(): int

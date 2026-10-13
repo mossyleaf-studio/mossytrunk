@@ -150,7 +150,7 @@ final class PurchasingUseCasesTest extends KernelTestCase
         $container->get(ReceiveSupplierOrderHandler::class)($orderId, [$lines[0]['id'] => 1_000, $lines[1]['id'] => 100]);
         $container->get(ScheduleEventHandler::class)(new ScheduleEvent('Salon', 'Lyon', new \DateTimeImmutable('2030-03-14'), new \DateTimeImmutable('2030-03-14')));
         $sold = (string) $container->get(PlaceOrderHandler::class)(new PlaceOrder(new \DateTimeImmutable('2030-03-14 12:00'), [new RequestedLine($this->sticker, null, 2)]))->id();
-        $container->get(AddOrderSuppliesHandler::class)(new AddOrderSupplies([$sold], $sleeve, null, 3));
+        $container->get(AddOrderSuppliesHandler::class)(new AddOrderSupplies([$sold], [new RequestedLine($sleeve, null, 3)]));
         self::assertSame([40, 6], [$container->get(GetOrderHandler::class)($sold)->costOfGoods, $container->get(GetOrderHandler::class)($sold)->suppliesCost]);
 
         $container->get(ReviseSupplierOrderHandler::class)($orderId, new SupplierOrderDraft($this->supplierId, new \DateTimeImmutable('2026-09-01'), [

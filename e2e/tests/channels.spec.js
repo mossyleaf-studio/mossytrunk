@@ -75,6 +75,9 @@ test('a channel offers supplies that are added to its orders, one by one or in b
     const sleeveName = unique('Pochette');
     const sleeve = await (await request.post('/api/products', { data: { name: sleeveName, typeId: type.id, kind: 'supply' } })).json();
     await restock(request, sleeve, { quantity: 50, totalPaid: 500 });
+    const flyerName = unique('Flyer');
+    const flyer = await (await request.post('/api/products', { data: { name: flyerName, typeId: type.id, kind: 'supply' } })).json();
+    await restock(request, flyer, { quantity: 50, totalPaid: 100 });
     const event = await createEvent(request);
     const sticker = await createProduct(request, { name: unique('Sticker') });
     const orders = [];
@@ -86,11 +89,16 @@ test('a channel offers supplies that are added to its orders, one by one or in b
     await page.goto(`/channels/${main.id}`);
     await page.getByRole('group', { name: 'Fournitures' }).getByRole('button', { name: sleeveName }).click();
     await expect(page.getByTestId('toast').last()).toContainText('Fournitures du canal enregistrées.');
+    await Promise.all([
+        page.waitForResponse((response) => response.url().endsWith(`/api/sales-channels/${main.id}/supplies`) && response.request().method() === 'PUT'),
+        page.getByRole('group', { name: 'Fournitures' }).getByRole('button', { name: flyerName }).click(),
+    ]);
 
     await page.goto(`/orders/${orders[0].id}`);
     const supplies = page.getByRole('region', { name: 'Fournitures' });
     await supplies.getByRole('button', { name: 'Ajouter une fourniture' }).click();
     const dialog = page.getByRole('dialog', { name: 'Ajouter une fourniture' });
+    await choose(page, dialog.getByRole('combobox', { name: 'Fourniture', exact: true }), sleeveName);
     await dialog.getByRole('spinbutton', { name: 'Quantité' }).fill('2');
     await dialog.getByRole('button', { name: 'Ajouter', exact: true }).click();
     await expect(supplies).toContainText(`2 × ${sleeveName}`);
@@ -101,11 +109,14 @@ test('a channel offers supplies that are added to its orders, one by one or in b
         await page.getByRole('checkbox', { name: `Sélectionner la commande ${order.reference}` }).check();
     }
     await page.getByRole('region', { name: 'Sélection' }).getByRole('button', { name: 'Ajouter une fourniture' }).click();
-    await page.getByRole('dialog', { name: 'Ajouter une fourniture' }).getByRole('button', { name: 'Ajouter', exact: true }).click();
+    const batch = page.getByRole('dialog', { name: 'Ajouter une fourniture' });
+    await batch.getByRole('button', { name: 'Une autre fourniture' }).click();
+    await batch.getByRole('button', { name: 'Ajouter', exact: true }).click();
     await expect(page.getByTestId('toast').last()).toContainText('Fourniture ajoutée à 2 commandes.');
 
     await page.goto(`/orders/${orders[0].id}`);
     await expect(page.getByRole('region', { name: 'Fournitures' })).toContainText(`3 × ${sleeveName}`);
+    await expect(page.getByRole('region', { name: 'Fournitures' })).toContainText(`1 × ${flyerName}`);
     await page.goto(`/products/${sleeve.id}`);
     await expect(page.locator('.product-movements').getByRole('link', { name: 'Fourniture de commande' })).toHaveCount(2);
 

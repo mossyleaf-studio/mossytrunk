@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\Order\AddOrderSupplies;
 
+use App\Application\Order\RequestedLine;
 use App\Application\Stock\StockKeeper;
 use App\Application\Transaction;
 use App\Domain\Order\Exception\OrdersOnSeveralChannels;
@@ -27,11 +28,12 @@ final readonly class AddOrderSuppliesHandler
     {
         $orders = $this->orders->getMany(array_map(Ulid::fromString(...), array_values(array_unique($command->orderIds))));
         $this->assertOneChannel($orders);
-        $supply = $this->products->get(Ulid::fromString($command->supplyId))->sellable($command->variant);
+        $supplies = array_map(fn (RequestedLine $line): OrderedItem => new OrderedItem($this->products->get(Ulid::fromString($line->productId))->sellable($line->variant), $line->quantity), $command->supplies);
 
         foreach ($orders as $order) {
-            $used = $this->stock->withdraw($order->event(), [new OrderedItem($supply, $command->quantity)])[0];
-            $order->useSupply($supply, $command->quantity, $used->cost());
+            foreach ($this->stock->withdraw($order->event(), $supplies) as $used) {
+                $order->useSupply($used->item, $used->quantity, $used->cost());
+            }
         }
         $this->transaction->commit();
 
