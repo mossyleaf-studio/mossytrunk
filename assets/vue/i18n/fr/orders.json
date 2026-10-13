@@ -82,7 +82,8 @@
         "unassigned": "{count} article à associer à un produit | {count} articles à associer à un produit",
         "profit": "Bénéfice réel",
         "profitHint": "Total encaissé − coût d'achat − fournitures − frais du canal.",
-        "unknownCost": "Coût d'achat inconnu pour {count} ligne | Coût d'achat inconnu pour {count} lignes"
+        "unknownCost": "Coût d'achat inconnu pour {count} ligne | Coût d'achat inconnu pour {count} lignes",
+        "selectDay": "Sélectionner les commandes du {day} · {place}"
     },
     "margin": {
         "collected": "Encaissé",
@@ -152,7 +153,9 @@
         "noneOnChannel": "Le canal {channel} ne propose aucune fourniture : choisissez-les sur sa page.",
         "noChannel": "Cette commande n'a pas de canal : elle ne peut pas avoir de fourniture.",
         "severalChannels": "Choisissez des commandes d'un seul canal pour leur ajouter une fourniture.",
-        "intro": "Ajoute la fourniture à {count} commande du canal {channel}, prise dans le stock. | Ajoute la fourniture à chacune des {count} commandes du canal {channel}, prise dans le stock."
+        "intro": "Ajoute la fourniture à {count} commande du canal {channel}, prise dans le stock. | Ajoute la fourniture à chacune des {count} commandes du canal {channel}, prise dans le stock.",
+        "addLine": "Une autre fourniture",
+        "removeLine": "Retirer la fourniture {number}"
     },
     "postage": {
         "edit": "Modifier l'affranchissement",

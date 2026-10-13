@@ -138,6 +138,21 @@ test('refund an order: it stays in the history and its items come back to stock'
     await expect(movements.getByRole('link', { name: 'Vente' })).toBeVisible();
 });
 
+test('select every order of a day from its header', async ({ page, request }) => {
+    const event = await createEvent(request);
+    const sticker = await createProduct(request, { name: unique('Sticker') });
+    for (const time of ['10:00', '11:00']) {
+        await request.post('/api/orders', { data: { placedAt: `${event.startDate}T${time}`, lines: [{ productId: sticker.id, variant: null, quantity: 1 }] } });
+    }
+
+    await page.goto(`/orders?event=${event.id}`);
+    const day = page.getByRole('checkbox', { name: /^Sélectionner les commandes du / });
+    await day.check();
+    await expect(page.getByRole('region', { name: 'Sélection' })).toContainText('2 commandes sélectionnées');
+    await day.uncheck();
+    await expect(page.getByRole('region', { name: 'Sélection' })).toHaveCount(0);
+});
+
 test('delete several orders from the list', async ({ page, request }) => {
     const event = await createEvent(request);
     const sticker = await createProduct(request, { name: unique('Sticker') });

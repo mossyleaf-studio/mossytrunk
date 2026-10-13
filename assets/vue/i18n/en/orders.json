@@ -82,7 +82,8 @@
         "unassigned": "{count} item to link to a product | {count} items to link to a product",
         "profit": "Real profit",
         "profitHint": "Total cashed − buying cost − supplies − channel costs.",
-        "unknownCost": "Unknown buying cost for {count} line | Unknown buying cost for {count} lines"
+        "unknownCost": "Unknown buying cost for {count} line | Unknown buying cost for {count} lines",
+        "selectDay": "Select the orders of {day} · {place}"
     },
     "margin": {
         "collected": "Collected",
@@ -152,7 +153,9 @@
         "noneOnChannel": "The {channel} channel offers no supply: choose them on its page.",
         "noChannel": "This order has no channel: it cannot have supplies.",
         "severalChannels": "Choose orders of a single channel to add them a supply.",
-        "intro": "Adds the supply to {count} order of the {channel} channel, taken from stock. | Adds the supply to each of the {count} orders of the {channel} channel, taken from stock."
+        "intro": "Adds the supply to {count} order of the {channel} channel, taken from stock. | Adds the supply to each of the {count} orders of the {channel} channel, taken from stock.",
+        "addLine": "Another supply",
+        "removeLine": "Remove supply {number}"
     },
     "postage": {
         "edit": "Edit the postage",

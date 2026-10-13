@@ -40,6 +40,15 @@ const days = computed(() => {
 const checkedSet = computed(() => new Set(checkedIds.value));
 const allChecked = computed(() => props.orders.length > 0 && props.orders.every((order) => checkedSet.value.has(order.id)));
 
+const idsByDay = computed(() => Map.groupBy(props.orders, dayKey));
+const dayIds = (order) => (idsByDay.value.get(dayKey(order)) ?? []).map((dayOrder) => dayOrder.id);
+const dayChecked = (order) => dayIds(order).every((id) => checkedSet.value.has(id));
+
+function checkDay(order, checked) {
+    const ids = new Set(dayIds(order));
+    checkedIds.value = checked ? [...new Set([...checkedIds.value, ...ids])] : checkedIds.value.filter((id) => !ids.has(id));
+}
+
 function checkAll(checked) {
     checkedIds.value = checked ? props.orders.map((order) => order.id) : [];
 }
@@ -73,7 +82,14 @@ const withDayHeaders = (rows) => rows.map((order, index) => ({
         <template #default="{ rows }">
             <template v-for="{ order, day } in withDayHeaders(rows)" :key="order.id">
                 <tr v-if="day" class="order-list__day">
-                    <th scope="rowgroup" colspan="5">
+                    <td class="order-list__check">
+                        <BaseCheckbox
+                            :model-value="dayChecked(order)"
+                            :aria-label="t('orders.list.selectDay', { day: formatDay(order.placedAt), place: order.eventName ?? t('orders.shop', { source: order.sourceLabel }) })"
+                            @update:model-value="checkDay(order, $event)"
+                        />
+                    </td>
+                    <th scope="rowgroup" colspan="4">
                         <span class="order-list__date">{{ formatDay(order.placedAt) }}</span>
                         <a v-if="order.eventId" class="order-list__event" :href="`/events/${order.eventId}`">{{ order.eventName }}</a>
                         <span v-else class="order-list__event order-list__event--online">{{ t('orders.shop', { source: order.sourceLabel }) }}</span>
