@@ -22,6 +22,7 @@ final readonly class DiscountRuleView
         public array $action,
         public ?string $startsOn,
         public ?string $endsOn,
+        public bool $manual,
     ) {
     }
 
@@ -45,6 +46,7 @@ final readonly class DiscountRuleView
             ['kind' => $rule->action()->kind()->value, 'value' => $rule->action()->value()],
             $rule->validity()->start()?->format('Y-m-d'),
             $rule->validity()->end()?->format('Y-m-d'),
+            $rule->isManual(),
         );
     }
 }

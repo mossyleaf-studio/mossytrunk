@@ -47,7 +47,8 @@
         "createEvent": "Créer un événement",
         "noLines": "Ajoutez au moins un produit.",
         "submit": "Enregistrer la commande",
-        "items": "Articles"
+        "items": "Articles",
+        "manualDiscounts": "Remises manuelles"
     },
     "picker": {
         "product": "Produit",
@@ -163,5 +164,14 @@
         "amount": "Affranchissement",
         "hint": "Ce que l'envoi a coûté (timbre, étiquette…).",
         "saved": "Affranchissement enregistré."
+    },
+    "discounts": {
+        "add": "Ajouter une remise",
+        "rule": "Remise",
+        "hint": "Elle porte sur ce qu'il reste à payer après les autres remises.",
+        "apply": "Appliquer",
+        "granted": "Remise « {name} » appliquée.",
+        "withdraw": "Retirer {label}",
+        "withdrawn": "Remise « {name} » retirée."
     }
 }

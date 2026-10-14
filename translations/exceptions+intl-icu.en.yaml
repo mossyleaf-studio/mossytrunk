@@ -17,6 +17,8 @@ design:
     same_product_twice: 'Two adaptations would give the same product “{name}”: rename one of them.'
     unknown_adjustment: 'Unknown adjustment “{adjustment}”.'
 discount:
+    not_manual: '“{name}” applies automatically: it cannot be chosen on an order.'
+    not_valid_on: '“{name}” is not valid on {date, date, medium}.'
     only_eligible_type: 'The discount “{rule}” only applies to the type “{type}”: edit or delete it before deleting the type.'
     only_eligible_collection: 'The discount “{rule}” only applies to the collection “{collection}”: edit or delete it before deleting the collection.'
     condition_quantity_too_small: 'A condition applies to at least 1 item.'
@@ -66,6 +68,7 @@ integration:
     service_already_added: '{service} is already added.'
     unknown_service: 'Unknown service “{service}”.'
 order:
+    discount_already_granted: '“{name}” is already applied to order {reference}.'
     negative_postage: 'Postage cannot be negative.'
     several_channels: 'The chosen orders are on several channels: choose orders of a single channel.'
     supply_not_on_channel: '“{supply}” is not a supply of the channel of order {reference}.'

@@ -10,10 +10,12 @@ final readonly class PlaceOrder
 {
     /**
      * @param list<RequestedLine> $lines
+     * @param list<string>        $discountRuleIds
      */
     public function __construct(
         public \DateTimeImmutable $placedAt,
         public array $lines,
+        public array $discountRuleIds = [],
     ) {
     }
 }

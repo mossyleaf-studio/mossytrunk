@@ -47,7 +47,8 @@
         "createEvent": "Create an event",
         "noLines": "Add at least one product.",
         "submit": "Save order",
-        "items": "Items"
+        "items": "Items",
+        "manualDiscounts": "Manual discounts"
     },
     "picker": {
         "product": "Product",
@@ -163,5 +164,14 @@
         "amount": "Postage",
         "hint": "What shipping cost (stamp, label…).",
         "saved": "Postage saved."
+    },
+    "discounts": {
+        "add": "Add a discount",
+        "rule": "Discount",
+        "hint": "It applies to what is left to pay after the other discounts.",
+        "apply": "Apply",
+        "granted": "Discount “{name}” applied.",
+        "withdraw": "Remove {label}",
+        "withdrawn": "Discount “{name}” removed."
     }
 }

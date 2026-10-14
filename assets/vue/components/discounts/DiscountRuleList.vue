@@ -69,6 +69,7 @@ const savings = computed(() => new Map(props.rules.map((rule) => [rule.id, savin
             <div class="discount-rule-list__main">
                 <span class="discount-rule-list__name">{{ rule.name }}</span>
                 <p class="discount-rule-list__deal">
+                    <span v-if="rule.manual" class="discount-rule-list__condition">{{ t('discounts.list.manual') }}</span>
                     <template v-for="(condition, index) in rule.conditions" :key="conditionKey(condition)">
                         <span v-if="index > 0" class="discount-rule-list__plus">+</span>{{ ' ' }}
                         <span class="discount-rule-list__condition">

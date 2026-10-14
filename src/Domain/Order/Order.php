@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Domain\Order;
 
 use App\Domain\Discount\AppliedDiscount;
+use App\Domain\Discount\DiscountRule;
 use App\Domain\Event\Event;
 use App\Domain\Identity\Workspace;
+use App\Domain\Order\Exception\DiscountAlreadyGranted;
 use App\Domain\Order\Exception\DiscountExceedsSubtotal;
 use App\Domain\Order\Exception\EmptyOrder;
 use App\Domain\Order\Exception\NegativePostage;
@@ -563,7 +565,7 @@ class Order implements Referenced
     /**
      * @param list<AppliedDiscount> $discounts
      *
-     * @return list<array{label: string, amount: int, ruleId: ?string}>
+     * @return list<array{label: string, amount: int, ruleId: ?string, manual?: array{kind: string, value: int}}>
      */
     private static function withDiscount(array $discounts, string $label, Money $amount): array
     {
@@ -615,6 +617,43 @@ class Order implements Referenced
     public function appliedDiscounts(): array
     {
         return array_map(AppliedDiscount::fromArray(...), $this->appliedDiscounts);
+    }
+
+    public function grantDiscount(DiscountRule $rule): void
+    {
+        if ($this->isRefunded()) {
+            throw new RefundedOrderLocked($this->reference);
+        }
+        $granted = $rule->grantOn($this->placedAt);
+        $discounts = $this->appliedDiscounts();
+        if (array_any($discounts, static fn (AppliedDiscount $discount): bool => $discount->isManual() && $rule->id()->equals($discount->ruleId))) {
+            throw new DiscountAlreadyGranted($rule->name(), $this->reference);
+        }
+
+        $this->settleDiscounts([...$discounts, $granted]);
+    }
+
+    public function withdrawDiscount(Ulid $ruleId): void
+    {
+        if ($this->isRefunded()) {
+            throw new RefundedOrderLocked($this->reference);
+        }
+        $discounts = $this->appliedDiscounts();
+        $kept = array_values(array_filter($discounts, static fn (AppliedDiscount $discount): bool => !$discount->isManual() || !$ruleId->equals($discount->ruleId)));
+        if (\count($kept) === \count($discounts)) {
+            throw new NotFound('discount', (string) $ruleId);
+        }
+
+        $this->settleDiscounts($kept);
+    }
+
+    /**
+     * @param list<AppliedDiscount> $discounts
+     */
+    private function settleDiscounts(array $discounts): void
+    {
+        $this->applyDiscounts(AppliedDiscount::settle($discounts, $this->linesTotal()));
+        $this->recordSales();
     }
 
     private function addItem(OrderedItem $ordered): void

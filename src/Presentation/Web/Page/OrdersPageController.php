@@ -27,6 +27,6 @@ final readonly class OrdersPageController
 
         $items = array_map(static fn (ServiceConnection $connection): string => "/api/services/{$connection->service()}/items", $this->connections->all());
 
-        return $this->page->render('OrdersPage', 'orders', preload: [$orders, '/api/products', '/api/events', '/api/services', '/api/sales-channels', ...$items]);
+        return $this->page->render('OrdersPage', 'orders', preload: [$orders, '/api/products', '/api/events', '/api/services', '/api/sales-channels', '/api/discount-rules', ...$items]);
     }
 }

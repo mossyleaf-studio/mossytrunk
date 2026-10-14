@@ -9,6 +9,7 @@ import BaseDatePicker from '../ui/BaseDatePicker.vue';
 import BaseMoneyField from '../ui/BaseMoneyField.vue';
 import BaseNumberField from '../ui/BaseNumberField.vue';
 import BaseSelect from '../ui/BaseSelect.vue';
+import BaseSwitch from '../ui/BaseSwitch.vue';
 import ChoiceGroup from '../ui/ChoiceGroup.vue';
 import FormActions from '../ui/FormActions.vue';
 import FormDisclosure from '../ui/FormDisclosure.vue';
@@ -37,10 +38,11 @@ const ACTIONS = [
 
 const emptyTarget = () => ({ kind: 'type', id: '', variant: '', collectionId: '' });
 const emptyCondition = () => ({ quantity: 1, targets: [emptyTarget()] });
-const emptyForm = () => ({ name: '', conditions: [emptyCondition()], actionKind: 'fixedPrice', amount: null, percent: null, startsOn: '', endsOn: '' });
+const emptyForm = () => ({ name: '', manual: false, conditions: [emptyCondition()], actionKind: 'fixedPrice', amount: null, percent: null, startsOn: '', endsOn: '' });
 const fromRule = (rule) => ({
     name: rule.name,
-    conditions: rule.conditions.map(({ quantity, targets }) => ({ quantity, targets: targets.map(({ kind, id, variant, collectionId }) => ({ kind, id, variant: variant ?? '', collectionId: collectionId ?? '' })) })),
+    manual: rule.manual,
+    conditions: rule.manual ? [emptyCondition()] : rule.conditions.map(({ quantity, targets }) => ({ quantity, targets: targets.map(({ kind, id, variant, collectionId }) => ({ kind, id, variant: variant ?? '', collectionId: collectionId ?? '' })) })),
     actionKind: rule.action.kind,
     amount: rule.action.kind === 'percentOff' ? null : rule.action.value,
     percent: rule.action.kind === 'percentOff' ? rule.action.value / 100 : null,
@@ -80,6 +82,9 @@ const action = computed(() => ({
 }));
 
 const pricing = computed(() => {
+    if (form.manual) {
+        return null;
+    }
     const day = pricingDay(form.startsOn, form.endsOn);
     const regular = regularPrice(props.products, form.conditions, day);
     if (!regular) {
@@ -95,7 +100,7 @@ const pricing = computed(() => {
     };
 });
 
-const valueLabel = computed(() => t(ACTIONS.find((option) => option.value === form.actionKind).valueLabel));
+const valueLabel = computed(() => t(form.manual && form.actionKind === 'fixedPrice' ? 'discounts.form.orderPrice' : ACTIONS.find((option) => option.value === form.actionKind).valueLabel));
 
 const periodOpen = ref(false);
 const periodSummary = computed(() => describePeriod(form.startsOn, form.endsOn, 'discounts.form.always'));
@@ -128,7 +133,8 @@ async function onSubmit() {
     await run(async () => {
         await props.submit({
             name: form.name,
-            conditions: form.conditions.map((condition) => ({
+            manual: form.manual,
+            conditions: form.manual ? [] : form.conditions.map((condition) => ({
                 quantity: Number(condition.quantity) || 0,
                 targets: condition.targets.map((target) => ({ kind: target.kind, id: target.id, variant: target.variant || null, collectionId: target.collectionId || null })),
             })),
@@ -153,9 +159,12 @@ async function onSubmit() {
                 <FormField :label="t('discounts.form.name')" :error="errors.name">
                     <input v-model="form.name" type="text" :placeholder="t('discounts.form.namePlaceholder')">
                 </FormField>
+                <FormField as="group" :label="t('discounts.form.application')" :hint="form.manual ? t('discounts.form.manualHint') : t('discounts.form.automaticHint')">
+                    <label class="discount-rule-form__switch"><BaseSwitch v-model="form.manual" /> {{ t('discounts.form.manual') }}</label>
+                </FormField>
             </FormSection>
 
-            <FormSection :title="t('discounts.form.conditions')" :description="t('discounts.form.conditionsHint')">
+            <FormSection v-if="!form.manual" :title="t('discounts.form.conditions')" :description="t('discounts.form.conditionsHint')">
                 <ol class="discount-rule-form__conditions">
                     <li v-for="(condition, index) in form.conditions" :key="index" class="discount-rule-form__condition" :data-test="`condition-${index}`">
                         <BaseNumberField v-model="condition.quantity" class="discount-rule-form__quantity" :min="1" :label="t('discounts.form.conditionQuantity', { number: index + 1 })" />
@@ -311,6 +320,7 @@ async function onSubmit() {
 .discount-rule-form__fact { margin: 0; padding-top: 0.5625rem; font-size: var(--font-size-md); color: var(--color-muted); }
 .discount-rule-form__fact strong { color: var(--color-ink); font-weight: 600; }
 
+.discount-rule-form__switch { display: flex; align-items: center; gap: var(--space-2); padding-top: 0.5625rem; font-size: var(--font-size-md); cursor: pointer; }
 .discount-rule-form__kinds { display: flex; flex-wrap: wrap; gap: var(--space-1); }
 
 @container form (max-width: 28rem) {

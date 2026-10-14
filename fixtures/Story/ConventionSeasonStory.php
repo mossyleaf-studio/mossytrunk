@@ -130,6 +130,7 @@ final class ConventionSeasonStory extends Story
                 ValidityPeriod::between(new \DateTimeImmutable('-45 days'), new \DateTimeImmutable('-44 days')),
             ),
         ];
+        DiscountRuleFactory::createOne(['workspace' => $workspace, 'name' => 'Cadeau', 'action' => DiscountAction::percentOff(10_000), 'manual' => true]);
 
         $events = [
             EventFactory::new()->withExpenses(['Stand' => 18_000, 'Train' => 9_400, 'Hôtel (2 nuits)' => 16_000, 'Repas' => 4_500])

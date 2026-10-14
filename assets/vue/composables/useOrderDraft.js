@@ -7,6 +7,7 @@ export function useOrderDraft() {
     const api = useApi();
     const placedAt = ref(nowForInput());
     const lines = reactive([]);
+    const discountRuleIds = ref([]);
 
     const sameTuple = (a, b) => a.productId === b.productId && (a.variant ?? null) === (b.variant ?? null);
 
@@ -36,6 +37,7 @@ export function useOrderDraft() {
 
     function reset() {
         lines.splice(0, lines.length);
+        discountRuleIds.value = [];
         preview.value = null;
         error.value = null;
     }
@@ -43,14 +45,15 @@ export function useOrderDraft() {
     const payload = () => ({
         placedAt: placedAt.value,
         lines: lines.map(({ productId, variant, quantity }) => ({ productId, variant, quantity })),
+        discountRuleIds: discountRuleIds.value,
     });
 
     const { result: preview, error } = useDebouncedQuery(
-        [placedAt, lines],
+        [placedAt, lines, discountRuleIds],
         () => (lines.length === 0 || !placedAt.value ? null : api.query('/api/orders/preview', payload())),
         { delay: 200, deep: true },
     );
     const previewError = computed(() => error.value?.message ?? null);
 
-    return { placedAt, lines, preview, previewError, add, setQuantity, remove, reset, payload };
+    return { placedAt, lines, discountRuleIds, preview, previewError, add, setQuantity, remove, reset, payload };
 }

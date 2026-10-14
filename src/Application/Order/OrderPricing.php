@@ -13,6 +13,7 @@ use App\Domain\Discount\DiscountRuleRepository;
 use App\Domain\Order\Exception\InvalidOrderQuantity;
 use App\Domain\Order\OrderedItem;
 use App\Domain\Product\ProductRepository;
+use App\Domain\Shared\Money;
 use Symfony\Component\Uid\Ulid;
 
 final readonly class OrderPricing
@@ -54,10 +55,11 @@ final readonly class OrderPricing
     /**
      * @param list<OrderedItem>       $items
      * @param list<DiscountRule>|null $rules
+     * @param list<string>            $grantedRuleIds
      *
      * @return list<AppliedDiscount>
      */
-    public function discounts(array $items, \DateTimeImmutable $placedAt, ?array $rules = null): array
+    public function discounts(array $items, \DateTimeImmutable $placedAt, ?array $rules = null, array $grantedRuleIds = []): array
     {
         $rules ??= $this->rules();
         $collections = array_any($rules, static fn (DiscountRule $rule): bool => $rule->filtersByCollection()) ? $this->collections->byProduct() : [];
@@ -66,6 +68,9 @@ final readonly class OrderPricing
             $items,
         )));
 
-        return $this->calculator->calculate($basket, $rules, $placedAt);
+        $granted = array_map(fn (string $ruleId): AppliedDiscount => $this->discountRules->get(Ulid::fromString($ruleId))->grantOn($placedAt), array_values(array_unique($grantedRuleIds)));
+        $subtotal = Money::sum(array_map(static fn (OrderedItem $ordered): Money => $ordered->item->sellingPrice->multiply($ordered->quantity), $items));
+
+        return AppliedDiscount::settle([...$this->calculator->calculate($basket, $rules, $placedAt), ...$granted], $subtotal);
     }
 }

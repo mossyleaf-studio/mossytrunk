@@ -20,6 +20,6 @@ final readonly class OrderDetailPageController
 
     public function __invoke(string $id): Response
     {
-        return $this->page->render('OrderDetailPage', 'order', ['orderId' => $id], preload: ["/api/orders/$id", '/api/products', '/api/sales-channels']);
+        return $this->page->render('OrderDetailPage', 'order', ['orderId' => $id], preload: ["/api/orders/$id", '/api/products', '/api/sales-channels', '/api/discount-rules']);
     }
 }

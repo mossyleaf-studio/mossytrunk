@@ -57,6 +57,13 @@ final class DiscountCalculatorTest extends TestCase
         self::assertEquals([new AppliedDiscount('2 prints et 1 sticker pour 15 €', Money::cents(1_900), $rule->id())], $discounts);
     }
 
+    public function testAManualRuleIsNeverAppliedAutomatically(): void
+    {
+        $gift = DiscountRule::create(TestWorkspace::get(), 'Cadeau', [], DiscountAction::percentOff(10_000), null, true);
+
+        self::assertSame([], $this->calculator->calculate([$this->line($this->forest, 1)], [$gift], $this->now));
+    }
+
     public function testAGroupConditionPicksItsUnitsAmongAllItsProductsAndTypes(): void
     {
         $rule = $this->rule('3 prints au choix : −2 €', [new ConditionSpec(3, [new TargetSpec($this->forest, 'A4'), new TargetSpec($this->river), new TargetSpec($this->stickerType)])], DiscountAction::amountOff(Money::cents(200)));

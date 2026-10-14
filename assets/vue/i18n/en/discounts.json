@@ -4,7 +4,7 @@
         "title": "Discounts",
         "new": "New discount",
         "edit": "Edit discount",
-        "intro": "A discount combines conditions (a quantity of items picked among one or more types or products, optionally of a single variant) and an action: fixed price, amount off in € or percentage off. Discounts apply automatically to orders placed during their validity period, the most favorable first, and several discounts can stack on one order.",
+        "intro": "A discount combines conditions (a quantity of items picked among one or more types or products, optionally of a single variant) and an action: fixed price, amount off in € or percentage off. Discounts apply automatically to orders placed during their validity period, the most favorable first, and several discounts can stack on one order. A manual discount (e.g. a 100% “Gift”) only applies when you choose it on an order, on what is left to pay after the automatic discounts.",
         "current": "Running and upcoming",
         "past": "Past",
         "created": "Discount “{name}” created.",
@@ -53,7 +53,12 @@
         "or": "or",
         "addTarget": "Add a product or type",
         "targetNumber": "{condition}, option {target}",
-        "removeTarget": "Remove option {number}"
+        "removeTarget": "Remove option {number}",
+        "application": "Application",
+        "manual": "Manual discount",
+        "automaticHint": "Applied automatically to orders meeting the conditions.",
+        "manualHint": "Chosen by hand on an order, when creating it or on its page. It applies to the whole order, after the automatic discounts.",
+        "orderPrice": "Order price"
     },
     "status": {
         "running": "Running",
@@ -73,7 +78,8 @@
         "edit": "Edit {name}",
         "remove": "Delete {name}",
         "or": "or",
-        "pricedOn": "prices of {date}"
+        "pricedOn": "prices of {date}",
+        "manual": "Manual · whole order"
     },
     "action": {
         "fixedPrice": "for {price}"

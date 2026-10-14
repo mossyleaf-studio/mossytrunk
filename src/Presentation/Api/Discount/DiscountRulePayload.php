@@ -6,6 +6,7 @@ namespace App\Presentation\Api\Discount;
 
 use App\Application\Discount\DiscountRuleDefinition;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 final readonly class DiscountRulePayload
 {
@@ -16,7 +17,6 @@ final readonly class DiscountRulePayload
         #[Assert\NotBlank(message: 'name.required')]
         #[Assert\Length(max: 255)]
         public string $name = '',
-        #[Assert\Count(min: 1, minMessage: 'discount.conditions.atLeastOne')]
         #[Assert\Valid]
         public array $conditions = [],
         #[Assert\Valid]
@@ -25,7 +25,16 @@ final readonly class DiscountRulePayload
         public ?string $startsOn = null,
         #[Assert\Date(message: 'date.end.invalid')]
         public ?string $endsOn = null,
+        public bool $manual = false,
     ) {
+    }
+
+    #[Assert\Callback]
+    public function requireConditionsUnlessManual(ExecutionContextInterface $context): void
+    {
+        if (!$this->manual && [] === $this->conditions) {
+            $context->buildViolation('discount.conditions.atLeastOne')->atPath('conditions')->addViolation();
+        }
     }
 
     public function toDefinition(): DiscountRuleDefinition
@@ -37,6 +46,7 @@ final readonly class DiscountRulePayload
             $this->action->value,
             $this->startsOn,
             $this->endsOn,
+            $this->manual,
         );
     }
 }

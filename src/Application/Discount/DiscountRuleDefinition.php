@@ -16,6 +16,7 @@ final readonly class DiscountRuleDefinition
         public int $actionValue,
         public ?string $startsOn = null,
         public ?string $endsOn = null,
+        public bool $manual = false,
     ) {
     }
 }

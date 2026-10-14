@@ -17,7 +17,7 @@ final class DiscountCalculator
      */
     public function calculate(array $basket, array $rules, \DateTimeImmutable $placedAt): array
     {
-        $rules = array_values(array_filter($rules, static fn (DiscountRule $rule): bool => $rule->appliesOn($placedAt)));
+        $rules = array_values(array_filter($rules, static fn (DiscountRule $rule): bool => $rule->appliesAutomaticallyOn($placedAt)));
         usort($rules, static fn (DiscountRule $a, DiscountRule $b): int => strcmp($a->name(), $b->name()));
 
         $units = $this->expand($basket);

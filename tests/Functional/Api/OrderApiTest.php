@@ -34,6 +34,32 @@ final class OrderApiTest extends WebTestCase
         self::assertSame('T-shirt — M', Json::at(Json::decode((string) $client->getResponse()->getContent()), 'lines', 0, 'label'));
     }
 
+    public function testAManualDiscountIsChosenWhenPlacingAnOrderThenWithdrawnAndGrantedAgain(): void
+    {
+        $client = self::signedInClient();
+        $this->post($client, '/api/events', ['name' => 'Japan Expo', 'location' => 'Villepinte', 'startDate' => '2026-07-09', 'endDate' => '2026-07-12']);
+        $product = $this->post($client, '/api/products', ['name' => 'Zine', 'sellingPrice' => 1_000, 'typeId' => ProductTypesApi::create($client)])['id'];
+        $gift = Json::string($this->post($client, '/api/discount-rules', ['name' => 'Cadeau', 'manual' => true, 'conditions' => [], 'action' => ['kind' => 'percentOff', 'value' => 10_000]]), 'id');
+        $client->jsonRequest('GET', '/api/discount-rules');
+        self::assertTrue(Json::at(Json::decode((string) $client->getResponse()->getContent()), 0, 'manual'));
+        $body = ['placedAt' => '2026-07-10T15:30', 'lines' => [['productId' => $product, 'variant' => null, 'quantity' => 2]], 'discountRuleIds' => [$gift]];
+
+        $client->jsonRequest('POST', '/api/orders/preview', $body);
+        self::assertSame(0, Json::at(Json::decode((string) $client->getResponse()->getContent()), 'total'));
+        $order = Json::string($this->post($client, '/api/orders', $body), 'id');
+        self::assertSame([2_000, 0], $this->totals($client, $order));
+
+        $client->jsonRequest('DELETE', "/api/orders/$order/discounts/$gift");
+        self::assertResponseStatusCodeSame(204);
+        self::assertSame([0, 2_000], $this->totals($client, $order));
+
+        $client->jsonRequest('POST', "/api/orders/$order/discounts", ['ruleId' => $gift]);
+        self::assertResponseStatusCodeSame(204);
+        self::assertSame([2_000, 0], $this->totals($client, $order));
+        $client->jsonRequest('POST', "/api/orders/$order/discounts", ['ruleId' => $gift]);
+        self::assertResponseStatusCodeSame(422);
+    }
+
     public function testSuppliesOfferedByTheChannelAreAddedToOrdersAndRemoved(): void
     {
         $client = self::signedInClient();
@@ -197,5 +223,16 @@ final class OrderApiTest extends WebTestCase
         self::assertResponseStatusCodeSame(201, (string) $client->getResponse()->getContent());
 
         return Json::decode((string) $client->getResponse()->getContent());
+    }
+
+    /**
+     * @return array{int, int}
+     */
+    private function totals(KernelBrowser $client, string $order): array
+    {
+        $client->jsonRequest('GET', "/api/orders/$order");
+        $view = Json::decode((string) $client->getResponse()->getContent());
+
+        return [Json::int($view, 'discountTotal'), Json::int($view, 'total')];
     }
 }

@@ -17,6 +17,8 @@ design:
     same_product_twice: 'Deux déclinaisons donneraient le même produit « {name} » : renommez-en une.'
     unknown_adjustment: 'Adaptation inconnue « {adjustment} ».'
 discount:
+    not_manual: '« {name} » s''applique automatiquement : elle ne se choisit pas sur une commande.'
+    not_valid_on: '« {name} » n''est pas valable le {date, date, short}.'
     only_eligible_type: 'La remise « {rule} » ne concerne que le type « {type} » : modifiez ou supprimez-la avant de supprimer le type.'
     only_eligible_collection: 'La remise « {rule} » ne concerne que la collection « {collection} » : modifiez ou supprimez-la avant de supprimer la collection.'
     condition_quantity_too_small: 'Une condition porte sur au moins 1 article.'
@@ -66,6 +68,7 @@ integration:
     service_already_added: '{service} est déjà ajouté.'
     unknown_service: 'Service inconnu « {service} ».'
 order:
+    discount_already_granted: '« {name} » est déjà appliquée à la commande {reference}.'
     negative_postage: 'L''affranchissement ne peut pas être négatif.'
     several_channels: 'Les commandes choisies sont sur plusieurs canaux : choisissez des commandes d''un seul canal.'
     supply_not_on_channel: '« {supply} » n''est pas une fourniture du canal de la commande {reference}.'

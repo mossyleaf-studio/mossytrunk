@@ -1,6 +1,10 @@
 import { computed, ref } from 'vue';
 import { useApi } from './useApi.js';
 
+export const manualRulesOn = (rules, day) => rules.filter((rule) => rule.manual
+    && (!rule.startsOn || rule.startsOn <= day)
+    && (!rule.endsOn || day <= rule.endsOn));
+
 export function useDiscountRules() {
     const api = useApi();
     const rules = ref([]);

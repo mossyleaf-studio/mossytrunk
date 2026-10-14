@@ -7,9 +7,11 @@ namespace App\Domain\Discount;
 use App\Domain\Design\DesignCollection;
 use App\Domain\Discount\Exception\DiscountExpired;
 use App\Domain\Discount\Exception\DiscountNotRunning;
+use App\Domain\Discount\Exception\DiscountNotValidOn;
 use App\Domain\Discount\Exception\DuplicateConditionTarget;
 use App\Domain\Discount\Exception\EmptyDiscountName;
 use App\Domain\Discount\Exception\NoDiscountCondition;
+use App\Domain\Discount\Exception\NotAManualDiscount;
 use App\Domain\Discount\Exception\OnlyEligibleCollection;
 use App\Domain\Discount\Exception\OnlyEligibleProduct;
 use App\Domain\Discount\Exception\OnlyEligibleType;
@@ -49,35 +51,39 @@ class DiscountRule
     #[ORM\Embedded(class: ValidityPeriod::class, columnPrefix: 'valid_')]
     private ValidityPeriod $validity;
 
+    #[ORM\Column(options: ['default' => false])]
+    private bool $manual = false;
+
     /**
      * @param list<ConditionSpec> $conditions
      */
-    private function __construct(Ulid $id, Workspace $workspace, string $name, array $conditions, DiscountAction $action, ValidityPeriod $validity)
+    private function __construct(Ulid $id, Workspace $workspace, string $name, array $conditions, DiscountAction $action, ValidityPeriod $validity, bool $manual)
     {
         $this->id = $id;
         $this->workspace = $workspace;
         $this->conditions = new ArrayCollection();
-        $this->redefine($name, $conditions, $action, $validity);
+        $this->redefine($name, $conditions, $action, $validity, $manual);
     }
 
     /**
      * @param list<ConditionSpec> $conditions
      */
-    public static function create(Workspace $workspace, string $name, array $conditions, DiscountAction $action, ?ValidityPeriod $validity = null): self
+    public static function create(Workspace $workspace, string $name, array $conditions, DiscountAction $action, ?ValidityPeriod $validity = null, bool $manual = false): self
     {
-        return new self(new Ulid(), $workspace, $name, $conditions, $action, $validity ?? ValidityPeriod::always());
+        return new self(new Ulid(), $workspace, $name, $conditions, $action, $validity ?? ValidityPeriod::always(), $manual);
     }
 
     /**
      * @param list<ConditionSpec> $conditions
      */
-    public function redefine(string $name, array $conditions, DiscountAction $action, ?ValidityPeriod $validity = null): void
+    public function redefine(string $name, array $conditions, DiscountAction $action, ?ValidityPeriod $validity = null, bool $manual = false): void
     {
         $name = trim($name);
         if ('' === $name) {
             throw new EmptyDiscountName();
         }
-        if ([] === $conditions) {
+        $conditions = $manual ? [] : $conditions;
+        if (!$manual && [] === $conditions) {
             throw new NoDiscountCondition();
         }
 
@@ -95,6 +101,7 @@ class DiscountRule
         $this->name = $name;
         $this->action = $action;
         $this->validity = $validity ?? ValidityPeriod::always();
+        $this->manual = $manual;
         $this->conditions->clear();
         foreach ($built as $condition) {
             $this->conditions->add($condition);
@@ -103,6 +110,9 @@ class DiscountRule
 
     public function replaceProduct(Product $replaced, ?string $movedVariant, Product $by, ?string $targetVariant): void
     {
+        if ($this->manual) {
+            return;
+        }
         foreach ($this->conditions() as $condition) {
             foreach ($condition->targetsOn($replaced) as $source) {
                 $this->move($condition, $source, $movedVariant, $by, $targetVariant);
@@ -118,7 +128,7 @@ class DiscountRule
 
     public function withdrawProduct(Product $product): void
     {
-        if ($this->onlyTargets($product)) {
+        if (!$this->manual && $this->onlyTargets($product)) {
             throw new OnlyEligibleProduct($this->name, $product->displayName());
         }
         $this->withdraw($product);
@@ -126,7 +136,7 @@ class DiscountRule
 
     public function withdrawType(ProductType $type): void
     {
-        if ($this->onlyTargets($type)) {
+        if (!$this->manual && $this->onlyTargets($type)) {
             throw new OnlyEligibleType($this->name, $type->name());
         }
         $this->withdraw($type);
@@ -134,7 +144,7 @@ class DiscountRule
 
     public function withdrawCollection(DesignCollection $collection): void
     {
-        if ($this->conditions->forAll(static fn (int $key, DiscountCondition $condition): bool => $condition->onlyTargetsCollection($collection))) {
+        if (!$this->manual && $this->conditions->forAll(static fn (int $key, DiscountCondition $condition): bool => $condition->onlyTargetsCollection($collection))) {
             throw new OnlyEligibleCollection($this->name, $collection->name());
         }
         foreach ($this->conditions() as $condition) {
@@ -193,6 +203,28 @@ class DiscountRule
     public function appliesOn(\DateTimeImmutable $moment): bool
     {
         return $this->validity->covers($moment);
+    }
+
+    public function appliesAutomaticallyOn(\DateTimeImmutable $moment): bool
+    {
+        return !$this->manual && $this->appliesOn($moment);
+    }
+
+    public function grantOn(\DateTimeImmutable $placedAt): AppliedDiscount
+    {
+        if (!$this->manual) {
+            throw new NotAManualDiscount($this->name);
+        }
+        if (!$this->appliesOn($placedAt)) {
+            throw new DiscountNotValidOn($this->name, $placedAt);
+        }
+
+        return AppliedDiscount::granted($this->name, $this->id, $this->action);
+    }
+
+    public function isManual(): bool
+    {
+        return $this->manual;
     }
 
     public function id(): Ulid

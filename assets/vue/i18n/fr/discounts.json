@@ -4,7 +4,7 @@
         "title": "Remises",
         "new": "Nouvelle remise",
         "edit": "Modifier la remise",
-        "intro": "Une remise combine des conditions (une quantité d'articles pris parmi un ou plusieurs types ou produits, éventuellement d'une seule variante) et une action : prix fixe, remise en € ou en %. Elles s'appliquent automatiquement aux commandes passées pendant leur période de validité, la plus avantageuse d'abord, et plusieurs remises peuvent se cumuler sur une commande.",
+        "intro": "Une remise combine des conditions (une quantité d'articles pris parmi un ou plusieurs types ou produits, éventuellement d'une seule variante) et une action : prix fixe, remise en € ou en %. Elles s'appliquent automatiquement aux commandes passées pendant leur période de validité, la plus avantageuse d'abord, et plusieurs remises peuvent se cumuler sur une commande. Une remise manuelle (ex. « Cadeau » à 100 %) ne s'applique que si vous la choisissez sur une commande, sur ce qu'il reste à payer après les remises automatiques.",
         "current": "En cours et à venir",
         "past": "Passées",
         "created": "Remise « {name} » créée.",
@@ -53,7 +53,12 @@
         "or": "ou",
         "addTarget": "Ajouter un produit ou un type",
         "targetNumber": "{condition}, choix {target}",
-        "removeTarget": "Retirer le choix {number}"
+        "removeTarget": "Retirer le choix {number}",
+        "application": "Application",
+        "manual": "Remise manuelle",
+        "automaticHint": "Appliquée automatiquement aux commandes qui remplissent les conditions.",
+        "manualHint": "Choisie à la main sur une commande, à sa création ou sur sa fiche. Elle porte sur toute la commande, après les remises automatiques.",
+        "orderPrice": "Prix de la commande"
     },
     "status": {
         "running": "En cours",
@@ -73,7 +78,8 @@
         "edit": "Modifier {name}",
         "remove": "Supprimer {name}",
         "or": "ou",
-        "pricedOn": "prix du {date}"
+        "pricedOn": "prix du {date}",
+        "manual": "Manuelle · toute la commande"
     },
     "action": {
         "fixedPrice": "pour {price}"

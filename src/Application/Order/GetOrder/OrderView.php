@@ -18,7 +18,7 @@ final readonly class OrderView
      * @param list<array{id: string, productId: ?string, label: string, quantity: int, unitPrice: int, total: int, unitCost: int, cost: int}> $lines
      * @param array{id: string, name: string}|null                                                                                            $event
      * @param list<array{reference: string}>                                                                                                  $importedSales
-     * @param list<array{label: string, amount: int, ruleId: ?string}>                                                                        $discounts
+     * @param list<array{label: string, amount: int, ruleId: ?string, manual?: array{kind: string, value: int}}>                              $discounts
      * @param list<array{id: string, productId: string, label: string, quantity: int, cost: int}>                                             $supplies
      * @param list<array{label: string, amount: int}>                                                                                         $charges
      */

@@ -56,6 +56,8 @@ export function useOrder(orderId) {
     const removeSupply = (supplyLineId) => api.del(`/api/orders/${orderId}/supplies/${supplyLineId}`);
 
     const stamp = (payload) => api.put(`/api/orders/${orderId}/postage`, payload);
+    const grantDiscount = (payload) => api.post(`/api/orders/${orderId}/discounts`, payload);
+    const withdrawDiscount = (ruleId) => api.del(`/api/orders/${orderId}/discounts/${ruleId}`);
 
-    return { order, load, remove, refund, identifyLine, mergeWith, candidates, addSupply, removeSupply, stamp };
+    return { order, load, remove, refund, identifyLine, mergeWith, candidates, addSupply, removeSupply, stamp, grantDiscount, withdrawDiscount };
 }

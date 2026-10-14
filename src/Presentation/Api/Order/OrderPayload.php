@@ -12,6 +12,7 @@ final readonly class OrderPayload
 {
     /**
      * @param list<OrderLinePayload> $lines
+     * @param list<string>           $discountRuleIds
      */
     public function __construct(
         #[Assert\NotBlank(message: 'date.required')]
@@ -20,6 +21,8 @@ final readonly class OrderPayload
         #[Assert\Count(min: 1, minMessage: 'products.atLeastOne')]
         #[Assert\Valid]
         public array $lines = [],
+        #[Assert\All([new Assert\Ulid()])]
+        public array $discountRuleIds = [],
     ) {
     }
 

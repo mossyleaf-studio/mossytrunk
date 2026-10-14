@@ -26,6 +26,7 @@ final readonly class UpdateDiscountRuleHandler
             $this->parts->conditions($definition),
             $this->parts->action($definition),
             $this->parts->validity($definition),
+            $definition->manual,
         );
 
         $this->transaction->commit();

@@ -51,6 +51,20 @@ final class DiscountRuleTest extends TestCase
         );
     }
 
+    public function testAManualRuleHasNoConditionAndIsLeftAloneWhenTheCatalogueChanges(): void
+    {
+        $rule = DiscountRule::create(TestWorkspace::get(), 'Cadeau', [ConditionSpec::on(1, $this->sticker)], DiscountAction::percentOff(10_000), null, true);
+
+        $rule->withdrawProduct($this->sticker);
+        $rule->withdrawType($this->print);
+        $rule->replaceProduct($this->sticker, null, $this->holo, null);
+        $rule->withdrawCollection(DesignCollection::start(TestWorkspace::get(), 'Eevee'));
+
+        self::assertTrue($rule->isManual());
+        self::assertSame([], $rule->conditions());
+        self::assertFalse($rule->appliesAutomaticallyOn(new \DateTimeImmutable('2026-07-10')));
+    }
+
     public function testNeedsANameAndAtLeastOneCondition(): void
     {
         $this->expectException(InvalidDiscountRule::class);

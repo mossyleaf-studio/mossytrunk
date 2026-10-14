@@ -9,7 +9,7 @@ An **order** is a sale made during an event, or an online sale imported from a c
 | `shipping` | Shipping charged to the customer by the service (Etsy), part of the total |
 | `placedAt` | Date-time of the sale (stored with time zone, displayed in Europe/Paris) |
 | `lines` | `(product ULID, variant)` tuple + quantity, with **snapshots** of product name, unit selling price and the **cost** of the units taken from stock |
-| `appliedDiscounts` | Snapshot list of `{label, amount, ruleId}` (`ruleId` null for « Remise SumUp » and older orders) |
+| `appliedDiscounts` | Snapshot list of `{label, amount, ruleId, manual?}` (`ruleId` null for « Remise SumUp » and older orders; `manual` = the action `{kind, value}` of a manual discount chosen on the order, [discounts](discounts.md) D11) |
 | `paymentMethod` | `card` or `cash`, given by the service on import (SumUp S13, Etsy card); none for manual orders |
 | `source` | `manual` or the key of the service it was imported from (`sumup`, `etsy`) |
 | `externalId` | The sale's id at the service; unique per source within the workspace |
@@ -29,6 +29,7 @@ Model: `src/Domain/Order/Order.php`, `OrderLine.php`, `OrderedItem.php`.
 | O5 | Identical tuples are merged into one line | `Order::addItem()` | `OrderTest` |
 | O6 | Names/prices/costs are snapshots: editing a product never changes past orders. A line stores its **total cost**, computed when the units are taken from stock (FIFO, see [stock.md](stock.md)) | `OrderLine`, `StockKeeper` | `OrderTest`, `StockUseCasesTest` |
 | O7 | Discount rules valid on the order's date are applied automatically to manual orders ([discounts](discounts.md)) | `OrderPricing::discounts()` | `OrderUseCasesTest` |
+| O7b | **Manual discounts** are chosen on the order: in the new-order form (chips « Remises manuelles », the rules valid on the order's date) and on the detail page (« Ajouter une remise », a cross next to a manual discount withdraws it). Adding or withdrawing one records the order's figures and recomputes its channel charges ([discounts](discounts.md) D11) | `Order::grantDiscount()`, `withdrawDiscount()`, `GrantOrderDiscountHandler`, `WithdrawOrderDiscountHandler` | `OrderManualDiscountTest`, `OrderApiTest`, e2e `manual-discounts.spec.js` |
 | O8 | Discounts never exceed the subtotal | `Order::applyDiscounts()` | `OrderTest` |
 | O9 | `total = subtotal − discounts`; `costOfGoods = Σ line costs`; gross margin = total − cost of goods | `Order::total()`, `costOfGoods()`, `OrderView` | `OrderTest` |
 | O10 | An event cannot be rescheduled if some of its orders would fall outside the new dates | `UpdateEventHandler` (`OrderRepository::countOutside()`) | `OrderUseCasesTest` |
@@ -41,18 +42,19 @@ Model: `src/Domain/Order/Order.php`, `OrderLine.php`, `OrderedItem.php`.
 | O18 | An order on a channel keeps a **snapshot of the channel's costs** computed on its total when it is placed or imported (fixed amount, or percentage rounded to the cent half up); merging recomputes them; changing the channel's costs does not touch past orders until « Recalculer les frais du canal » is run on them. Its **postage** (affranchissement) is typed on the order (≥ 0; a merge adds them up). Charges and postage lower the order margin | `Order::chargeChannelCosts()`, `stamp()`, `channelCosts()`, `RecomputeOrderChargesHandler`, `StampOrderHandler` | `ChannelCostTest`, `SalesChannelApiTest` |
 | O19 | A line sold before its product had any known cost (cost 0, e.g. imported sales before the first supplier order) gets the **unit cost of the item's first purchase lot** × its quantity as soon as stock is received for that item (supplier order reception or correction, restock); « Compléter les coûts d'achat » on the orders page does it for every item already in stock. The orders list shows each order's **real profit** = total − cost of goods − supplies − channel costs (warning icon while a line's cost is unknown; refunded orders show none) | `Order::fillMissingCosts()`, `MissingCosts`, `FillMissingCostsHandler`, `Order::profit()` | `PurchasingUseCasesTest` |
 | O20 | For per-product figures (event report, best sellers, product sales), an order's discounts are **shared between its lines in proportion to their price** (leftover cents to the largest remainders, so the shares add up exactly); a line's revenue = its price − its share. The order total is unchanged | `OrderLine::discount()`, `revenue()`, `CostAllocation::proportionally()` | `OrderTest`, `SalesLedgerTest` |
-| O21 | An order **records its figures when it changes** — subtotal, discounts, total, cost of goods, supplies cost, channel costs, and each line's share of the discounts (O20) — at placement, import, merge, line identification, cost completion, supply changes, postage, channel cost recomputation and moved sales. Reading an order, a list or a report never recomputes them: lists and reports sum the recorded figures in the database | `Order::recordSales()`, `recordChannelCosts()`, `SalesLedger`, `ProductSalesLedger`, `OrderSummaries` | `OrderTest`, `SalesLedgerTest` |
+| O21 | An order **records its figures when it changes** — subtotal, discounts, total, cost of goods, supplies cost, channel costs, and each line's share of the discounts (O20) — at placement, import, merge, manual discount changes, line identification, cost completion, supply changes, postage, channel cost recomputation and moved sales. Reading an order, a list or a report never recomputes them: lists and reports sum the recorded figures in the database | `Order::recordSales()`, `recordChannelCosts()`, `SalesLedger`, `ProductSalesLedger`, `OrderSummaries` | `OrderTest`, `SalesLedgerTest` |
 | O22 | **Check after the event**: each order of an event can be ticked off as checked (and unticked) by the user, e.g. against the notebook kept at the stall; the first tick is kept (ticking again does not move it). The mark is only a note: it changes no figure and survives later edits of the order | `Order::check()`, `uncheck()`, `CheckOrderHandler`, `UncheckOrderHandler`, `OrdersToCheck` | `OrderTest`, `OrderCheckTest`, `OrderApiTest`, `order-check.spec.js` |
 
 ## Use cases & API
 
 | Use case | Endpoint |
 |---|---|
-| `PlaceOrder` | `POST /api/orders` `{placedAt: "YYYY-MM-DDTHH:MM" (Paris time), lines: [{productId, variant, quantity}]}` → `{id, reference}` |
+| `PlaceOrder` | `POST /api/orders` `{placedAt: "YYYY-MM-DDTHH:MM" (Paris time), lines: [{productId, variant, quantity}], discountRuleIds?: [manual rule ids]}` → `{id, reference}` |
 | `PreviewOrder` | `POST /api/orders/preview` (same body) → matching event (or null), discounts, totals — nothing saved |
 | `ListOrders` | `GET /api/orders[?eventId=]` (most recent first) |
 | `GetOrder` | `GET /api/orders/{id}` (lines, discounts, totals, cost of goods, supplies, margin, channel) |
 | `DeleteOrder` | `DELETE /api/orders/{id}` |
+| `GrantOrderDiscount` / `WithdrawOrderDiscount` | `POST /api/orders/{id}/discounts` `{ruleId}` / `DELETE /api/orders/{id}/discounts/{ruleId}` → 204 (manual rules only) |
 | `RefundOrder` | `POST /api/orders/{id}/refund` → 204 (422 when already refunded) |
 | `MergeOrders` | `POST /api/orders/{id}/merge` `{orderId}` → 204 (the given order joins `{id}`) |
 | `IdentifyOrderLine` | `PUT /api/orders/{id}/lines/{lineId}/product` `{productId, variant?}` → 204 (422 when the line already has a product) |

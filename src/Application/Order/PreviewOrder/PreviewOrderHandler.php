@@ -21,12 +21,13 @@ final readonly class PreviewOrderHandler
 
     /**
      * @param list<RequestedLine> $lines
+     * @param list<string>        $discountRuleIds
      */
-    public function __invoke(\DateTimeImmutable $placedAt, array $lines): OrderPreview
+    public function __invoke(\DateTimeImmutable $placedAt, array $lines, array $discountRuleIds = []): OrderPreview
     {
         $event = $this->events->findCovering($placedAt);
         $items = $this->pricing->items($lines, $placedAt);
-        $discounts = $this->pricing->discounts($items, $placedAt);
+        $discounts = $this->pricing->discounts($items, $placedAt, null, $discountRuleIds);
 
         $subtotal = Money::sum(array_map(static fn (OrderedItem $ordered): Money => $ordered->item->sellingPrice->multiply($ordered->quantity), $items));
         $discountTotal = AppliedDiscount::total($discounts);

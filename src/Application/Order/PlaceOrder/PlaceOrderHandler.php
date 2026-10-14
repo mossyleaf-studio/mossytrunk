@@ -34,7 +34,7 @@ final readonly class PlaceOrderHandler
         $event = $this->events->findCovering($command->placedAt) ?? throw new NoEventOnOrderDate($command->placedAt);
 
         $items = $this->stock->withdraw($event, $this->pricing->items($command->lines, $command->placedAt));
-        $order = Order::place($this->references->next(ReferenceKind::Order, ReferenceSubject::at($command->placedAt)), $event, $command->placedAt, $items, $this->pricing->discounts($items, $command->placedAt), $this->orderChannel->of(null, $event));
+        $order = Order::place($this->references->next(ReferenceKind::Order, ReferenceSubject::at($command->placedAt)), $event, $command->placedAt, $items, $this->pricing->discounts($items, $command->placedAt, null, $command->discountRuleIds), $this->orderChannel->of(null, $event));
 
         $this->orders->add($order);
         $this->transaction->commit();

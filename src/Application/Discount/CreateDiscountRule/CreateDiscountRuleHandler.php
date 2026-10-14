@@ -30,6 +30,7 @@ final readonly class CreateDiscountRuleHandler
             $this->parts->conditions($definition),
             $this->parts->action($definition),
             $this->parts->validity($definition),
+            $definition->manual,
         );
 
         $this->rules->add($rule);

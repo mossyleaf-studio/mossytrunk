@@ -20,6 +20,7 @@ import { isReady, useServices } from '../composables/useServices.js';
 import { useEvents } from '../composables/useEvents.js';
 import { useOrderSearch } from '../composables/useOrderSearch.js';
 import { useCheckedChannel, useOrders } from '../composables/useOrders.js';
+import { useDiscountRules } from '../composables/useDiscountRules.js';
 import { useProducts } from '../composables/useProducts.js';
 import { useSalesChannels } from '../composables/useSalesChannels.js';
 import { useToast } from '../composables/useToast.js';
@@ -29,6 +30,7 @@ const { channels, load: loadChannels } = useSalesChannels();
 const { search, unassigned, unassignedCount, visible, filtering } = useOrderSearch(orders);
 const { articles: products, load: loadProducts } = useProducts();
 const { events, load: loadEvents } = useEvents();
+const { rules: discountRules, load: loadDiscountRules } = useDiscountRules();
 const services = useServices();
 const toast = useToast();
 const { t } = useI18n();
@@ -111,7 +113,7 @@ watch([search, unassigned], () => {
     checkedIds.value = [];
 });
 onMounted(async () => {
-    await Promise.all([load(), loadProducts(), loadEvents(), services.load(), loadChannels()]);
+    await Promise.all([load(), loadProducts(), loadEvents(), services.load(), loadChannels(), loadDiscountRules()]);
     importers.value = services.added.value.map(useImport);
     await Promise.all(importers.value.map((importer) => importer.loadItems()));
 });
@@ -189,7 +191,7 @@ onMounted(async () => {
             />
         </BaseModal>
         <BaseModal v-model:open="formOpen" :title="t('orders.page.new')" variant="drawer">
-            <OrderForm :products="products" :submit="place" @placed="onPlaced" />
+            <OrderForm :products="products" :discount-rules="discountRules" :submit="place" @placed="onPlaced" />
         </BaseModal>
     </AppLayout>
 </template>

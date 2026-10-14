@@ -1,5 +1,7 @@
 <script setup>
 import { useI18n } from 'vue-i18n';
+import { X } from '@lucide/vue';
+import IconButton from '../ui/IconButton.vue';
 import MoneyAmount from '../ui/MoneyAmount.vue';
 
 defineProps({
@@ -8,7 +10,9 @@ defineProps({
     shipping: { type: Number, default: 0 },
     total: { type: Number, required: true },
     linkRules: { type: Boolean, default: false },
+    withdrawable: { type: Boolean, default: false },
 });
+const emit = defineEmits(['withdraw']);
 
 const { t } = useI18n();
 </script>
@@ -25,7 +29,10 @@ const { t } = useI18n();
                     <a v-if="linkRules && discount.ruleId" :href="`/discounts?rule=${discount.ruleId}`" class="order-totals__rule">{{ discount.label }}</a>
                     <template v-else>{{ discount.label }}</template>
                 </dt>
-                <dd>− <MoneyAmount :cents="discount.amount" /></dd>
+                <dd class="order-totals__amount">
+                    − <MoneyAmount :cents="discount.amount" />
+                    <IconButton v-if="withdrawable && discount.manual" :icon="X" :label="t('orders.discounts.withdraw', { label: discount.label })" @click="emit('withdraw', discount)" />
+                </dd>
             </div>
         </TransitionGroup>
         <div v-if="shipping > 0" class="order-totals__row">
@@ -43,6 +50,7 @@ const { t } = useI18n();
 .order-totals { display: flex; flex-direction: column; gap: var(--space-1); margin: 0; }
 .order-totals__row { display: flex; justify-content: space-between; gap: var(--space-3); }
 .order-totals__row dd { margin: 0; }
+.order-totals__amount { display: inline-flex; align-items: center; gap: var(--space-1); }
 .order-totals__row--discount { color: var(--color-success); }
 .order-totals__rule { color: inherit; text-decoration: underline; text-underline-offset: 0.2em; }
 .order-totals__rule:hover { text-decoration-thickness: 0.125rem; }
