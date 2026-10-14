@@ -24,7 +24,7 @@ const { t } = useI18n();
             <dd><MoneyAmount :cents="subtotal" /></dd>
         </div>
         <TransitionGroup name="drop">
-            <div v-for="discount in discounts" :key="discount.label" class="order-totals__row order-totals__row--discount">
+            <div v-for="(discount, index) in discounts" :key="`${discount.label}-${index}`" class="order-totals__row order-totals__row--discount">
                 <dt>
                     <a v-if="linkRules && discount.ruleId" :href="`/discounts?rule=${discount.ruleId}`" class="order-totals__rule">{{ discount.label }}</a>
                     <template v-else>{{ discount.label }}</template>

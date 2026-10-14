@@ -3,11 +3,8 @@ import { useApi } from './useApi.js';
 import { useDebouncedQuery } from './useDebouncedQuery.js';
 import { nowForInput } from './useDate.js';
 
-export function useOrderDraft() {
-    const api = useApi();
-    const placedAt = ref(nowForInput());
+export function useDraftLines() {
     const lines = reactive([]);
-    const discountRuleIds = ref([]);
 
     const sameTuple = (a, b) => a.productId === b.productId && (a.variant ?? null) === (b.variant ?? null);
 
@@ -35,6 +32,17 @@ export function useOrderDraft() {
         if (index !== -1) lines.splice(index, 1);
     }
 
+    const requested = () => lines.map(({ productId, variant, quantity }) => ({ productId, variant, quantity }));
+
+    return { lines, add, setQuantity, remove, requested };
+}
+
+export function useOrderDraft() {
+    const api = useApi();
+    const placedAt = ref(nowForInput());
+    const { lines, add, setQuantity, remove, requested } = useDraftLines();
+    const discountRuleIds = ref([]);
+
     function reset() {
         lines.splice(0, lines.length);
         discountRuleIds.value = [];
@@ -44,7 +52,7 @@ export function useOrderDraft() {
 
     const payload = () => ({
         placedAt: placedAt.value,
-        lines: lines.map(({ productId, variant, quantity }) => ({ productId, variant, quantity })),
+        lines: requested(),
         discountRuleIds: discountRuleIds.value,
     });
 

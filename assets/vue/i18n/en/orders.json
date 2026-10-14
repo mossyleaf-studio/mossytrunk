@@ -64,7 +64,8 @@
         "unitPrice": "Unit price",
         "total": "Total",
         "unknownProductHint": "Amount typed on the terminal without a product: it counts in the turnover, not in the stock.",
-        "identify": "Choose the product"
+        "identify": "Choose the product",
+        "split": "Split into several products"
     },
     "list": {
         "empty": "No orders.",
@@ -173,5 +174,16 @@
         "granted": "Discount “{name}” applied.",
         "withdraw": "Remove {label}",
         "withdrawn": "Discount “{name}” removed."
+    },
+    "split": {
+        "title": "Split into several products",
+        "intro": "Choose the products sold for this amount: they take their price on the day of the sale and leave the stock. The difference with the amount paid becomes a discount.",
+        "paid": "Amount paid",
+        "worth": "Products' value",
+        "discount": "Added discount",
+        "discountHint": "A catalogue discount when it explains the difference, otherwise the service's discount.",
+        "worthLess": "The chosen products are worth less than the amount paid: add more or choose others.",
+        "save": "Split",
+        "saved": "Sale split between the chosen products."
     }
 }

@@ -1,5 +1,5 @@
 <script setup>
-import { PackageSearch } from '@lucide/vue';
+import { PackageSearch, Split } from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
 import DataTable from '../ui/DataTable.vue';
 import IconButton from '../ui/IconButton.vue';
@@ -10,7 +10,7 @@ defineProps({
     lines: { type: Array, required: true },
     identifiable: { type: Boolean, default: false },
 });
-const emit = defineEmits(['identify']);
+const emit = defineEmits(['identify', 'split']);
 
 const { t } = useI18n();
 </script>
@@ -31,6 +31,7 @@ const { t } = useI18n();
                     <span v-if="line.productId === null" class="order-lines__unknown">
                         <StatusBadge tone="warning" :title="t('orders.lines.unknownProductHint')">{{ line.label }}</StatusBadge>
                         <IconButton v-if="identifiable" :icon="PackageSearch" :label="t('orders.lines.identify')" @click="emit('identify', line)" />
+                        <IconButton v-if="identifiable" :icon="Split" :label="t('orders.lines.split')" @click="emit('split', line)" />
                     </span>
                     <template v-else>{{ line.label }}</template>
                 </td>

@@ -11,13 +11,16 @@ use App\Domain\Identity\Workspace;
 use App\Domain\Order\Exception\DiscountAlreadyGranted;
 use App\Domain\Order\Exception\DiscountExceedsSubtotal;
 use App\Domain\Order\Exception\EmptyOrder;
+use App\Domain\Order\Exception\LineAlreadyIdentified;
 use App\Domain\Order\Exception\NegativePostage;
 use App\Domain\Order\Exception\NegativeShippingCost;
 use App\Domain\Order\Exception\OrderAlreadyRefunded;
 use App\Domain\Order\Exception\OrderOutsideEvent;
 use App\Domain\Order\Exception\OrdersNotMergeable;
 use App\Domain\Order\Exception\RefundedOrderLocked;
+use App\Domain\Order\Exception\SplitWorthLessThanLine;
 use App\Domain\Order\Exception\SupplyNotOnChannel;
+use App\Domain\Order\Exception\UnknownProductChosen;
 use App\Domain\Product\SellableItem;
 use App\Domain\Reference\Referenced;
 use App\Domain\Reference\ReferenceSubject;
@@ -598,6 +601,46 @@ class Order implements Referenced
     public function identifyLine(Ulid $lineId, SellableItem $item, Money $cost): void
     {
         $this->lineToIdentify($lineId)->identify($item, $cost);
+        $this->recordSales();
+    }
+
+    /**
+     * @param list<OrderedItem>     $items
+     * @param list<AppliedDiscount> $ruleDiscounts
+     */
+    public function splitLine(Ulid $lineId, array $items, array $ruleDiscounts, string $discountLabel): void
+    {
+        $line = $this->lineToIdentify($lineId);
+        if (!$line->sellsUnknownProduct()) {
+            throw new LineAlreadyIdentified($line->label());
+        }
+        if ([] === $items) {
+            throw new EmptyOrder();
+        }
+        if (array_any($items, static fn (OrderedItem $ordered): bool => !$ordered->item->isKnown())) {
+            throw new UnknownProductChosen();
+        }
+        $worth = Money::sum(array_map(static fn (OrderedItem $ordered): Money => $ordered->item->sellingPrice->multiply($ordered->quantity), $items));
+        $gap = $worth->subtract($line->total());
+        if ($gap->isNegative()) {
+            throw new SplitWorthLessThanLine($line->label(), $worth, $line->total());
+        }
+
+        $this->lines->removeElement($line);
+        foreach ($items as $ordered) {
+            $twin = $this->lines->findFirst(static fn (int $key, OrderLine $candidate): bool => $candidate->sells($ordered->item) && $candidate->unitPrice()->equals($ordered->item->sellingPrice));
+            if (null === $twin) {
+                $this->lines->add(new OrderLine($this, $ordered->item, $ordered->quantity, $ordered->cost()));
+                continue;
+            }
+            $twin->add($ordered->quantity, $ordered->cost());
+        }
+        if ($gap->isPositive()) {
+            $discounts = self::importDiscounts($gap, $ruleDiscounts, $discountLabel);
+            $this->appliedDiscounts = null === $discounts[0]->ruleId
+                ? self::withDiscount($this->appliedDiscounts(), $discountLabel, $gap)
+                : array_map(static fn (AppliedDiscount $discount): array => $discount->toArray(), [...$this->appliedDiscounts(), ...$discounts]);
+        }
         $this->recordSales();
     }
 

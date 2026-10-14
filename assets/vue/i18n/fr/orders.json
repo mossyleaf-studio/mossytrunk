@@ -64,7 +64,8 @@
         "unitPrice": "Prix unitaire",
         "total": "Total",
         "unknownProductHint": "Montant saisi sur le terminal sans produit : il compte dans le chiffre d'affaires, pas dans le stock.",
-        "identify": "Choisir le produit"
+        "identify": "Choisir le produit",
+        "split": "Répartir en plusieurs produits"
     },
     "list": {
         "empty": "Aucune commande.",
@@ -173,5 +174,16 @@
         "granted": "Remise « {name} » appliquée.",
         "withdraw": "Retirer {label}",
         "withdrawn": "Remise « {name} » retirée."
+    },
+    "split": {
+        "title": "Répartir en plusieurs produits",
+        "intro": "Choisissez les produits vendus pour ce montant : ils prennent leur prix du jour de la vente et sortent du stock. La différence avec le montant payé devient une remise.",
+        "paid": "Montant payé",
+        "worth": "Valeur des produits",
+        "discount": "Remise ajoutée",
+        "discountHint": "Une remise du catalogue si elle explique la différence, sinon la remise du service.",
+        "worthLess": "Les produits choisis valent moins que le montant payé : ajoutez-en ou choisissez-en d'autres.",
+        "save": "Répartir",
+        "saved": "Vente répartie entre les produits choisis."
     }
 }

@@ -83,6 +83,7 @@ order:
     negative_shipping_cost: 'Shipping costs cannot be negative.'
     no_event_on_date: 'No event on {date, date, medium}. Create the matching event first.'
     outside_event: 'The order date ({date, date, medium}, {date, time, short}) must fall within the dates of the event “{event}”.'
+    split_worth_less: 'The chosen products are worth {worth, number, ::currency/EUR}, less than the {paid, number, ::currency/EUR} paid for “{label}”: add more or choose others.'
 product:
     type_still_used: 'The type “{type}” is still used by {products, plural, =0 {no product} one {# product} other {# products}} and {gabarits, plural, =0 {no template} one {# template} other {# templates}}: change their type, or archive it instead.'
     variant_choice_missing: '“{product}” needs at least one variant of the type “{type}”.'

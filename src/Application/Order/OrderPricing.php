@@ -13,6 +13,7 @@ use App\Domain\Discount\DiscountRuleRepository;
 use App\Domain\Order\Exception\InvalidOrderQuantity;
 use App\Domain\Order\OrderedItem;
 use App\Domain\Product\ProductRepository;
+use App\Domain\Sales\SalesChannel;
 use App\Domain\Shared\Money;
 use Symfony\Component\Uid\Ulid;
 
@@ -31,16 +32,16 @@ final readonly class OrderPricing
      *
      * @return list<OrderedItem>
      */
-    public function items(array $lines, \DateTimeImmutable $placedAt): array
+    public function items(array $lines, \DateTimeImmutable $placedAt, ?SalesChannel $channel = null): array
     {
-        return array_map(function (RequestedLine $line) use ($placedAt): OrderedItem {
+        return array_map(function (RequestedLine $line) use ($placedAt, $channel): OrderedItem {
             if ($line->quantity < 1) {
                 throw new InvalidOrderQuantity();
             }
 
             $product = $this->products->get(Ulid::fromString($line->productId));
 
-            return new OrderedItem($product->sellableOn(null, $line->variant, $placedAt), $line->quantity);
+            return new OrderedItem($product->sellableOn($channel, $line->variant, $placedAt), $line->quantity);
         }, $lines);
     }
 

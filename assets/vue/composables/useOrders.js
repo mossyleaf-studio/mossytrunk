@@ -50,6 +50,7 @@ export function useOrder(orderId) {
     const remove = () => api.del(`/api/orders/${orderId}`);
     const refund = () => api.post(`/api/orders/${orderId}/refund`);
     const identifyLine = (lineId, payload) => api.put(`/api/orders/${orderId}/lines/${lineId}/product`, payload);
+    const splitLine = (lineId, payload) => api.post(`/api/orders/${orderId}/lines/${lineId}/split`, payload);
     const mergeWith = (otherOrderId) => api.post(`/api/orders/${orderId}/merge`, { orderId: otherOrderId });
     const candidates = () => api.get(`/api/orders/${orderId}/merge-candidates`);
     const addSupply = (payload) => api.post('/api/orders/supplies', { orderIds: [orderId], ...payload });
@@ -59,5 +60,5 @@ export function useOrder(orderId) {
     const grantDiscount = (payload) => api.post(`/api/orders/${orderId}/discounts`, payload);
     const withdrawDiscount = (ruleId) => api.del(`/api/orders/${orderId}/discounts/${ruleId}`);
 
-    return { order, load, remove, refund, identifyLine, mergeWith, candidates, addSupply, removeSupply, stamp, grantDiscount, withdrawDiscount };
+    return { order, load, remove, refund, identifyLine, splitLine, mergeWith, candidates, addSupply, removeSupply, stamp, grantDiscount, withdrawDiscount };
 }

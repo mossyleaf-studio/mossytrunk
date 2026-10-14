@@ -18,6 +18,9 @@ use App\Application\Order\IdentifyOrderLine\IdentifyOrderLineHandler;
 use App\Application\Order\ListOrders\ListOrdersHandler;
 use App\Application\Order\ListOrders\OrderSummaryView;
 use App\Application\Order\MergeOrders\MergeOrdersHandler;
+use App\Application\Order\RequestedLine;
+use App\Application\Order\SplitOrderLine\SplitOrderLine;
+use App\Application\Order\SplitOrderLine\SplitOrderLineHandler;
 use App\Application\Product\CreateProductType\CreateProductTypeHandler;
 use App\Application\Product\DeleteProduct\DeleteProductHandler;
 use App\Application\Product\ListProducts\ListProductsHandler;
@@ -314,6 +317,32 @@ final class ImportSumUpSalesTest extends KernelTestCase
 
         $this->expectException(LineAlreadyIdentified::class);
         self::getContainer()->get(IdentifyOrderLineHandler::class)(new IdentifyOrderLine($orderId, $lineId, $print, 'A4'));
+    }
+
+    public function testAnAmountTypedForSeveralItemsIsSplitIntoTheirProductsWithTheDiscountThatExplainsThePrice(): void
+    {
+        $this->scheduleEvent('Salon de printemps', '2030-03-14', '2030-03-15');
+        $print = self::createProduct('Print', 600);
+        $keychain = self::createProduct('Keychain', 1_200);
+        self::getContainer()->get(RestockHandler::class)(new Restock($keychain, null, 5, 300));
+        self::getContainer()->get(CreateDiscountRuleHandler::class)(DiscountRules::fixedPrice('Print et porte-clés pour 15 €', 1_500, DiscountRules::product($print, 1), DiscountRules::product($keychain, 1)));
+        self::getContainer()->get(FakeSumUpGateway::class)->willReturn([
+            ExternalSales::sumUp('TX-FREE', new \DateTimeImmutable('2030-03-14T12:00:00Z'), Money::cents(2_500), [ExternalSales::line('', Money::cents(1_500), 1), ExternalSales::line('', Money::cents(1_000), 1)]),
+        ]);
+        $this->import();
+        $orderId = self::getContainer()->get(ListOrdersHandler::class)()[0]->id;
+        $lines = self::getContainer()->get(GetOrderHandler::class)($orderId)->lines;
+
+        $split = self::getContainer()->get(SplitOrderLineHandler::class);
+        $split(new SplitOrderLine($orderId, $lines[0]['id'], [new RequestedLine($print, null, 1), new RequestedLine($keychain, null, 1)]));
+        $split(new SplitOrderLine($orderId, $lines[1]['id'], [new RequestedLine($keychain, null, 1)]));
+        self::getContainer()->get('doctrine')->getManager()->clear();
+
+        $order = self::getContainer()->get(GetOrderHandler::class)($orderId);
+        self::assertSame([['Print', 1, 600], ['Keychain', 2, 1_200]], array_map(static fn (array $line): array => [$line['label'], $line['quantity'], $line['unitPrice']], $order->lines));
+        self::assertSame([['Print et porte-clés pour 15 €', 300], ['SumUp discount', 200]], array_map(static fn (array $discount): array => [$discount['label'], $discount['amount']], $order->discounts));
+        self::assertSame(2_500, $order->total);
+        self::assertSame(3, array_column(self::getContainer()->get(ListProductsHandler::class)(), 'stock', 'name')['Keychain'][0]['onHand']);
     }
 
     public function testTwoSalesMergedIntoOneOrderAreNotImportedAgain(): void

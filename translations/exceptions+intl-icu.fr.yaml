@@ -83,6 +83,7 @@ order:
     negative_shipping_cost: 'Les frais de port ne peuvent pas être négatifs.'
     no_event_on_date: 'Aucun événement le {date, date, short}. Créez d''abord l''événement correspondant.'
     outside_event: 'La date de la commande ({date, date, short} {date, time, short}) doit être comprise dans les dates de l''événement « {event} ».'
+    split_worth_less: 'Les produits choisis valent {worth, number, ::currency/EUR}, moins que les {paid, number, ::currency/EUR} payés pour « {label} » : ajoutez-en ou choisissez-en d''autres.'
 product:
     type_still_used: 'Le type « {type} » est encore utilisé par {products, plural, =0 {aucun produit} one {# produit} other {# produits}} et {gabarits, plural, =0 {aucun gabarit} one {# gabarit} other {# gabarits}} : changez leur type, ou archivez-le plutôt.'
     variant_choice_missing: '« {product} » doit avoir au moins une variante du type « {type} ».'

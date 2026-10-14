@@ -8,6 +8,7 @@ import BaseModal from '../components/ui/BaseModal.vue';
 import GrantDiscountForm from '../components/orders/GrantDiscountForm.vue';
 import IdentifyLineForm from '../components/orders/IdentifyLineForm.vue';
 import MergeOrderForm from '../components/orders/MergeOrderForm.vue';
+import SplitLineForm from '../components/orders/SplitLineForm.vue';
 import BaseButton from '../components/ui/BaseButton.vue';
 import ConfirmButton from '../components/ui/ConfirmButton.vue';
 import OrderLines from '../components/orders/OrderLines.vue';
@@ -34,7 +35,7 @@ const props = defineProps({
 });
 
 const { t } = useI18n();
-const { order, load, remove, refund, identifyLine, mergeWith, candidates, addSupply, removeSupply, stamp, grantDiscount, withdrawDiscount } = useOrder(props.orderId);
+const { order, load, remove, refund, identifyLine, splitLine, mergeWith, candidates, addSupply, removeSupply, stamp, grantDiscount, withdrawDiscount } = useOrder(props.orderId);
 const { rules: discountRules, load: loadDiscountRules } = useDiscountRules();
 const { channels, load: loadChannels } = useSalesChannels();
 const { articles: products, load: loadProducts } = useProducts();
@@ -44,6 +45,7 @@ const supplyOpen = ref(false);
 const mergeOpen = ref(false);
 const discountOpen = ref(false);
 const { target: identifying, open: identifyOpen } = useModalTarget();
+const { target: splitting, open: splitOpen } = useModalTarget();
 const offeredDiscounts = computed(() => (order.value ? manualRulesOn(discountRules.value, order.value.placedAt.slice(0, 10))
     .filter((rule) => !order.value.discounts.some((discount) => discount.manual && discount.ruleId === rule.id)) : []));
 const channelSupplies = computed(() => channels.value.find((channel) => channel.id === order.value?.channelId)?.supplies ?? []);
@@ -85,6 +87,12 @@ async function onMerged(other) {
 async function onIdentified(name) {
     identifying.value = null;
     toast.success(t('orders.identify.saved', { name }));
+    await load();
+}
+
+async function onSplit() {
+    splitting.value = null;
+    toast.success(t('orders.split.saved'));
     await load();
 }
 
@@ -131,7 +139,7 @@ onMounted(() => Promise.all([load(), loadProducts(), loadChannels(), loadDiscoun
             </p>
             <div class="order-detail-page__grid">
                 <BaseCard :title="t('orders.detail.items')">
-                    <OrderLines :lines="order.lines" :identifiable="!order.refundedAt" @identify="identifying = $event" />
+                    <OrderLines :lines="order.lines" :identifiable="!order.refundedAt" @identify="identifying = $event" @split="splitting = $event" />
                 </BaseCard>
                 <div class="order-detail-page__side">
                     <BaseCard :title="t('orders.detail.amount')">
@@ -185,6 +193,9 @@ onMounted(() => Promise.all([load(), loadProducts(), loadChannels(), loadDiscoun
         </BaseModal>
         <BaseModal v-model:open="mergeOpen" :title="t('orders.merge.title')">
             <MergeOrderForm v-if="mergeOpen && order" :order="order" :candidates="candidates" :submit="mergeWith" @merged="onMerged" @cancel="mergeOpen = false" />
+        </BaseModal>
+        <BaseModal v-model:open="splitOpen" :title="t('orders.split.title')">
+            <SplitLineForm v-if="splitting" :line="splitting" :products="products" :submit="(payload) => splitLine(splitting.id, payload)" @saved="onSplit" @cancel="splitting = null" />
         </BaseModal>
         <BaseModal v-model:open="identifyOpen" :title="t('orders.identify.title')">
             <IdentifyLineForm v-if="identifying" :line="identifying" :products="products" :submit="(payload) => identifyLine(identifying.id, payload)" @saved="onIdentified" @cancel="identifying = null" />

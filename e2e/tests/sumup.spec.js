@@ -62,6 +62,31 @@ test('an amount typed on the terminal is imported without product, then linked t
     await expect(page.getByRole('row').filter({ hasText: 'Tote bag' })).toHaveCount(2);
 });
 
+test('an amount typed on the terminal for several items is split into their products, the difference becoming a discount', async ({ page, request }) => {
+    await addSumUp(request);
+    const badge = await createProduct(request, { name: unique('Badge'), sellingPrice: 150 });
+    await request.post('/api/events', { data: { name: 'Salon de printemps 2030', location: 'Lyon', startDate: '2030-03-14', endDate: '2030-03-15' } });
+    await request.post('/api/services/sumup/import');
+
+    await page.goto('/orders');
+    await choose(page, page.getByRole('combobox', { name: 'Événement' }), 'Salon de printemps 2030');
+    await page.getByRole('row').filter({ hasText: 'TFAKE0002' }).getByRole('link', { name: /^CMD-/ }).click();
+
+    await page.getByRole('button', { name: 'Répartir en plusieurs produits' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Répartir en plusieurs produits' });
+    await choose(page, dialog.getByRole('combobox', { name: 'Produit' }), `${badge.name} — 1,50 €`);
+    await dialog.getByLabel('Quantité', { exact: true }).fill('2');
+    await dialog.getByRole('button', { name: 'Ajouter', exact: true }).click();
+    await expect(dialog.getByTestId('split-summary')).toContainText('Remise ajoutée');
+    await expect(dialog.getByTestId('split-summary')).toContainText('1,00');
+    await dialog.getByRole('button', { name: 'Répartir' }).click();
+
+    await expect(page.getByTestId('toast')).toContainText('Vente répartie entre les produits choisis.');
+    await expect(page.getByRole('row').filter({ hasText: 'Produit inconnu' })).toHaveCount(0);
+    await expect(page.getByRole('row').filter({ hasText: badge.name })).toContainText('3,00');
+    await expect(page.getByText('Remise SumUp')).toBeVisible();
+});
+
 test('two SumUp sales of one customer are merged into one order', async ({ page, request }) => {
     await addSumUp(request);
     await request.post('/api/events', { data: { name: 'Salon de printemps 2030', location: 'Lyon', startDate: '2030-03-14', endDate: '2030-03-15' } });
