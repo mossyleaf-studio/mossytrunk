@@ -49,7 +49,9 @@
         "withdraw": "Withdraw the declaration",
         "withdrawConfirm": "Withdraw",
         "withdrawMessage": "The period will go back to “to declare” in MossyTrunk. This changes nothing on urssaf.fr.",
-        "declare": "Mark as declared ({count} order) | Mark as declared ({count} orders)"
+        "declare": "Mark as declared ({count} order) | Mark as declared ({count} orders)",
+        "payments": "Split by payment method",
+        "noPayment": "Payment not given"
     },
     "export": {
         "title": "Export orders",

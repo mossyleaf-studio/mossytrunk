@@ -8,10 +8,12 @@ use App\Application\Order\ListOrders\OrderSummaries;
 use App\Application\Product\CreateProductType\CreateProductTypeHandler;
 use App\Application\Reporting\ProductSalesLedger;
 use App\Application\Reporting\SalesLedger;
+use App\Application\WorkspaceContext;
 use App\Domain\Discount\AppliedDiscount;
 use App\Domain\Event\Event;
 use App\Domain\Order\Order;
 use App\Domain\Order\OrderedItem;
+use App\Domain\Order\PaymentMethod;
 use App\Domain\Product\ProductRepository;
 use App\Domain\Product\SellableItem;
 use App\Domain\Reporting\ProductSales;
@@ -72,6 +74,21 @@ final class SalesLedgerTest extends KernelTestCase
         $event = $ledger->totalsOfEvent($this->event->id());
         self::assertSame([3, 5_400, 340, 5_060, 900], [$event->orderCount, $event->grossSales->amount(), $event->discounts->amount(), $event->turnover()->amount(), $event->costOfGoods->amount()]);
         self::assertEquals($event, $ledger->totalsByEvent()[(string) $this->event->id()]);
+    }
+
+    public function testTurnoverIsSplitByPaymentMethod(): void
+    {
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $workspace = self::getContainer()->get(WorkspaceContext::class)->current();
+        foreach ([['sale-1', PaymentMethod::Cash, 700], ['sale-2', PaymentMethod::Card, 1_100], ['sale-3', PaymentMethod::Cash, 200]] as [$sale, $method, $paid]) {
+            $entityManager->persist(Order::imported('CMD-'.$sale, $workspace, 'sumup', $sale, $sale, null, self::paris('2026-05-10 12:00'), [new OrderedItem(SellableItem::unknown('Montant', Money::cents($paid)), 1)], Money::cents($paid), Money::zero(), $method, [], 'Remise SumUp'));
+        }
+        $entityManager->flush();
+
+        $months = self::getContainer()->get(SalesLedger::class)->turnoverByMonthAndPayment();
+
+        self::assertSame(['none' => 3_060], array_map(static fn (Money $turnover): int => $turnover->amount(), $months['2026-04']));
+        self::assertEqualsCanonicalizing(['none' => 2_000, 'cash' => 900, 'card' => 1_100], array_map(static fn (Money $turnover): int => $turnover->amount(), $months['2026-05']));
     }
 
     public function testProductSalesAreAfterTheLinesShareOfTheDiscounts(): void

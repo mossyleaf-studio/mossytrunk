@@ -8,9 +8,13 @@ use App\Application\Accounting\PeriodTurnover;
 use App\Domain\Accounting\DeclarationStatus;
 use App\Domain\Accounting\UrssafDeclaration;
 use App\Domain\Reporting\UrssafContribution;
+use App\Domain\Shared\Money;
 
 final readonly class DeclarationPeriodView
 {
+    /**
+     * @param array<string, int> $payments
+     */
     public function __construct(
         public string $key,
         public string $periodicity,
@@ -25,6 +29,7 @@ final readonly class DeclarationPeriodView
         public string $status,
         public ?int $declaredTurnover,
         public ?string $declaredAt,
+        public array $payments,
     ) {
     }
 
@@ -46,6 +51,7 @@ final readonly class DeclarationPeriodView
             DeclarationStatus::of($period, $figures->turnover, $declaration, $today, $activityStart)->value,
             $declaration?->turnover()->amount(),
             $declaration?->declaredAt()->format(\DateTimeInterface::ATOM),
+            array_map(static fn (Money $turnover): int => $turnover->amount(), $figures->byPayment),
         );
     }
 }

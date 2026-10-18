@@ -21,6 +21,9 @@ const { t } = useI18n();
 
 const status = computed(() => PERIOD_STATUSES[props.period.status]);
 const declarable = computed(() => ['due', 'late', 'changed'].includes(props.period.status));
+const payments = computed(() => ['card', 'cash', 'mixed', 'none']
+    .filter((method) => props.period.payments[method])
+    .map((method) => ({ method, label: method === 'none' ? t('accounting.slip.noPayment') : t(`orders.payment.${method}`), turnover: props.period.payments[method] })));
 const over = computed(() => !['current', 'upcoming', 'inactive'].includes(props.period.status));
 </script>
 
@@ -41,6 +44,10 @@ const over = computed(() => !['current', 'upcoming', 'inactive'].includes(props.
             </span>
             <span class="declaration-slip__amount"><MoneyAmount :cents="period.turnover" /></span>
         </div>
+
+        <dl v-if="payments.length" class="declaration-slip__facts" :aria-label="t('accounting.slip.payments')">
+            <div v-for="payment in payments" :key="payment.method"><dt>{{ payment.label }}</dt><dd><MoneyAmount :cents="payment.turnover" /></dd></div>
+        </dl>
 
         <dl class="declaration-slip__facts">
             <div><dt>{{ t('accounting.slip.orders') }}</dt><dd>{{ period.orderCount }}</dd></div>

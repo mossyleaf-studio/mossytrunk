@@ -49,7 +49,9 @@
         "withdraw": "Annuler la déclaration",
         "withdrawConfirm": "Annuler",
         "withdrawMessage": "La période repassera « à déclarer » dans MossyTrunk. Cela ne change rien sur urssaf.fr.",
-        "declare": "Marquer comme déclarée ({count} commande) | Marquer comme déclarée ({count} commandes)"
+        "declare": "Marquer comme déclarée ({count} commande) | Marquer comme déclarée ({count} commandes)",
+        "payments": "Répartition par moyen de paiement",
+        "noPayment": "Paiement non précisé"
     },
     "export": {
         "title": "Exporter les commandes",

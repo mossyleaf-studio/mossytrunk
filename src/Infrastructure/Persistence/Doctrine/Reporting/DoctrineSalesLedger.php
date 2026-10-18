@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Persistence\Doctrine\Reporting;
 
+use App\Application\Accounting\PeriodTurnover;
 use App\Application\Reporting\SalesLedger;
 use App\Application\WorkspaceContext;
 use App\Domain\Reporting\SalesTotals;
@@ -38,6 +39,26 @@ final readonly class DoctrineSalesLedger implements SalesLedger
     public function totalsByMonth(): array
     {
         return $this->totals("to_char(o.placed_at AT TIME ZONE :timezone, 'YYYY-MM')", 'TRUE', ['timezone' => BusinessTime::ZONE]);
+    }
+
+    public function turnoverByMonthAndPayment(): array
+    {
+        $rows = $this->connection->fetchAllAssociative(
+            <<<'SQL'
+                SELECT to_char(o.placed_at AT TIME ZONE :timezone, 'YYYY-MM') AS month, COALESCE(o.payment_method, :none) AS payment, SUM(o.total_cents) AS turnover
+                FROM "order" o
+                WHERE o.workspace_id = :workspace AND o.refunded_at IS NULL
+                GROUP BY month, payment
+                SQL,
+            ['workspace' => $this->workspace->current()->id()->toRfc4122(), 'timezone' => BusinessTime::ZONE, 'none' => PeriodTurnover::NO_PAYMENT_METHOD],
+        );
+
+        $turnover = [];
+        foreach ($rows as $row) {
+            $turnover[SqlValue::string($row['month'])][SqlValue::string($row['payment'])] = Money::cents(SqlValue::int($row['turnover']));
+        }
+
+        return $turnover;
     }
 
     public function firstSaleAt(): ?\DateTimeImmutable

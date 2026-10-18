@@ -31,12 +31,13 @@ final readonly class GetUrssafOverviewHandler
         $periodicity = $this->workspace->current()->declarationPeriodicity();
         $year ??= DateRange::yearOf($today);
         $salesByMonth = $this->sales->totalsByMonth();
+        $paymentsByMonth = $this->sales->turnoverByMonthAndPayment();
         $declarations = [];
         foreach ($this->declarations->all() as $declaration) {
             $declarations[$declaration->period()] = $declaration;
         }
         $first = $this->sales->firstSaleAt() ?? $today;
-        $view = fn (DeclarationPeriod $period): DeclarationPeriodView => DeclarationPeriodView::of(PeriodTurnover::of($period, $salesByMonth), $declarations[$period->key()] ?? null, $today, $first);
+        $view = fn (DeclarationPeriod $period): DeclarationPeriodView => DeclarationPeriodView::of(PeriodTurnover::of($period, $salesByMonth, $paymentsByMonth), $declarations[$period->key()] ?? null, $today, $first);
 
         $periods = array_map($view, DeclarationPeriod::ofYear($year, $periodicity));
         $years = SalesYears::of(array_keys($salesByMonth), DateRange::yearOf($today), $year);

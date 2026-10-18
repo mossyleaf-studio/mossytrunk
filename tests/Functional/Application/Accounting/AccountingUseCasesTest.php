@@ -44,6 +44,7 @@ final class AccountingUseCasesTest extends KernelTestCase
 
         $july = $this->period($overview->periods, '2026-07');
         self::assertSame([1_200, 1, 154, 'late', '2026-08-31'], [$july->turnover, $july->orderCount, $july->contribution, $july->status, $july->deadline]);
+        self::assertSame(['none' => 1_200], $july->payments);
         self::assertSame(1_600, $overview->yearTurnover);
         self::assertSame('inactive', $this->period($overview->periods, '2026-04')->status);
         self::assertSame(self::monthsFrom('2026-05'), array_column($overview->pending, 'key'));
