@@ -72,6 +72,39 @@ test('warns when no event exists at the order date', async ({ page, request }) =
     await expect(form.getByRole('alert').filter({ hasText: 'Créez d\'abord' })).toBeVisible();
 });
 
+test('place a gift outside events with a comment, then edit the comment', async ({ page, request }) => {
+    const sticker = await createProduct(request, { name: unique('Sticker') });
+
+    await page.goto('/orders');
+    await page.getByRole('button', { name: 'Nouvelle commande' }).click();
+    const form = page.getByRole('dialog', { name: 'Nouvelle commande' }).locator('form');
+    await fillDate(form.getByRole('group', { name: 'Date', exact: true }), '2099-12-31T10:00');
+    await choose(page, form.getByRole('combobox', { name: 'Produit' }), `${sticker.name} — 4,00 €`);
+    await form.getByRole('button', { name: 'Ajouter', exact: true }).click();
+    await expect(form.getByText('Aucun événement à cette date.')).toBeVisible();
+
+    await form.getByRole('switch', { name: /Hors événement/ }).click();
+    await expect(form.getByText('Aucun événement à cette date.')).toHaveCount(0);
+    await form.getByLabel('Commentaire').fill('Cadeau pour Léa');
+    await form.getByRole('button', { name: 'Enregistrer la commande' }).click();
+
+    const toast = page.getByTestId('toast');
+    await expect(toast).toContainText(/Commande CMD-\d{8}-\w{6} enregistrée\./);
+    const reference = (await toast.textContent()).match(/CMD-\d{8}-\w{6}/)[0];
+    await page.getByRole('dialog').getByRole('button', { name: 'Fermer' }).click();
+    const row = page.getByRole('row').filter({ hasText: reference });
+    await expect(row).toContainText('Cadeau pour Léa');
+
+    await row.getByRole('link', { name: reference }).click();
+    await expect(page.locator('.order-detail-page__meta')).toContainText('Hors événement');
+    await page.getByRole('button', { name: 'Modifier le commentaire' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Commentaire' });
+    await dialog.getByLabel('Commentaire').fill('Cadeau pour Paul');
+    await dialog.getByRole('button', { name: 'Enregistrer' }).click();
+    await expect(page.getByTestId('toast').last()).toContainText('Commentaire enregistré.');
+    await expect(page.getByRole('region', { name: 'Commentaire' })).toContainText('Cadeau pour Paul');
+});
+
 test('search orders by number, date and time', async ({ page, request }) => {
     const event = await createEvent(request);
     const sticker = await createProduct(request, { name: unique('Sticker') });

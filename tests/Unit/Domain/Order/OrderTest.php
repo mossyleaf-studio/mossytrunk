@@ -58,6 +58,17 @@ final class OrderTest extends TestCase
         self::assertSame('CMD-1', $order->reference());
     }
 
+    public function testAManualOrderOutsideEventsHasNoEventNorChannelAndKeepsAComment(): void
+    {
+        $order = Order::placeOutsideEvents('CMD-1', TestWorkspace::get(), self::at('2026-07-10 15:00'), [new OrderedItem($this->sticker->sellable(null), 1)], []);
+        $order->annotate('  Cadeau pour Léa ');
+
+        self::assertSame([null, null, Order::MANUAL, 400, 'Cadeau pour Léa'], [$order->event(), $order->channel(), $order->source(), $order->total()->amount(), $order->note()]);
+
+        $order->annotate('');
+        self::assertNull($order->note());
+    }
+
     public function testEachLineRecordsItsShareOfTheDiscountsInProportionToItsAmount(): void
     {
         $order = Order::place('CMD-1', $this->event, self::at('2026-07-10 15:00'), [

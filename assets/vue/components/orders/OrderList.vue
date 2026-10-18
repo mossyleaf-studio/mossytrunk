@@ -20,6 +20,7 @@ const checkedIds = defineModel('checkedIds', { type: Array, required: true });
 
 const { t } = useI18n();
 
+const placeOf = (order) => order.eventName ?? (order.source === 'manual' ? t('orders.outsideEvents') : t('orders.shop', { source: order.sourceLabel }));
 const dayKey = (order) => `${order.placedAt.slice(0, 10)}|${order.eventId ?? order.source}`;
 
 const grouped = computed(() => [...props.orders].sort((a, b) => b.placedAt.slice(0, 10).localeCompare(a.placedAt.slice(0, 10))
@@ -85,14 +86,14 @@ const withDayHeaders = (rows) => rows.map((order, index) => ({
                     <td class="order-list__check">
                         <BaseCheckbox
                             :model-value="dayChecked(order)"
-                            :aria-label="t('orders.list.selectDay', { day: formatDay(order.placedAt), place: order.eventName ?? t('orders.shop', { source: order.sourceLabel }) })"
+                            :aria-label="t('orders.list.selectDay', { day: formatDay(order.placedAt), place: placeOf(order) })"
                             @update:model-value="checkDay(order, $event)"
                         />
                     </td>
                     <th scope="rowgroup" colspan="4">
                         <span class="order-list__date">{{ formatDay(order.placedAt) }}</span>
                         <a v-if="order.eventId" class="order-list__event" :href="`/events/${order.eventId}`">{{ order.eventName }}</a>
-                        <span v-else class="order-list__event order-list__event--online">{{ t('orders.shop', { source: order.sourceLabel }) }}</span>
+                        <span v-else class="order-list__event order-list__event--online">{{ placeOf(order) }}</span>
                     </th>
                     <td class="data-table__cell--number order-list__day-total"><MoneyAmount :cents="day.total" /></td>
                     <td class="data-table__cell--number order-list__day-total"><MoneyAmount :cents="day.profit" signed /></td>
@@ -143,6 +144,7 @@ const withDayHeaders = (rows) => rows.map((order, index) => ({
                         <StatusBadge v-if="order.refundedAt" tone="warning">{{ t('orders.list.refunded') }}</StatusBadge>
                         <StatusBadge v-if="order.source !== 'manual'" tone="outline">{{ order.sourceLabel }}</StatusBadge>
                         <span v-if="order.externalReferences.length" class="order-list__external">{{ order.externalReferences.join(', ') }}</span>
+                        <span v-if="order.note" class="order-list__note" :title="order.note">{{ order.note }}</span>
                     </td>
                 </tr>
             </template>
@@ -175,6 +177,7 @@ const withDayHeaders = (rows) => rows.map((order, index) => ({
 
 .order-list__reference { font-size: var(--font-size-sm); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .order-list__source { font-size: var(--font-size-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.order-list__note { color: var(--color-muted); font-style: italic; }
 .order-list__external { margin-left: var(--space-2); color: var(--color-subtle); font-size: var(--font-size-xs); }
 
 .order-list__row--new { animation: order-list-highlight 2.4s ease-out; }

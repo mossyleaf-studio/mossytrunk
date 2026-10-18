@@ -34,6 +34,25 @@ final class OrderApiTest extends WebTestCase
         self::assertSame('T-shirt — M', Json::at(Json::decode((string) $client->getResponse()->getContent()), 'lines', 0, 'label'));
     }
 
+    public function testAnOrderOutsideEventsKeepsItsComment(): void
+    {
+        $client = self::signedInClient();
+        $product = $this->post($client, '/api/products', ['name' => 'Zine', 'sellingPrice' => 1_000, 'typeId' => ProductTypesApi::create($client)])['id'];
+
+        $order = Json::string($this->post($client, '/api/orders', ['placedAt' => '2026-07-10T15:30', 'lines' => [['productId' => $product, 'variant' => null, 'quantity' => 1]], 'outsideEvents' => true, 'note' => 'Cadeau pour Léa']), 'id');
+        $client->jsonRequest('GET', '/api/orders');
+        $listed = Json::decode((string) $client->getResponse()->getContent());
+        self::assertSame([null, 'Cadeau pour Léa'], [Json::at($listed, 0, 'eventId'), Json::at($listed, 0, 'note')]);
+
+        $client->jsonRequest('PUT', "/api/orders/$order/note", ['note' => 'Cadeau pour Paul']);
+        self::assertResponseStatusCodeSame(204);
+        $client->jsonRequest('GET', "/api/orders/$order");
+        self::assertSame('Cadeau pour Paul', Json::at(Json::decode((string) $client->getResponse()->getContent()), 'note'));
+
+        $client->jsonRequest('PUT', "/api/orders/$order/note", ['note' => str_repeat('a', 1_001)]);
+        self::assertResponseStatusCodeSame(422);
+    }
+
     public function testAManualDiscountIsChosenWhenPlacingAnOrderThenWithdrawnAndGrantedAgain(): void
     {
         $client = self::signedInClient();

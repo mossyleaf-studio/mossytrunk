@@ -47,6 +47,7 @@ final readonly class OrderView
         public array $charges,
         public int $postage,
         public int $channelCosts,
+        public ?string $note,
     ) {
     }
 
@@ -92,6 +93,7 @@ final readonly class OrderView
             array_map(static fn (OrderCharge $charge): array => $charge->toArray(), $order->channelCharges()),
             $order->postage()->amount(),
             $order->channelCosts()->amount(),
+            $order->note(),
         );
     }
 }

@@ -9,6 +9,7 @@ use App\Application\Event\ScheduleEvent\ScheduleEvent;
 use App\Application\Event\ScheduleEvent\ScheduleEventHandler;
 use App\Application\Event\UpdateEvent\UpdateEvent;
 use App\Application\Event\UpdateEvent\UpdateEventHandler;
+use App\Application\Order\AnnotateOrder\AnnotateOrderHandler;
 use App\Application\Order\DeleteOrder\DeleteOrderHandler;
 use App\Application\Order\GetOrder\GetOrderHandler;
 use App\Application\Order\ListOrders\ListOrdersHandler;
@@ -21,6 +22,7 @@ use App\Domain\Event\Exception\InvalidEvent;
 use App\Domain\Order\Exception\InvalidOrder;
 use App\Domain\Order\Exception\NoEventOnOrderDate;
 use App\Domain\Product\Exception\InvalidProduct;
+use App\Domain\Shared\BusinessTime;
 use App\Tests\Support\ActsAsUser;
 use App\Tests\Support\CreatesProducts;
 use App\Tests\Support\DiscountRules;
@@ -73,6 +75,23 @@ final class OrderUseCasesTest extends KernelTestCase
             $message = self::getContainer()->get(TranslatorInterface::class)->trans($exception->getMessage(), $exception->parameters(), 'exceptions', 'fr');
             self::assertStringStartsWith('Aucun événement le 13/07/2026.', $message);
         }
+    }
+
+    public function testAnOrderCanBePlacedOutsideEventsWithAComment(): void
+    {
+        $order = self::getContainer()->get(PlaceOrderHandler::class)(new PlaceOrder(BusinessTime::at('2026-07-13 10:00'), [new RequestedLine($this->sticker, null, 1)], [], true, '  Cadeau pour Léa  '));
+        $outsideEvent = self::getContainer()->get(PlaceOrderHandler::class)(new PlaceOrder(BusinessTime::at('2026-07-10 15:30'), [new RequestedLine($this->sticker, null, 1)], [], true));
+        self::getContainer()->get('doctrine')->getManager()->clear();
+
+        $view = self::getContainer()->get(GetOrderHandler::class)((string) $order->id());
+        self::assertSame([null, null, 'manual', 'Cadeau pour Léa', 400], [$view->event, $view->channelName, $view->source, $view->note, $view->total]);
+        self::assertNull(self::getContainer()->get(GetOrderHandler::class)((string) $outsideEvent->id())->event, 'outside events even on the day of an event');
+        self::assertNull(self::getContainer()->get(PreviewOrderHandler::class)(BusinessTime::at('2026-07-10 15:30'), [new RequestedLine($this->sticker, null, 1)], [], true)->event);
+
+        self::getContainer()->get(AnnotateOrderHandler::class)((string) $order->id(), 'Cadeau pour Paul');
+        self::assertSame('Cadeau pour Paul', self::getContainer()->get(GetOrderHandler::class)((string) $order->id())->note);
+        self::getContainer()->get(AnnotateOrderHandler::class)((string) $order->id(), ' ');
+        self::assertNull(self::getContainer()->get(GetOrderHandler::class)((string) $order->id())->note);
     }
 
     public function testVariantIsRequiredForProductsWithVariants(): void

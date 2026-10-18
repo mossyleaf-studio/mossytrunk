@@ -1,10 +1,12 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
-import { Plus } from '@lucide/vue';
+import { Pencil, Plus } from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
 import AppLayout from '../layouts/AppLayout.vue';
 import BaseCard from '../components/ui/BaseCard.vue';
 import BaseModal from '../components/ui/BaseModal.vue';
+import IconButton from '../components/ui/IconButton.vue';
+import NoteForm from '../components/orders/NoteForm.vue';
 import GrantDiscountForm from '../components/orders/GrantDiscountForm.vue';
 import IdentifyLineForm from '../components/orders/IdentifyLineForm.vue';
 import MergeOrderForm from '../components/orders/MergeOrderForm.vue';
@@ -35,12 +37,13 @@ const props = defineProps({
 });
 
 const { t } = useI18n();
-const { order, load, remove, refund, identifyLine, splitLine, mergeWith, candidates, addSupply, removeSupply, stamp, grantDiscount, withdrawDiscount } = useOrder(props.orderId);
+const { order, load, remove, refund, identifyLine, splitLine, mergeWith, candidates, addSupply, removeSupply, stamp, annotate, grantDiscount, withdrawDiscount } = useOrder(props.orderId);
 const { rules: discountRules, load: loadDiscountRules } = useDiscountRules();
 const { channels, load: loadChannels } = useSalesChannels();
 const { articles: products, load: loadProducts } = useProducts();
 const toast = useToast();
 const postageOpen = ref(false);
+const noteOpen = ref(false);
 const supplyOpen = ref(false);
 const mergeOpen = ref(false);
 const discountOpen = ref(false);
@@ -53,6 +56,12 @@ const channelSupplies = computed(() => channels.value.find((channel) => channel.
 async function onPostageSaved() {
     postageOpen.value = false;
     toast.success(t('orders.postage.saved'));
+    await load();
+}
+
+async function onNoteSaved() {
+    noteOpen.value = false;
+    toast.success(t('orders.note.saved'));
     await load();
 }
 
@@ -131,6 +140,7 @@ onMounted(() => Promise.all([load(), loadProducts(), loadChannels(), loadDiscoun
                 <StatusBadge v-if="order.refundedAt" tone="warning">{{ t('orders.detail.refundedOn', { date: formatDate(order.refundedAt) }) }}</StatusBadge>
                 {{ formatDateTime(order.placedAt) }} ·
                 <a v-if="order.event" :href="`/events/${order.event.id}`">{{ order.event.name }}</a>
+                <template v-else-if="order.source === 'manual'">{{ t('orders.outsideEvents') }}</template>
                 <template v-else>{{ t('orders.shop', { source: order.sourceLabel }) }}</template>
                 <template v-if="order.channelName"> · {{ t('orders.detail.channel', { channel: order.channelName }) }}</template>
                 <span v-if="order.source !== 'manual'"> · {{ t('orders.detail.importedFrom', { source: order.sourceLabel }) }}</span>
@@ -142,6 +152,13 @@ onMounted(() => Promise.all([load(), loadProducts(), loadChannels(), loadDiscoun
                     <OrderLines :lines="order.lines" :identifiable="!order.refundedAt" @identify="identifying = $event" @split="splitting = $event" />
                 </BaseCard>
                 <div class="order-detail-page__side">
+                    <BaseCard :title="t('orders.note.title')">
+                        <template #actions>
+                            <IconButton :icon="Pencil" :label="t('orders.note.edit')" @click="noteOpen = true" />
+                        </template>
+                        <p v-if="order.note" class="order-detail-page__note">{{ order.note }}</p>
+                        <p v-else class="order-detail-page__hint">{{ t('orders.note.empty') }}</p>
+                    </BaseCard>
                     <BaseCard :title="t('orders.detail.amount')">
                         <template v-if="!order.refundedAt && offeredDiscounts.length" #actions>
                             <BaseButton variant="secondary" @click="discountOpen = true"><Plus size="1rem" aria-hidden="true" /> {{ t('orders.discounts.add') }}</BaseButton>
@@ -185,6 +202,9 @@ onMounted(() => Promise.all([load(), loadProducts(), loadChannels(), loadDiscoun
         <BaseModal v-model:open="postageOpen" :title="t('orders.postage.title')">
             <PostageForm v-if="postageOpen && order" :postage="order.postage" :submit="stamp" @saved="onPostageSaved" @cancel="postageOpen = false" />
         </BaseModal>
+        <BaseModal v-model:open="noteOpen" :title="t('orders.note.title')">
+            <NoteForm v-if="noteOpen && order" :note="order.note" :submit="annotate" @saved="onNoteSaved" @cancel="noteOpen = false" />
+        </BaseModal>
         <BaseModal v-model:open="supplyOpen" :title="t('orders.supplies.add')">
             <SupplyForm v-if="supplyOpen" :supplies="channelSupplies" :submit="addSupply" @saved="onSupplyAdded" @cancel="supplyOpen = false" />
         </BaseModal>
@@ -208,6 +228,7 @@ onMounted(() => Promise.all([load(), loadProducts(), loadChannels(), loadDiscoun
 .order-detail-page__meta { margin: 0; color: var(--color-muted); }
 .order-detail-page__grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(17.5rem, 1fr); gap: var(--space-4); align-items: start; }
 .order-detail-page__hint { margin: var(--space-2) 0 0; color: var(--color-muted); font-size: var(--font-size-md); }
+.order-detail-page__note { margin: 0; white-space: pre-line; }
 .order-detail-page__side { display: flex; flex-direction: column; gap: var(--space-4); }
 
 @media (max-width: 56.25rem) {

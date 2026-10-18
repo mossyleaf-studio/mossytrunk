@@ -33,6 +33,7 @@ final readonly class OrderSummaryView
         public ?string $channelName,
         public int $profit,
         public int $unknownCosts,
+        public ?string $note,
     ) {
     }
 
@@ -58,6 +59,7 @@ final readonly class OrderSummaryView
             $order->channel()?->name(),
             $order->profit()->amount(),
             $order->unknownCostLines(),
+            $order->note(),
         );
     }
 }

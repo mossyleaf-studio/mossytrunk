@@ -1,11 +1,11 @@
 # Orders (Commandes)
 
-An **order** is a sale made during an event, or an online sale imported from a connected service (then without event, see [imports.md](imports.md)).
+An **order** is a sale made during an event, a manual order entered **outside events** (a gift, a sale to a friend…), or an online sale imported from a connected service (then without event, see [imports.md](imports.md)).
 
 | Field | Meaning |
 |---|---|
 | `reference` | Written with the workspace's order format ([references.md](references.md), `CMD-YYYYMMDD-XXXXXX` by default), imported orders included; unique within the workspace. The service's own reference (SumUp transaction code, `ETSY-<receipt id>`) is kept with the imported sale |
-| `event` | The event the sale happened at (required, except for online imported orders) |
+| `event` | The event the sale happened at (none for online imported orders and manual orders outside events) |
 | `shipping` | Shipping charged to the customer by the service (Etsy), part of the total |
 | `placedAt` | Date-time of the sale (stored with time zone, displayed in Europe/Paris) |
 | `lines` | `(product ULID, variant)` tuple + quantity, with **snapshots** of product name, unit selling price and the **cost** of the units taken from stock |
@@ -14,6 +14,7 @@ An **order** is a sale made during an event, or an online sale imported from a c
 | `source` | `manual` or the key of the service it was imported from (`sumup`, `etsy`) |
 | `externalId` | The sale's id at the service; unique per source within the workspace |
 | `refundedAt` | Date-time of the refund, null while the order is not refunded |
+| `note` | Optional comment typed on the order (who a gift was for…), up to 1000 characters |
 
 Model: `src/Domain/Order/Order.php`, `OrderLine.php`, `OrderedItem.php`.
 
@@ -21,8 +22,8 @@ Model: `src/Domain/Order/Order.php`, `OrderLine.php`, `OrderedItem.php`.
 
 | # | Rule | Where | Tests |
 |---|---|---|---|
-| O1 | A manual order, or an order imported at the day's market, always belongs to an event, and its date must fall within the event's days; an online imported order has none | `Order::__construct()` (`Event::covers()`) | `OrderTest` |
-| O2 | **The event is deduced from the date** (events never overlap). No event at that date → the order is refused with « Aucun événement le … Créez d'abord l'événement » | `PlaceOrderHandler` (`EventRepository::findCovering()`) | `OrderUseCasesTest` |
+| O1 | A manual order, or an order imported at the day's market, belongs to an event, and its date must fall within the event's days; an online imported order has none. A manual order ticked « Hors événement » has none either (even on an event's day) and no channel (so no supplies nor channel costs) | `Order::__construct()` (`Event::covers()`), `Order::placeOutsideEvents()` | `OrderTest`, `OrderUseCasesTest` |
+| O2 | **The event is deduced from the date** (events never overlap), unless the order is outside events. No event at that date → the order is refused with « Aucun événement le … Créez d'abord l'événement » | `PlaceOrderHandler` (`EventRepository::findCovering()`) | `OrderUseCasesTest` |
 | O3 | At least one line; quantities ≥ 1 | `Order`, `OrderLine`, `OrderPricing::items()` | `OrderTest`, `OrderUseCasesTest` |
 | O4 | Each line is a valid (product, variant) tuple: variant mandatory for products with variants, forbidden for unique products | `Product::sellable()` via `OrderPricing` | `ProductTest`, `OrderUseCasesTest` |
 | O15 | A line is priced at the product's selling price **on the order's date and time** (the latest price-history entry not after it, P17/P18; its first price before the history starts), so a manual order entered after the event and its automatic discounts use the prices of that day. An imported sale is listed at that price too (or the linked channel's own price, C6), so a later price change never turns into a fake discount; products created by the import use their import price | `Product::priceAt()`, `Product::sellableOn()`, `OrderPricing::items()`, `ExternalItemResolver` | `ProductTest`, `OrderUseCasesTest`, `ImportSumUpSalesTest` |
@@ -45,12 +46,13 @@ Model: `src/Domain/Order/Order.php`, `OrderLine.php`, `OrderedItem.php`.
 | O20 | For per-product figures (event report, best sellers, product sales), an order's discounts are **shared between its lines in proportion to their price** (leftover cents to the largest remainders, so the shares add up exactly); a line's revenue = its price − its share. The order total is unchanged | `OrderLine::discount()`, `revenue()`, `CostAllocation::proportionally()` | `OrderTest`, `SalesLedgerTest` |
 | O21 | An order **records its figures when it changes** — subtotal, discounts, total, cost of goods, supplies cost, channel costs, and each line's share of the discounts (O20) — at placement, import, merge, manual discount changes, line identification, cost completion, supply changes, postage, channel cost recomputation and moved sales. Reading an order, a list or a report never recomputes them: lists and reports sum the recorded figures in the database | `Order::recordSales()`, `recordChannelCosts()`, `SalesLedger`, `ProductSalesLedger`, `OrderSummaries` | `OrderTest`, `SalesLedgerTest` |
 | O22 | **Check after the event**: each order of an event can be ticked off as checked (and unticked) by the user, e.g. against the notebook kept at the stall; the first tick is kept (ticking again does not move it). The mark is only a note: it changes no figure and survives later edits of the order | `Order::check()`, `uncheck()`, `CheckOrderHandler`, `UncheckOrderHandler`, `OrdersToCheck` | `OrderTest`, `OrderCheckTest`, `OrderApiTest`, `order-check.spec.js` |
+| O23 | An order carries an optional **comment** (« Commentaire »), typed in the new-order form and edited on the detail page; blank = none. It changes no figure | `Order::annotate()`, `PlaceOrderHandler`, `AnnotateOrderHandler` | `OrderUseCasesTest`, `OrderApiTest`, e2e `orders.spec.js` |
 
 ## Use cases & API
 
 | Use case | Endpoint |
 |---|---|
-| `PlaceOrder` | `POST /api/orders` `{placedAt: "YYYY-MM-DDTHH:MM" (Paris time), lines: [{productId, variant, quantity}], discountRuleIds?: [manual rule ids]}` → `{id, reference}` |
+| `PlaceOrder` | `POST /api/orders` `{placedAt: "YYYY-MM-DDTHH:MM" (Paris time), lines: [{productId, variant, quantity}], discountRuleIds?: [manual rule ids], outsideEvents?: bool, note?: string}` → `{id, reference}` |
 | `PreviewOrder` | `POST /api/orders/preview` (same body) → matching event (or null), discounts, totals — nothing saved |
 | `ListOrders` | `GET /api/orders[?eventId=]` (most recent first) |
 | `GetOrder` | `GET /api/orders/{id}` (lines, discounts, totals, cost of goods, supplies, margin, channel) |
@@ -64,11 +66,12 @@ Model: `src/Domain/Order/Order.php`, `OrderLine.php`, `OrderedItem.php`.
 | `AddOrderSupplies` | `POST /api/orders/supplies` `{orderIds[], supplies: [{supplyId, variant?, quantity}]}` → `{updated}` (several supplies at once, each added to every order) |
 | `FillMissingCosts` | `POST /api/orders/missing-costs` → `{filled}` |
 | `RecomputeOrderCharges` | `POST /api/orders/charges` `{orderIds[]}` → `{updated}` |
+| `AnnotateOrder` | `PUT /api/orders/{id}/note` `{note}` → 204 (blank removes it) |
 | `StampOrder` | `PUT /api/orders/{id}/postage` `{postage}` → 204 |
 | `RemoveOrderSupply` | `DELETE /api/orders/{id}/supplies/{supplyLineId}` → 204 |
 | `CheckOrder` / `UncheckOrder` | `PUT` / `DELETE /api/orders/{id}/check` → 204 |
 | `ListOrdersToCheck` | `GET /api/events/{id}/orders-to-check` → the event's orders oldest first `{id, reference, placedAt, source, sourceLabel, paymentMethod, total, refunded, checked, lines: [{label, quantity, unidentified}]}` |
 
-UI: `/orders` — order history (filter by event; a search box matches the order number or the service's references, the date — `dd/mm/yyyy`, `yyyy-mm-dd` or the written day — and the time — `15:30` or `15h30` —, every word having to match; filters kept in the URL), grouped by **day and event** with the day's total and number of orders; an order with lines without product is highlighted with a warning icon, and a « N commandes avec des articles sans produit » toggle lists only them; each order shows its time, articles, discounts, total, payment method (Carte / Espèces) and (secondary) its reference. Side by side, the new-order form: date, product → variant (only when needed) → quantity, live preview of the matching event, and a footer pinned at the bottom with discounts, total and the save button. On save: toast, list refresh without page reload, new row highlighted. `/orders/{id}` — detail with margin, the service's references, « Fusionner avec… » (orders of the same event and source, closest in time first), « Rembourser » and delete (each explaining its effect on stock); a refunded order shows « Remboursée le … » (in the list: a « Remboursée » badge, its total struck through and left out of the day's total); a line without product is a warning badge « Produit inconnu » with « Choisir le produit » (product and variant, in a modal) and « Répartir en plusieurs produits » (products and quantities, with the amount paid, the products' value and the discount that will be added).
+UI: `/orders` — order history (filter by event; a search box matches the order number or the service's references, the date — `dd/mm/yyyy`, `yyyy-mm-dd` or the written day — and the time — `15:30` or `15h30` —, every word having to match; filters kept in the URL), grouped by **day and event** with the day's total and number of orders; an order with lines without product is highlighted with a warning icon, and a « N commandes avec des articles sans produit » toggle lists only them; each order shows its time, articles, discounts, total, payment method (Carte / Espèces) and (secondary) its reference. Side by side, the new-order form: date, the matching event with a « Hors événement » switch, product → variant (only when needed) → quantity, live preview of the matching event, and a footer pinned at the bottom with discounts, total and the save button, and an optional comment. Orders outside events are grouped under « Hors événement », and a comment shows next to the order. On save: toast, list refresh without page reload, new row highlighted. `/orders/{id}` — detail with its comment (pencil to edit it), margin, the service's references, « Fusionner avec… » (orders of the same event and source, closest in time first), « Rembourser » and delete (each explaining its effect on stock); a refunded order shows « Remboursée le … » (in the list: a « Remboursée » badge, its total struck through and left out of the day's total); a line without product is a warning badge « Produit inconnu » with « Choisir le produit » (product and variant, in a modal) and « Répartir en plusieurs produits » (products and quantities, with the amount paid, the products' value and the discount that will be added).
 
 `/events/{id}/check` (« Vérifier les commandes » on the event): the event's orders in the order they were placed, each with its time, source, payment, items and total and a tick box; a progress bar « N / M commandes vérifiées », a « Seulement les commandes à vérifier » switch, the reference opens the order to fix it. « Arrêter pour l'instant » goes back to the event (ticks are saved at once), « Passer à l'inventaire » opens the stock check; once every order is ticked, a banner offers both.

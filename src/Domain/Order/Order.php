@@ -31,6 +31,7 @@ use App\Domain\Shared\CostAllocation;
 use App\Domain\Shared\Exception\NegativeAmount;
 use App\Domain\Shared\Exception\NotFound;
 use App\Domain\Shared\Money;
+use App\Domain\Shared\OptionalText;
 use App\Domain\Stock\LotRevision;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -130,6 +131,9 @@ class Order implements Referenced
     #[ORM\Embedded(class: Money::class, columnPrefix: 'channel_costs_')]
     private Money $channelCosts;
 
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $note = null;
+
     /**
      * @param list<OrderedItem>     $items
      * @param list<AppliedDiscount> $discounts
@@ -175,6 +179,25 @@ class Order implements Referenced
     public static function place(string $reference, Event $event, \DateTimeImmutable $placedAt, array $items, array $discounts, ?SalesChannel $channel = null): self
     {
         return new self($reference, $event->workspace(), $event, $placedAt, $items, $discounts, self::MANUAL, $channel);
+    }
+
+    /**
+     * @param list<OrderedItem>     $items
+     * @param list<AppliedDiscount> $discounts
+     */
+    public static function placeOutsideEvents(string $reference, Workspace $workspace, \DateTimeImmutable $placedAt, array $items, array $discounts): self
+    {
+        return new self($reference, $workspace, null, $placedAt, $items, $discounts, self::MANUAL, null);
+    }
+
+    public function annotate(?string $note): void
+    {
+        $this->note = OptionalText::of($note);
+    }
+
+    public function note(): ?string
+    {
+        return $this->note;
     }
 
     /**

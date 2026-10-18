@@ -9,6 +9,7 @@ use App\Application\Reference\ReferenceGenerator;
 use App\Application\Sales\OrderChannel;
 use App\Application\Stock\StockKeeper;
 use App\Application\Transaction;
+use App\Application\WorkspaceContext;
 use App\Domain\Event\EventRepository;
 use App\Domain\Order\Exception\NoEventOnOrderDate;
 use App\Domain\Order\Order;
@@ -26,15 +27,21 @@ final readonly class PlaceOrderHandler
         private ReferenceGenerator $references,
         private Transaction $transaction,
         private OrderChannel $orderChannel,
+        private WorkspaceContext $workspace,
     ) {
     }
 
     public function __invoke(PlaceOrder $command): Order
     {
-        $event = $this->events->findCovering($command->placedAt) ?? throw new NoEventOnOrderDate($command->placedAt);
+        $event = $command->outsideEvents ? null : ($this->events->findCovering($command->placedAt) ?? throw new NoEventOnOrderDate($command->placedAt));
 
         $items = $this->stock->withdraw($event, $this->pricing->items($command->lines, $command->placedAt));
-        $order = Order::place($this->references->next(ReferenceKind::Order, ReferenceSubject::at($command->placedAt)), $event, $command->placedAt, $items, $this->pricing->discounts($items, $command->placedAt, null, $command->discountRuleIds), $this->orderChannel->of(null, $event));
+        $reference = $this->references->next(ReferenceKind::Order, ReferenceSubject::at($command->placedAt));
+        $discounts = $this->pricing->discounts($items, $command->placedAt, null, $command->discountRuleIds);
+        $order = null === $event
+            ? Order::placeOutsideEvents($reference, $this->workspace->current(), $command->placedAt, $items, $discounts)
+            : Order::place($reference, $event, $command->placedAt, $items, $discounts, $this->orderChannel->of(null, $event));
+        $order->annotate($command->note);
 
         $this->orders->add($order);
         $this->transaction->commit();

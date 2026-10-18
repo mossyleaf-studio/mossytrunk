@@ -1,5 +1,6 @@
 {
     "shop": "Boutique {source}",
+    "outsideEvents": "Hors événement",
     "page": {
         "title": "Commandes",
         "new": "Nouvelle commande",
@@ -48,7 +49,10 @@
         "noLines": "Ajoutez au moins un produit.",
         "submit": "Enregistrer la commande",
         "items": "Articles",
-        "manualDiscounts": "Remises manuelles"
+        "manualDiscounts": "Remises manuelles",
+        "outsideEvents": "Hors événement (cadeau, vente à un proche…)",
+        "note": "Commentaire",
+        "notePlaceholder": "Pour qui, pourquoi… (ex. cadeau pour l'anniversaire de Léa)"
     },
     "picker": {
         "product": "Produit",
@@ -185,5 +189,11 @@
         "worthLess": "Les produits choisis valent moins que le montant payé : ajoutez-en ou choisissez-en d'autres.",
         "save": "Répartir",
         "saved": "Vente répartie entre les produits choisis."
+    },
+    "note": {
+        "title": "Commentaire",
+        "edit": "Modifier le commentaire",
+        "empty": "Aucun commentaire.",
+        "saved": "Commentaire enregistré."
     }
 }

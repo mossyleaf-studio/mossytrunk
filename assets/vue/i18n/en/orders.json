@@ -1,5 +1,6 @@
 {
     "shop": "{source} shop",
+    "outsideEvents": "Outside events",
     "page": {
         "title": "Orders",
         "new": "New order",
@@ -48,7 +49,10 @@
         "noLines": "Add at least one product.",
         "submit": "Save order",
         "items": "Items",
-        "manualDiscounts": "Manual discounts"
+        "manualDiscounts": "Manual discounts",
+        "outsideEvents": "Outside events (gift, sale to a friend…)",
+        "note": "Comment",
+        "notePlaceholder": "Who for, why… (e.g. birthday gift for Lea)"
     },
     "picker": {
         "product": "Product",
@@ -185,5 +189,11 @@
         "worthLess": "The chosen products are worth less than the amount paid: add more or choose others.",
         "save": "Split",
         "saved": "Sale split between the chosen products."
+    },
+    "note": {
+        "title": "Comment",
+        "edit": "Edit the comment",
+        "empty": "No comment.",
+        "saved": "Comment saved."
     }
 }

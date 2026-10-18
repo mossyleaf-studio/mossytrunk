@@ -23,9 +23,9 @@ final readonly class PreviewOrderHandler
      * @param list<RequestedLine> $lines
      * @param list<string>        $discountRuleIds
      */
-    public function __invoke(\DateTimeImmutable $placedAt, array $lines, array $discountRuleIds = []): OrderPreview
+    public function __invoke(\DateTimeImmutable $placedAt, array $lines, array $discountRuleIds = [], bool $outsideEvents = false): OrderPreview
     {
-        $event = $this->events->findCovering($placedAt);
+        $event = $outsideEvents ? null : $this->events->findCovering($placedAt);
         $items = $this->pricing->items($lines, $placedAt);
         $discounts = $this->pricing->discounts($items, $placedAt, null, $discountRuleIds);
 

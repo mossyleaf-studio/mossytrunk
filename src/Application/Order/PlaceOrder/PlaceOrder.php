@@ -16,6 +16,8 @@ final readonly class PlaceOrder
         public \DateTimeImmutable $placedAt,
         public array $lines,
         public array $discountRuleIds = [],
+        public bool $outsideEvents = false,
+        public ?string $note = null,
     ) {
     }
 }

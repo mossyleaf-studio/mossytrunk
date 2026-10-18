@@ -23,6 +23,9 @@ final readonly class OrderPayload
         public array $lines = [],
         #[Assert\All([new Assert\Ulid()])]
         public array $discountRuleIds = [],
+        public bool $outsideEvents = false,
+        #[Assert\Length(max: 1000, maxMessage: 'note.tooLong')]
+        public ?string $note = null,
     ) {
     }
 
