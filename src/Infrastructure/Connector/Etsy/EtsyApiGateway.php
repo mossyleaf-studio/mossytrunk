@@ -72,7 +72,11 @@ final readonly class EtsyApiGateway implements EtsyGateway
         }
 
         $entries = $this->ledgerEntries($app, $accessToken, $shopId, min(array_map(static fn (array $receipt): int => (int) Json::number($receipt['create_timestamp'] ?? $receipt['created_timestamp'] ?? 0), $receipts)));
-        $fees = new EtsyFees($receipts, $entries, $this->payments($app, $accessToken, $shopId, $entries));
+        $payments = [];
+        foreach ($receipts as $receipt) {
+            array_push($payments, ...$this->receiptPayments($app, $accessToken, $shopId, Json::string($receipt['receipt_id'] ?? '')));
+        }
+        $fees = new EtsyFees($receipts, $entries, $payments);
 
         return array_map(fn (array $receipt): ExternalSale => $this->mapper->sale($receipt, $fees->of(Json::string($receipt['receipt_id'] ?? ''))), $receipts);
     }
@@ -120,26 +124,6 @@ final readonly class EtsyApiGateway implements EtsyGateway
         }
 
         return $entries;
-    }
-
-    /**
-     * @param list<array<string, mixed>> $entries
-     *
-     * @return list<array<string, mixed>>
-     */
-    private function payments(EtsyApp $app, string $accessToken, string $shopId, array $entries): array
-    {
-        $ids = array_values(array_unique(array_map(
-            static fn (array $entry): string => Json::string($entry['reference_id'] ?? ''),
-            array_filter($entries, static fn (array $entry): bool => 'payment' === strtolower(Json::string($entry['reference_type'] ?? ''))),
-        )));
-
-        $payments = [];
-        foreach (array_chunk($ids, self::PAGE_SIZE) as $chunk) {
-            array_push($payments, ...Json::objects($this->get($app, $accessToken, \sprintf('/v3/application/shops/%s/payments?%s', rawurlencode($shopId), http_build_query(['payment_ids' => implode(',', $chunk)])))['results'] ?? []));
-        }
-
-        return $payments;
     }
 
     /**

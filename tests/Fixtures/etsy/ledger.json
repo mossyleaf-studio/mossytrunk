@@ -10,6 +10,6 @@
         { "entry_id": 8, "ledger_type": "DISBURSE2", "reference_type": "disbursement", "reference_id": "9", "amount": -2000, "currency": "EUR" }
     ],
     "payments": [
-        { "payment_id": 5100000001, "receipt_id": 3100000001 }
+        { "payment_id": 5100000001, "receipt_id": 3100000001, "amount_fees": { "amount": 156, "divisor": 100, "currency_code": "EUR" }, "posted_fees": { "amount": 156, "divisor": 100, "currency_code": "EUR" }, "adjusted_fees": null }
     ]
 }

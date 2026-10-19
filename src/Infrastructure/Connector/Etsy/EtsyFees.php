@@ -9,7 +9,7 @@ use App\Infrastructure\Http\Json;
 
 final class EtsyFees
 {
-    private const string NOT_A_FEE = '/^(payment_gross|refund_gross|disburse|sales_tax)/';
+    private const string NOT_A_FEE = '/^(payment|refund_gross|disburse|sales_tax)|^(?!vat).*processing_fee/';
 
     /** @var array<string, int> */
     private array $cents = [];
@@ -28,6 +28,12 @@ final class EtsyFees
     public function __construct(array $receipts, array $entries, array $payments)
     {
         $owners = self::owners($receipts, $payments);
+        foreach ($payments as $payment) {
+            $receiptId = Json::string($payment['receipt_id'] ?? '');
+            $this->paid[$receiptId] = true;
+            $this->cents[$receiptId] = ($this->cents[$receiptId] ?? 0) + EtsyMoney::of($payment['adjusted_fees'] ?? $payment['posted_fees'] ?? $payment['amount_fees'] ?? [])->amount();
+        }
+
         $entryReceipts = [];
         foreach ($entries as $entry) {
             $receiptId = $owners[strtolower(Json::string($entry['reference_type'] ?? '')).':'.Json::string($entry['reference_id'] ?? '')] ?? null;
@@ -42,9 +48,6 @@ final class EtsyFees
                 continue;
             }
             $this->entries[$receiptId][] = $entry;
-            if ('payment' === strtolower(Json::string($entry['reference_type'] ?? ''))) {
-                $this->paid[$receiptId] = true;
-            }
             if (1 !== preg_match(self::NOT_A_FEE, strtolower(Json::string($entry['ledger_type'] ?? '')))) {
                 $this->cents[$receiptId] = ($this->cents[$receiptId] ?? 0) - (int) Json::number($entry['amount'] ?? 0);
             }

@@ -30,7 +30,7 @@ final class EtsyApiGatewayTest extends TestCase
                 ['entry_id' => 2, 'ledger_type' => 'PAYMENT_PROCESSING_FEE', 'reference_type' => 'payment', 'reference_id' => '91', 'amount' => -46],
             ]]),
             new JsonMockResponse(['results' => []]),
-            new JsonMockResponse(['results' => [['payment_id' => 91, 'receipt_id' => 1]]]),
+            new JsonMockResponse(['results' => [['payment_id' => 91, 'receipt_id' => 1, 'amount_fees' => ['amount' => 46, 'divisor' => 100], 'adjusted_fees' => null]]]),
         ];
         $client = new MockHttpClient(static function (string $method, string $url) use (&$requests, &$responses): MockResponse {
             $requests[] = $url;
@@ -45,6 +45,6 @@ final class EtsyApiGatewayTest extends TestCase
         self::assertStringContainsString('/shops/42/receipts?was_paid=true&limit=100&offset=0', $requests[0]);
         self::assertStringContainsString('/shops/42/payment-account/ledger-entries?min_created=1893456000&max_created=1896047999&limit=100', $requests[1]);
         self::assertStringContainsString('min_created=1896048000&max_created=1896912000', $requests[2]);
-        self::assertStringContainsString('/shops/42/payments?payment_ids=91', $requests[3]);
+        self::assertStringContainsString('/shops/42/receipts/1/payments', $requests[3]);
     }
 }
