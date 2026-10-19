@@ -1,11 +1,11 @@
 # Orders (Commandes)
 
-An **order** is a sale made during an event, a manual order entered on a channel **without events** (a gift, a sale to a friend…, on an « En ligne » channel such as « Cadeaux »), or an online sale imported from a connected service (then without event, see [imports.md](imports.md)).
+An **order** is a sale made during an event, a manual order entered on a channel **without events** (a gift, a sale to a friend…, on a « Vente directe » channel such as « Cadeaux »), or an online sale imported from a connected service (then without event, see [imports.md](imports.md)).
 
 | Field | Meaning |
 |---|---|
 | `reference` | Written with the workspace's order format ([references.md](references.md), `CMD-YYYYMMDD-XXXXXX` by default), imported orders included; unique within the workspace. The service's own reference (SumUp transaction code, `ETSY-<receipt id>`) is kept with the imported sale |
-| `event` | The event the sale happened at (none for online imported orders and manual orders on an « En ligne » channel) |
+| `event` | The event the sale happened at (none for online imported orders and manual orders on a channel that is not a Marché) |
 | `shipping` | Shipping charged to the customer by the service (Etsy), part of the total |
 | `placedAt` | Date-time of the sale (stored with time zone, displayed in Europe/Paris) |
 | `lines` | `(product ULID, variant)` tuple + quantity, with **snapshots** of product name, unit selling price and the **cost** of the units taken from stock |
@@ -22,7 +22,7 @@ Model: `src/Domain/Order/Order.php`, `OrderLine.php`, `OrderedItem.php`.
 
 | # | Rule | Where | Tests |
 |---|---|---|---|
-| O1 | **The channel decides whether an order has an event**: a manual order goes on the chosen channel (the main one by default) and takes its prices (C2); on a **Marché** channel it belongs to an event and its date must fall within the event's days, on an **En ligne** channel it has none (even on an event's day). An order imported at the day's market belongs to an event; an online imported order has none. Manual orders entered before channels decided it (« Hors événement ») keep no event and no channel | `Order::__construct()` (`Event::covers()`, `MarketOrderWithoutEvent`), `Order::placeOn()`, `PlaceOrderHandler` | `OrderTest`, `OrderUseCasesTest` |
+| O1 | **The channel decides whether an order has an event**: a manual order goes on the chosen channel (the main one by default) and takes its prices (C2); on a **Marché** channel it belongs to an event and its date must fall within the event's days, on an **En ligne** or **Vente directe** channel it has none (even on an event's day). An order imported at the day's market belongs to an event; an online imported order has none. Manual orders entered before channels decided it (« Hors événement ») keep no event and no channel | `Order::__construct()` (`Event::covers()`, `MarketOrderWithoutEvent`), `Order::placeOn()`, `PlaceOrderHandler` | `OrderTest`, `OrderUseCasesTest` |
 | O2 | On a Marché channel the event is **chosen in the form**, preselected from the date (events never overlap); without a chosen event the API deduces it from the date. No event at that date → the order is refused with « Aucun événement le … Créez d'abord l'événement » | `PlaceOrderHandler` (`EventRepository::findCovering()`) | `OrderUseCasesTest` |
 | O3 | At least one line; quantities ≥ 1 | `Order`, `OrderLine`, `OrderPricing::items()` | `OrderTest`, `OrderUseCasesTest` |
 | O4 | Each line is a valid (product, variant) tuple: variant mandatory for products with variants, forbidden for unique products | `Product::sellable()` via `OrderPricing` | `ProductTest`, `OrderUseCasesTest` |

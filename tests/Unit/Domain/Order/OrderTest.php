@@ -60,7 +60,7 @@ final class OrderTest extends TestCase
 
     public function testAManualOrderOnAnOnlineChannelHasNoEventAndKeepsAComment(): void
     {
-        $gifts = SalesChannel::open(TestWorkspace::get(), 'Cadeaux');
+        $gifts = SalesChannel::open(TestWorkspace::get(), 'Cadeaux', ChannelKind::Direct);
         $order = Order::placeOn('CMD-1', $gifts, self::at('2026-07-10 15:00'), [new OrderedItem($this->sticker->sellable(null), 1)], []);
         $order->annotate('  Cadeau pour Léa ');
 

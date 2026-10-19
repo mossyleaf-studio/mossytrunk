@@ -49,7 +49,7 @@ Module 1 = **Order Management**. This folder is the reference for business rules
 | Coût d'achat | `Order::costOfGoods()` | Σ line costs (units taken from stock, oldest lot first) |
 | Réserve (stock) | `Domain\Stock\StockItem` | Units of one sellable item, in lots |
 | Lot | `Domain\Stock\StockLot` | Units received together at one cost |
-| Canal de vente | `Domain\Sales\SalesChannel` | Where products are sold (Marché or En ligne), with its prices and orders; the main one carries the selling price |
+| Canal de vente | `Domain\Sales\SalesChannel` | Where products are sold (Marché, En ligne or Vente directe), with its prices and orders; the main one carries the selling price |
 | Fourniture | `Domain\Product\Product` (`ProductKind::Supply`) | A stocked product that is used up, never sold (packaging, flyers) |
 | Format de référence | `Domain\Reference\ReferenceFormat` | How a workspace writes the references of one kind of item (text + tags, next number) |
 | Fournisseur | `Domain\Purchasing\Supplier` | Who products are bought from |

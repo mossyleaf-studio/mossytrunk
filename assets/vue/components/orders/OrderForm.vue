@@ -34,7 +34,7 @@ watchEffect(() => {
 });
 const channel = computed(() => props.channels.find((option) => option.id === draft.channelId.value));
 const channelOptions = computed(() => props.channels.map((option) => ({ value: option.id, label: option.name })));
-const needsEvent = computed(() => channel.value?.kind !== 'online');
+const needsEvent = computed(() => (channel.value?.kind ?? 'market') === 'market');
 
 const eventOptions = computed(() => [...props.events]
     .sort((a, b) => b.startDate.localeCompare(a.startDate))

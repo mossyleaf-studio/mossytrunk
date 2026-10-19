@@ -20,11 +20,13 @@
     "kind": "Kind",
     "kinds": {
         "market": "Market",
-        "online": "Online"
+        "online": "Online",
+        "direct": "Direct"
     },
     "kindHints": {
         "market": "Its orders always have an event.",
-        "online": "Sales outside events (online shop…)."
+        "online": "Sales outside events (online shop…).",
+        "direct": "Sales neither at an event nor online (gifts, sales to friends…)."
     },
     "mainHint": "Main channel: its prices are the products' selling prices.",
     "main": "Main channel",

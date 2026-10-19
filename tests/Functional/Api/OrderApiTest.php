@@ -38,7 +38,7 @@ final class OrderApiTest extends WebTestCase
     {
         $client = self::signedInClient();
         $product = $this->post($client, '/api/products', ['name' => 'Zine', 'sellingPrice' => 1_000, 'typeId' => ProductTypesApi::create($client)])['id'];
-        $gifts = Json::string($this->post($client, '/api/sales-channels', ['name' => 'Cadeaux', 'kind' => 'online']), 'id');
+        $gifts = Json::string($this->post($client, '/api/sales-channels', ['name' => 'Cadeaux', 'kind' => 'direct']), 'id');
 
         $order = Json::string($this->post($client, '/api/orders', ['placedAt' => '2026-07-10T15:30', 'lines' => [['productId' => $product, 'variant' => null, 'quantity' => 1]], 'channelId' => $gifts, 'note' => 'Cadeau pour Léa']), 'id');
         $client->jsonRequest('GET', '/api/orders');

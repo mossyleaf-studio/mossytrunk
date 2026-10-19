@@ -75,7 +75,7 @@ test('warns when no event exists at the order date', async ({ page, request }) =
 test('place a gift on a channel without events with a comment, then edit the comment', async ({ page, request }) => {
     const sticker = await createProduct(request, { name: unique('Sticker') });
     const gifts = unique('Cadeaux');
-    await request.post('/api/sales-channels', { data: { name: gifts, kind: 'online' } });
+    await request.post('/api/sales-channels', { data: { name: gifts, kind: 'direct' } });
 
     await page.goto('/orders');
     await page.getByRole('button', { name: 'Nouvelle commande' }).click();

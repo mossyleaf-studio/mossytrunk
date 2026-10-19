@@ -82,7 +82,7 @@ final class OrderUseCasesTest extends KernelTestCase
 
     public function testAnOrderOnAChannelWithoutEventsTakesItsPricesAndKeepsAComment(): void
     {
-        $gifts = (string) self::getContainer()->get(CreateChannelHandler::class)('Cadeaux', ChannelKind::Online, null);
+        $gifts = (string) self::getContainer()->get(CreateChannelHandler::class)('Cadeaux', ChannelKind::Direct, null);
         self::getContainer()->get(SetChannelPriceHandler::class)($this->sticker, $gifts, 0);
         $order = self::getContainer()->get(PlaceOrderHandler::class)(new PlaceOrder(BusinessTime::at('2026-07-10 15:30'), [new RequestedLine($this->sticker, null, 1)], [], '  Cadeau pour Léa  ', $gifts));
         self::getContainer()->get('doctrine')->getManager()->clear();

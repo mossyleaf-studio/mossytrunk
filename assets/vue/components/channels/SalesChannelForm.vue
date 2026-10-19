@@ -19,7 +19,7 @@ const emit = defineEmits(['saved', 'cancel']);
 const { t } = useI18n();
 
 const NONE = '__none__';
-const KINDS = ['market', 'online'].map((kind) => ({ value: kind, label: `channels.kinds.${kind}`, description: `channels.kindHints.${kind}` }));
+const KINDS = ['market', 'online', 'direct'].map((kind) => ({ value: kind, label: `channels.kinds.${kind}`, description: `channels.kindHints.${kind}` }));
 const form = reactive({ name: props.channel?.name ?? '', kind: props.channel?.kind ?? 'online', service: props.channel?.service ?? NONE });
 const { saving, errors, run } = useFormSubmit();
 

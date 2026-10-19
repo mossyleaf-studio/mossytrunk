@@ -8,4 +8,5 @@ enum ChannelKind: string
 {
     case Market = 'market';
     case Online = 'online';
+    case Direct = 'direct';
 }

@@ -6,7 +6,7 @@ has its **prices** and its **orders**. They are managed on their own page, **Can
 | Field | Meaning |
 |---|---|
 | `name` | « Marchés », « Boutique Etsy »…, unique in the workspace (case-insensitive), max 100 characters |
-| `kind` | **Marché** (`market`): every order has an event · **En ligne** (`online`): orders with or without event |
+| `kind` | **Marché** (`market`): every order has an event · **En ligne** (`online`): orders with or without event · **Vente directe** (`direct`): neither events nor an online shop (gifts, sales to friends…), orders with or without event |
 | `service` | Optional connected service (`sumup`, `etsy`…) whose imported sales go on this channel |
 | `main` | The **main channel**, one per workspace: its prices are the products' **selling prices** |
 
@@ -45,7 +45,7 @@ own price on a channel); `Order::$channel`.
 
 ## UI
 
-- **Canaux de vente** (`/channels`): one row per channel with its kind, linked service and costs summary; the main one is badged « Canal principal » and cannot be deleted. Add/edit form: name, kind (Marché / En ligne), linked service.
+- **Canaux de vente** (`/channels`): one row per channel with its kind, linked service and costs summary; the main one is badged « Canal principal » and cannot be deleted. Add/edit form: name, kind (Marché / En ligne / Vente directe), linked service.
 - **Channel page** (`/channels/{id}`): kind and linked service, edit/delete; **Frais par commande**: list, add/edit (name, amount in € or %), delete; **Fournitures**: chips of every supply, toggled to offer it (saved at once); **Prix**: every active product (searchable) with the main channel's price and its price on this channel (greyed when it follows), a pencil to set one price (amount, or « Suivre le prix {principal} »), and « Modifier les prix affichés » to apply a batch channel price (C7) to the products shown.
 - **Produits**: the selling price is labelled « Prix {principal} (canal principal) » in forms; its column is headed with the main channel's name, one more column per other channel (greyed when following). The product form has one « Prix {canal} » field per other channel (empty = follows). The batch form has « Prix d'un canal » with a preview of the first products.
 - **Product page**: the main channel's price and one fact per other channel, each with a pencil to set it.

@@ -20,11 +20,13 @@
     "kind": "Type",
     "kinds": {
         "market": "Marché",
-        "online": "En ligne"
+        "online": "En ligne",
+        "direct": "Vente directe"
     },
     "kindHints": {
         "market": "Ses commandes ont toujours un événement.",
-        "online": "Ventes hors événement (boutique en ligne…)."
+        "online": "Ventes hors événement (boutique en ligne…).",
+        "direct": "Ventes sans événement ni boutique en ligne (cadeaux, ventes à des proches…)."
     },
     "mainHint": "Canal principal : ses prix sont les prix de vente des produits.",
     "main": "Canal principal",
