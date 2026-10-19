@@ -11,6 +11,7 @@ Code: `src/Infrastructure/Connector/Etsy/` — `EtsyConnector` (`AuthorizingConn
 
 - OAuth 2 with PKCE (scopes `transactions_r shops_r listings_r listings_w`: a shop connected before the catalogue features must be connected again, Etsy otherwise refuses with « reconnectez la boutique »); the shop id/name and token expiry are on the service connection, the access and refresh tokens are encrypted workspace secrets.
 - `GET /v3/application/shops/{shop}/receipts?was_paid=true` (pages of 100).
+- `GET /v3/application/shops/{shop}/payment-account/ledger-entries` from the oldest receipt to now (30-day windows, pages of 100) and `GET /v3/application/shops/{shop}/payments?payment_ids=…` for the payments those entries name, to know the fee of each receipt (Y7).
 - Mapping: receipt id = external id, reference `ETSY-<receipt id>`; line = listing id (external reference), title, SKU, variations joined with « / », quantity, price; charged = Σ lines − `discount_amt`; shipping = `total_shipping_cost`; payment « Carte ».
 
 ## Rules
@@ -24,6 +25,7 @@ Code: `src/Infrastructure/Connector/Etsy/` — `EtsyConnector` (`AuthorizingConn
 | Y4 | A receipt line is matched by the listing's link, else **SKU = product reference**, else **title = product display name**; a product with variants needs the variation to equal one of its variants (see I5) | `ExternalItemResolver` | `ImportEtsySalesTest`, `ImportPoliciesTest` |
 | Y5 | A receipt with an unmatched line waits; its listing is remembered « à associer » (see I6). A bundle listing is linked to the products it holds, with their quantities (see I13) | `ExternalItemResolver`, `LinkExternalItemHandler` | `ImportEtsySalesTest`, `etsy.spec.js` |
 | Y6 | Items at the price paid on Etsy; the Etsy discount is kept as « Remise Etsy »; the **shipping charged** is part of the order total (so of the turnover); stock is taken like any sale | `Order::imported()`, `LinePrices::Listed` | `OrderTest`, `ImportEtsySalesTest` |
+| Y7 | The sale keeps the **fee Etsy took** (see I12): the opposite of the sum of the shop ledger entries tied to the receipt — by `reference_id` to the receipt, one of its transactions or its payment, or by `parent_entry_id` to such an entry (the VAT on fees) — leaving out the money of the sale itself (`PAYMENT_GROSS`, `REFUND_GROSS`), payouts (`DISBURSE…`) and the sales tax Etsy collects (`sales_tax…`): transaction, shipping, processing and offsite ads fees with their VAT, minus the fees Etsy refunded. Listing fees are tied to a listing, not a sale, and are left out. The fee stays unknown until Etsy posts the receipt's payment (usually once shipped), and a later import fills it | `EtsyFees`, `EtsyApiGateway::paidReceipts()` | `EtsyFeesTest`, `ImportEtsySalesTest` |
 
 ## Catalogue
 

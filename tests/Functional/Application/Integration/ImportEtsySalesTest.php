@@ -85,6 +85,9 @@ final class ImportEtsySalesTest extends KernelTestCase
         $order = self::getContainer()->get(GetOrderHandler::class)($receipt->id);
         self::assertSame([2_600, 100, 250, 2_750], [$order->subtotal, $order->discountTotal, $order->shipping, $order->total]);
         self::assertSame('Etsy discount', $order->discounts[0]['label']);
+        self::assertSame([['label' => 'Etsy fees', 'amount' => 351]], $order->charges);
+        $unpaid = array_values(array_filter($orders, static fn ($order): bool => ['ETSY-3100000002'] === $order->externalReferences))[0];
+        self::assertSame([], self::getContainer()->get(GetOrderHandler::class)($unpaid->id)->charges, 'no fee until Etsy posts the payment');
         self::assertNull($order->event);
         self::assertSame(-3, self::getContainer()->get(GetProductStockHandler::class)($this->sticker)[0]->onHand);
 

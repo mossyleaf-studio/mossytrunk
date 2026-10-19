@@ -1,0 +1,15 @@
+{
+    "entries": [
+        { "entry_id": 1, "ledger_type": "transaction", "reference_type": "transaction", "reference_id": "4100000001", "amount": -52, "currency": "EUR" },
+        { "entry_id": 2, "ledger_type": "transaction", "reference_type": "transaction", "reference_id": "4100000002", "amount": -117, "currency": "EUR" },
+        { "entry_id": 3, "ledger_type": "shipping_transaction", "reference_type": "receipt", "reference_id": "3100000001", "amount": -16, "currency": "EUR" },
+        { "entry_id": 4, "ledger_type": "vat_seller_services", "reference_type": "etsy", "reference_id": "0", "parent_entry_id": 1, "amount": -10, "currency": "EUR" },
+        { "entry_id": 5, "ledger_type": "PAYMENT_GROSS", "reference_type": "payment", "reference_id": "5100000001", "amount": 3150, "currency": "EUR" },
+        { "entry_id": 6, "ledger_type": "PAYMENT_PROCESSING_FEE", "reference_type": "payment", "reference_id": "5100000001", "amount": -156, "currency": "EUR" },
+        { "entry_id": 7, "ledger_type": "transaction", "reference_type": "transaction", "reference_id": "4100000003", "amount": -26, "currency": "EUR" },
+        { "entry_id": 8, "ledger_type": "DISBURSE2", "reference_type": "disbursement", "reference_id": "9", "amount": -2000, "currency": "EUR" }
+    ],
+    "payments": [
+        { "payment_id": 5100000001, "receipt_id": 3100000001 }
+    ]
+}

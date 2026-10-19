@@ -7,8 +7,8 @@
             "discount_amt": { "amount": 100, "divisor": 100, "currency_code": "EUR" },
             "total_shipping_cost": { "amount": 250, "divisor": 100, "currency_code": "EUR" },
             "transactions": [
-                { "listing_id": 1500000001, "title": "Sticker Mousse", "sku": "", "quantity": 2, "price": { "amount": 400, "divisor": 100, "currency_code": "EUR" }, "variations": [] },
-                { "listing_id": 1500000002, "title": "Illustration forêt imprimée — tirage d'art A4, décoration nature", "sku": "", "quantity": 1, "price": { "amount": 1800, "divisor": 100, "currency_code": "EUR" }, "variations": [{ "formatted_name": "Format", "formatted_value": "A4" }] }
+                { "transaction_id": 4100000001, "listing_id": 1500000001, "title": "Sticker Mousse", "sku": "", "quantity": 2, "price": { "amount": 400, "divisor": 100, "currency_code": "EUR" }, "variations": [] },
+                { "transaction_id": 4100000002, "listing_id": 1500000002, "title": "Illustration forêt imprimée — tirage d'art A4, décoration nature", "sku": "", "quantity": 1, "price": { "amount": 1800, "divisor": 100, "currency_code": "EUR" }, "variations": [{ "formatted_name": "Format", "formatted_value": "A4" }] }
             ]
         },
         {
@@ -17,7 +17,7 @@
             "discount_amt": { "amount": 0, "divisor": 100, "currency_code": "EUR" },
             "total_shipping_cost": { "amount": 0, "divisor": 100, "currency_code": "EUR" },
             "transactions": [
-                { "listing_id": 1500000001, "title": "Sticker Mousse", "sku": "", "quantity": 1, "price": { "amount": 400, "divisor": 100, "currency_code": "EUR" }, "variations": [] }
+                { "transaction_id": 4100000003, "listing_id": 1500000001, "title": "Sticker Mousse", "sku": "", "quantity": 1, "price": { "amount": 400, "divisor": 100, "currency_code": "EUR" }, "variations": [] }
             ]
         }
     ]

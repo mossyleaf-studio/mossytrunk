@@ -28,6 +28,8 @@ final class FakeEtsyGateway implements EtsyGateway
         private readonly string $fixture,
         #[Autowire('%kernel.project_dir%/tests/Fixtures/etsy/listings.json')]
         private readonly string $listingsFixture,
+        #[Autowire('%kernel.project_dir%/tests/Fixtures/etsy/ledger.json')]
+        private readonly string $ledgerFixture,
     ) {
     }
 
@@ -84,9 +86,11 @@ final class FakeEtsyGateway implements EtsyGateway
             return $this->receipts;
         }
 
-        $payload = json_decode((string) file_get_contents($this->fixture), true, flags: \JSON_THROW_ON_ERROR);
+        $receipts = Json::objects(Json::object(json_decode((string) file_get_contents($this->fixture), true, flags: \JSON_THROW_ON_ERROR))['results'] ?? []);
+        $ledger = Json::object(json_decode((string) file_get_contents($this->ledgerFixture), true, flags: \JSON_THROW_ON_ERROR));
+        $fees = new EtsyFees($receipts, Json::objects($ledger['entries'] ?? []), Json::objects($ledger['payments'] ?? []));
 
-        return array_map($this->mapper->sale(...), Json::objects(Json::object($payload)['results'] ?? []));
+        return array_map(fn (array $receipt): ExternalSale => $this->mapper->sale($receipt, $fees->of(Json::string($receipt['receipt_id'] ?? ''))), $receipts);
     }
 
     public function activeListings(EtsyApp $app, string $accessToken, string $shopId): iterable

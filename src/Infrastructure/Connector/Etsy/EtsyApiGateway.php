@@ -7,6 +7,7 @@ namespace App\Infrastructure\Connector\Etsy;
 use App\Application\Integration\Exception\AccountWithoutShop;
 use App\Application\Integration\Exception\MissingPermission;
 use App\Application\Integration\Exception\ServiceUnreachable;
+use App\Application\Integration\ExternalSale;
 use App\Application\Integration\Tokens;
 use App\Infrastructure\Http\Json;
 use Psr\Clock\ClockInterface;
@@ -19,6 +20,7 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 final readonly class EtsyApiGateway implements EtsyGateway
 {
     private const int PAGE_SIZE = 100;
+    private const int LEDGER_WINDOW = 30 * 86_400;
     private const string SCOPES = 'transactions_r shops_r listings_r listings_w';
 
     public function __construct(
@@ -64,28 +66,20 @@ final readonly class EtsyApiGateway implements EtsyGateway
 
     public function paidReceipts(EtsyApp $app, string $accessToken, string $shopId): iterable
     {
-        for ($offset = 0;; $offset += self::PAGE_SIZE) {
-            $page = $this->get($app, $accessToken, \sprintf('/v3/application/shops/%s/receipts?%s', rawurlencode($shopId), http_build_query(['was_paid' => 'true', 'limit' => self::PAGE_SIZE, 'offset' => $offset])));
-            $results = Json::objects($page['results'] ?? []);
-            foreach ($results as $receipt) {
-                yield $this->mapper->sale($receipt);
-            }
-            if (\count($results) < self::PAGE_SIZE) {
-                return;
-            }
+        $receipts = iterator_to_array($this->pages($app, $accessToken, \sprintf('/v3/application/shops/%s/receipts', rawurlencode($shopId)), ['was_paid' => 'true']), false);
+        if ([] === $receipts) {
+            return [];
         }
+
+        $entries = $this->ledgerEntries($app, $accessToken, $shopId, min(array_map(static fn (array $receipt): int => (int) Json::number($receipt['create_timestamp'] ?? $receipt['created_timestamp'] ?? 0), $receipts)));
+        $fees = new EtsyFees($receipts, $entries, $this->payments($app, $accessToken, $shopId, $entries));
+
+        return array_map(fn (array $receipt): ExternalSale => $this->mapper->sale($receipt, $fees->of(Json::string($receipt['receipt_id'] ?? ''))), $receipts);
     }
 
     public function activeListings(EtsyApp $app, string $accessToken, string $shopId): iterable
     {
-        for ($offset = 0;; $offset += self::PAGE_SIZE) {
-            $page = $this->get($app, $accessToken, \sprintf('/v3/application/shops/%s/listings?%s', rawurlencode($shopId), http_build_query(['state' => 'active', 'includes' => 'Inventory', 'limit' => self::PAGE_SIZE, 'offset' => $offset])));
-            $results = Json::objects($page['results'] ?? []);
-            yield from $results;
-            if (\count($results) < self::PAGE_SIZE) {
-                return;
-            }
-        }
+        return $this->pages($app, $accessToken, \sprintf('/v3/application/shops/%s/listings', rawurlencode($shopId)), ['state' => 'active', 'includes' => 'Inventory']);
     }
 
     public function inventory(EtsyApp $app, string $accessToken, string $listingId): array
@@ -96,6 +90,56 @@ final readonly class EtsyApiGateway implements EtsyGateway
     public function updateInventory(EtsyApp $app, string $accessToken, string $listingId, array $inventory): void
     {
         $this->call($app, $accessToken, 'PUT', \sprintf('/v3/application/listings/%s/inventory', rawurlencode($listingId)), ['json' => $inventory]);
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function ledgerEntries(EtsyApp $app, string $accessToken, string $shopId, int $since): array
+    {
+        $entries = [];
+        $now = $this->clock->now()->getTimestamp();
+        for ($from = $since; $from <= $now; $from += self::LEDGER_WINDOW) {
+            array_push($entries, ...$this->pages($app, $accessToken, \sprintf('/v3/application/shops/%s/payment-account/ledger-entries', rawurlencode($shopId)), ['min_created' => $from, 'max_created' => min($now, $from + self::LEDGER_WINDOW - 1)]));
+        }
+
+        return $entries;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $entries
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function payments(EtsyApp $app, string $accessToken, string $shopId, array $entries): array
+    {
+        $ids = array_values(array_unique(array_map(
+            static fn (array $entry): string => Json::string($entry['reference_id'] ?? ''),
+            array_filter($entries, static fn (array $entry): bool => 'payment' === strtolower(Json::string($entry['reference_type'] ?? ''))),
+        )));
+
+        $payments = [];
+        foreach (array_chunk($ids, self::PAGE_SIZE) as $chunk) {
+            array_push($payments, ...Json::objects($this->get($app, $accessToken, \sprintf('/v3/application/shops/%s/payments?%s', rawurlencode($shopId), http_build_query(['payment_ids' => implode(',', $chunk)])))['results'] ?? []));
+        }
+
+        return $payments;
+    }
+
+    /**
+     * @param array<string, int|string> $query
+     *
+     * @return \Generator<int, array<string, mixed>>
+     */
+    private function pages(EtsyApp $app, string $accessToken, string $path, array $query): \Generator
+    {
+        for ($offset = 0;; $offset += self::PAGE_SIZE) {
+            $results = Json::objects($this->get($app, $accessToken, $path.'?'.http_build_query($query + ['limit' => self::PAGE_SIZE, 'offset' => $offset]))['results'] ?? []);
+            yield from $results;
+            if (\count($results) < self::PAGE_SIZE) {
+                return;
+            }
+        }
     }
 
     /**

@@ -15,7 +15,7 @@ final class EtsyPayloadMapper
     /**
      * @param array<string, mixed> $receipt
      */
-    public function sale(array $receipt): ExternalSale
+    public function sale(array $receipt, ?Money $fee = null): ExternalSale
     {
         $id = Json::string($receipt['receipt_id'] ?? '');
         $lines = array_map(self::line(...), Json::objects($receipt['transactions'] ?? []));
@@ -29,6 +29,7 @@ final class EtsyPayloadMapper
             $listed->subtract(EtsyMoney::of($receipt['discount_amt'] ?? null)),
             EtsyMoney::of($receipt['total_shipping_cost'] ?? null),
             PaymentMethod::Card,
+            $fee,
         );
     }
 
