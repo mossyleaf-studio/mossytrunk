@@ -59,9 +59,7 @@ final readonly class MoveVariantHandler
         }
         $this->stock->move($source, $variant, $target, $targetVariant);
         foreach ($this->externalItems->linkedTo($source->id()) as $item) {
-            if ($item->isLinkedTo($source->id(), $variant)) {
-                $item->link($to);
-            }
+            $item->relink($source->id(), $variant, $to);
         }
 
         if (null !== $variant) {

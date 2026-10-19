@@ -49,7 +49,7 @@ final class EtsyCatalogueTest extends KernelTestCase
         self::assertSame([3, 1, 0, 2], [$report->itemsRead, $report->itemsLinked, $report->productsCreated, $report->itemsToLink]);
         $links = [];
         foreach (self::getContainer()->get(ListExternalItemsHandler::class)('etsy') as $item) {
-            $links[$item->externalRef.'|'.$item->variation] = $item->linkedTo['name'] ?? null;
+            $links[$item->externalRef.'|'.$item->variation] = $item->components[0]['name'] ?? null;
         }
         ksort($links);
         self::assertSame(['1500000001|' => 'Sticker Mousse', '1500000002|A4' => null, '1500000002|A5' => null], $links);

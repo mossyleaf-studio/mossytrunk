@@ -34,12 +34,12 @@ final class PagePreloadTest extends WebTestCase
         self::assertArrayHasKey('/api/orders', $this->preloadedOn($client, '/orders?event=not-an-event'));
     }
 
-    public function testTheOrdersPagePreloadsTheItemsOfEachConnectedService(): void
+    public function testTheSettingsPagePreloadsTheItemsOfEachConnectedService(): void
     {
         $client = self::signedInClient();
         $client->jsonRequest('POST', '/api/services', ['service' => 'sumup', 'fields' => ['merchant_code' => 'MCODE', 'api_key' => 'sup_sk_test']]);
 
-        self::assertArrayHasKey('/api/services/sumup/items', $this->preloadedOn($client, '/orders'));
+        self::assertArrayHasKey('/api/services/sumup/items', $this->preloadedOn($client, '/settings'));
     }
 
     public function testAMissingResourceIsLeftForThePageToFetch(): void

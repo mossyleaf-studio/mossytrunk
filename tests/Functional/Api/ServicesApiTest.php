@@ -115,4 +115,27 @@ final class ServicesApiTest extends WebTestCase
         $client->request('POST', '/api/services/sumup/catalogue');
         self::assertResponseStatusCodeSame(422);
     }
+
+    public function testAnItemIsLinkedToSeveralProducts(): void
+    {
+        $client = self::signedInClient();
+        $client->jsonRequest('POST', '/api/services', ['service' => 'sumup', 'fields' => ['merchant_code' => 'MCODE', 'api_key' => 'sup_sk_test'], 'unknownItems' => 'link_by_hand']);
+        $type = ProductTypesApi::create($client, 'Lot');
+        $client->jsonRequest('POST', '/api/products', ['name' => 'Bougie', 'sellingPrice' => 800, 'typeId' => $type]);
+        $candle = Json::string(Json::decode((string) $client->getResponse()->getContent()), 'id');
+        $path = tempnam(sys_get_temp_dir(), 'catalogue');
+        file_put_contents($path, "Item name,Variations,Price\r\nCoffret,,20.00\r\n");
+        $client->request('POST', '/api/services/sumup/catalogue', files: ['file' => new UploadedFile($path, 'catalogue.csv', 'text/csv', test: true)]);
+        $client->jsonRequest('GET', '/api/services/sumup/items');
+        $item = Json::string(Json::decode((string) $client->getResponse()->getContent()), 0, 'id');
+
+        $client->jsonRequest('PUT', "/api/services/sumup/items/$item", ['lines' => []]);
+        self::assertResponseStatusCodeSame(422);
+
+        $client->jsonRequest('PUT', "/api/services/sumup/items/$item", ['lines' => [['productId' => $candle, 'variant' => null, 'quantity' => 2]]]);
+        self::assertResponseStatusCodeSame(204);
+
+        $client->jsonRequest('GET', '/api/services/sumup/items');
+        self::assertSame([['productId' => $candle, 'name' => 'Bougie', 'variant' => null, 'quantity' => 2]], Json::array(Json::decode((string) $client->getResponse()->getContent()), 0, 'components'));
+    }
 }

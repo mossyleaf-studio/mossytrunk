@@ -22,7 +22,7 @@ Code: `src/Infrastructure/Connector/Etsy/` — `EtsyConnector` (`AuthorizingConn
 | Y2 | The access token (1 h) is renewed with the refresh token when it expires, and saved at once; disconnecting forgets both tokens and the shop, imported orders stay | `ConnectionSession`, `DisconnectServiceHandler` | `ImportEtsySalesTest` |
 | Y3 | A receipt already imported is skipped (see I3) | `ImportSalesHandler` | `ImportEtsySalesTest` |
 | Y4 | A receipt line is matched by the listing's link, else **SKU = product reference**, else **title = product display name**; a product with variants needs the variation to equal one of its variants (see I5) | `ExternalItemResolver` | `ImportEtsySalesTest`, `ImportPoliciesTest` |
-| Y5 | A receipt with an unmatched line waits; its listing is remembered « à associer » (see I6) | `ExternalItemResolver`, `LinkExternalItemHandler` | `ImportEtsySalesTest`, `etsy.spec.js` |
+| Y5 | A receipt with an unmatched line waits; its listing is remembered « à associer » (see I6). A bundle listing is linked to the products it holds, with their quantities (see I13) | `ExternalItemResolver`, `LinkExternalItemHandler` | `ImportEtsySalesTest`, `etsy.spec.js` |
 | Y6 | Items at the price paid on Etsy; the Etsy discount is kept as « Remise Etsy »; the **shipping charged** is part of the order total (so of the turnover); stock is taken like any sale | `Order::imported()`, `LinePrices::Listed` | `OrderTest`, `ImportEtsySalesTest` |
 
 ## Catalogue

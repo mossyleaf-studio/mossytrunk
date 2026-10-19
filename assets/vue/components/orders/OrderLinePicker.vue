@@ -10,6 +10,7 @@ import { formatCents } from '../../composables/useMoney.js';
 
 const props = defineProps({
     products: { type: Array, required: true },
+    preferredVariant: { type: String, default: null },
 });
 const emit = defineEmits(['add']);
 const { t } = useI18n();
@@ -25,7 +26,7 @@ const needsVariant = computed(() => (product.value?.variants.length ?? 0) > 0);
 const productOptions = computed(() => props.products.filter((p) => !p.archived).map((p) => ({ value: p.id, label: `${p.displayName} — ${formatCents(p.sellingPrice)}` })));
 
 watch(productId, () => {
-    variant.value = '';
+    variant.value = product.value?.activeVariants.find((option) => option.toLowerCase() === props.preferredVariant?.toLowerCase()) ?? '';
     error.value = null;
 });
 

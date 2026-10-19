@@ -4,11 +4,8 @@
     "page": {
         "title": "Commandes",
         "new": "Nouvelle commande",
-        "importFrom": "Importer depuis {service}",
-        "items": "Articles",
-        "serviceItems": "Articles {service}",
+        "sync": "Synchroniser",
         "placed": "Commande {reference} enregistrée.",
-        "itemLinked": "Article « {label} » associé.",
         "fillCosts": "Compléter les coûts d'achat",
         "costsFilled": "{count} ligne a reçu son coût d'achat. | {count} lignes ont reçu leur coût d'achat.",
         "noCostToFill": "Aucun coût d'achat connu pour ces produits : réceptionnez une commande fournisseur ou réapprovisionnez-les d'abord."

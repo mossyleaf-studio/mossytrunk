@@ -11,7 +11,7 @@ use Symfony\Component\Uid\Ulid;
 
 final readonly class DoctrineVariantRelabelling implements VariantRelabelling
 {
-    private const array TABLES = ['stock_item', 'order_line', 'supplier_order_line', 'stock_check_line', 'external_item'];
+    private const array TABLES = ['stock_item', 'order_line', 'supplier_order_line', 'stock_check_line', 'external_item_component'];
 
     public function __construct(private EntityManagerInterface $entityManager)
     {

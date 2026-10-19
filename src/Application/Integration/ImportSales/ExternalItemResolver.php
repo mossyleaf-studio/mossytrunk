@@ -10,6 +10,7 @@ use App\Domain\Integration\ExternalItem;
 use App\Domain\Integration\ExternalItemRepository;
 use App\Domain\Integration\ServiceConnection;
 use App\Domain\Integration\UnknownItems;
+use App\Domain\Order\OrderedItem;
 use App\Domain\Product\Exception\InvalidProduct;
 use App\Domain\Product\Product;
 use App\Domain\Product\SellableItem;
@@ -38,31 +39,39 @@ final class ExternalItemResolver
         }
     }
 
-    public function resolve(ExternalLine $line, ?\DateTimeImmutable $soldAt = null): ?SellableItem
+    /**
+     * @return list<OrderedItem>|null
+     */
+    public function resolve(ExternalLine $line, ?\DateTimeImmutable $soldAt = null): ?array
     {
         $this->soldAt = $soldAt;
         $name = trim($line->name);
         if ('' === $name) {
-            return SellableItem::unknown($this->unknownProduct, $line->unitPrice);
+            return [new OrderedItem(SellableItem::unknown($this->unknownProduct, $line->unitPrice), $line->quantity)];
         }
 
         $variant = OptionalText::of($line->variant);
         $remembered = $this->remembered[ExternalItem::keyOf($line->externalRef, $variant)] ?? null;
 
-        $item = null !== $remembered && $remembered->isLinked() ? $this->linked($remembered, $line) : null;
-        if (null === $item) {
-            $remembered?->unlink();
+        $linked = null !== $remembered && $remembered->isLinked() ? $this->linked($remembered, $line) : null;
+        if (null !== $remembered && null !== $linked) {
+            $remembered->seenAgain($name, $this->now);
+
+            return $linked;
         }
-        $item ??= $this->matched($name, $variant, $line);
+        $remembered?->unlink();
+
+        $item = $this->matched($name, $variant, $line);
         if (UnknownItems::CreateProduct === $this->connection->unknownItems()) {
             $item ??= $this->created($name, $variant, $line);
         }
         $seen = $this->remember($remembered, $name, $variant, $line);
-        if (null !== $item) {
-            $seen->link($item);
+        if (null === $item) {
+            return null;
         }
+        $seen->link($item);
 
-        return $item;
+        return [new OrderedItem($item, $line->quantity)];
     }
 
     public function itemsToLink(): int
@@ -70,12 +79,30 @@ final class ExternalItemResolver
         return \count(array_filter($this->remembered, static fn (ExternalItem $item): bool => !$item->isLinked()));
     }
 
-    private function linked(ExternalItem $remembered, ExternalLine $line): ?SellableItem
+    /**
+     * @return list<OrderedItem>|null
+     */
+    private function linked(ExternalItem $remembered, ExternalLine $line): ?array
     {
-        $productId = $remembered->productId();
-        $product = null === $productId ? null : $this->catalogue->withId($productId);
+        if ($remembered->isSingle()) {
+            $component = $remembered->components()[0];
+            $product = $this->catalogue->withId($component->productId());
+            $item = null === $product ? null : $this->sold($product, $component->variant(), $line);
 
-        return null === $product ? null : $this->sold($product, $remembered->variant(), $line);
+            return null === $item ? null : [new OrderedItem($item, $line->quantity)];
+        }
+
+        $items = [];
+        foreach ($remembered->components() as $component) {
+            $product = $this->catalogue->withId($component->productId());
+            $item = null === $product ? null : $this->listed($product, $component->variant(), $this->soldAt);
+            if (null === $item) {
+                return null;
+            }
+            $items[] = new OrderedItem($item, $component->quantity() * $line->quantity);
+        }
+
+        return $items;
     }
 
     private function matched(string $name, ?string $variant, ExternalLine $line): ?SellableItem
@@ -186,9 +213,8 @@ final class ExternalItemResolver
             $product->reprice($line->unitPrice);
         }
 
-        try {
-            $item = $product->sellableOn($this->channel, $variant, $created ? null : $this->soldAt);
-        } catch (InvalidProduct) {
+        $item = $this->listed($product, $variant, $created ? null : $this->soldAt);
+        if (null === $item) {
             return null;
         }
 
@@ -197,6 +223,15 @@ final class ExternalItemResolver
         }
 
         return $line->unitPrice->greaterThan($item->sellingPrice) ? $item->at($line->unitPrice) : $item;
+    }
+
+    private function listed(Product $product, ?string $variant, ?\DateTimeImmutable $soldAt): ?SellableItem
+    {
+        try {
+            return $product->sellableOn($this->channel, $variant, $soldAt);
+        } catch (InvalidProduct) {
+            return null;
+        }
     }
 
     private function remember(?ExternalItem $remembered, string $name, ?string $variant, ExternalLine $line): ExternalItem

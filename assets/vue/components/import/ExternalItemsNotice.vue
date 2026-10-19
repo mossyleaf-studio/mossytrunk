@@ -8,7 +8,6 @@ defineProps({
     label: { type: String, required: true },
     count: { type: Number, required: true },
 });
-const emit = defineEmits(['open']);
 const { t } = useI18n();
 </script>
 
@@ -19,7 +18,7 @@ const { t } = useI18n();
             <strong>{{ t('import.notice.count', { service: label }, count) }}</strong>
             {{ t('import.notice.text') }}
         </p>
-        <BaseButton variant="secondary" @click="emit('open')">{{ t('import.notice.link') }}</BaseButton>
+        <BaseButton variant="secondary" href="/settings">{{ t('import.notice.link') }}</BaseButton>
     </Callout>
 </template>
 

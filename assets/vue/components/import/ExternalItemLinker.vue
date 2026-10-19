@@ -16,9 +16,8 @@ const props = defineProps({
 const emit = defineEmits(['linked', 'reimport']);
 const { t } = useI18n();
 
-const unlinked = computed(() => props.items.filter((item) => !item.linkedTo));
-const linked = computed(() => props.items.filter((item) => item.linkedTo));
-const productOptions = computed(() => props.products.map((product) => ({ value: product.id, label: product.displayName })));
+const unlinked = computed(() => props.items.filter((item) => item.components.length === 0));
+const linked = computed(() => props.items.filter((item) => item.components.length > 0));
 </script>
 
 <template>
@@ -30,7 +29,7 @@ const productOptions = computed(() => props.products.map((product) => ({ value: 
 
         <section v-if="unlinked.length" :aria-label="t('import.linker.unlinked')">
             <ul class="item-linker__list">
-                <ExternalItemRow v-for="item in unlinked" :key="item.id" :item="item" :products="products" :product-options="productOptions" :submit="submit" @linked="emit('linked', $event)" />
+                <ExternalItemRow v-for="item in unlinked" :key="item.id" :item="item" :products="products" :submit="submit" @linked="emit('linked', $event)" />
             </ul>
         </section>
         <EmptyState v-else>{{ t('import.linker.allLinked', { service: label }) }}</EmptyState>
@@ -38,7 +37,7 @@ const productOptions = computed(() => props.products.map((product) => ({ value: 
         <details v-if="linked.length" class="item-linker__linked">
             <summary>{{ t('import.linker.linked', { count: linked.length }) }}</summary>
             <ul class="item-linker__list">
-                <ExternalItemRow v-for="item in linked" :key="item.id" :item="item" :products="products" :product-options="productOptions" :submit="submit" @linked="emit('linked', $event)" />
+                <ExternalItemRow v-for="item in linked" :key="item.id" :item="item" :products="products" :submit="submit" @linked="emit('linked', $event)" />
             </ul>
         </details>
 

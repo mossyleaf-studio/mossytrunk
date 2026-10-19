@@ -11,7 +11,7 @@ export function useImport(service) {
     const problem = ref(null);
     const items = ref([]);
 
-    const unlinked = computed(() => items.value.filter((item) => !item.linkedTo));
+    const unlinked = computed(() => items.value.filter((item) => item.components.length === 0));
 
     async function loadItems() {
         await api.load(`/api/services/${service.key}/items`, items);
@@ -34,7 +34,7 @@ export function useImport(service) {
         }
     }
 
-    const link = (itemId, productId, variant) => api.put(`/api/services/${service.key}/items/${itemId}`, { productId, variant: variant || null });
+    const link = (itemId, lines) => api.put(`/api/services/${service.key}/items/${itemId}`, { lines });
 
     return { service, importing, problem, items, unlinked, loadItems, run, link, dismiss: () => { problem.value = null; } };
 }

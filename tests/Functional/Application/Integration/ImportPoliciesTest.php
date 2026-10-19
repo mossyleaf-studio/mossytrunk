@@ -14,6 +14,7 @@ use App\Application\Integration\LinkExternalItem\LinkExternalItemHandler;
 use App\Application\Integration\ListExternalItems\ListExternalItemsHandler;
 use App\Application\Order\GetOrder\GetOrderHandler;
 use App\Application\Order\ListOrders\ListOrdersHandler;
+use App\Application\Order\RequestedLine;
 use App\Application\Product\ListProducts\ListProductsHandler;
 use App\Domain\Integration\SalesContext;
 use App\Domain\Integration\UnknownItems;
@@ -67,7 +68,7 @@ final class ImportPoliciesTest extends KernelTestCase
         self::assertSame([0, 0, 1, 1], [$first->ordersImported, $first->productsCreated, $first->ordersWaitingForItems, $first->itemsToLink]);
         $item = self::getContainer()->get(ListExternalItemsHandler::class)('sumup')[0];
         self::assertSame('Stk Mousse', $item->label);
-        self::getContainer()->get(LinkExternalItemHandler::class)('sumup', $item->id, $moss, null);
+        self::getContainer()->get(LinkExternalItemHandler::class)('sumup', $item->id, [new RequestedLine($moss, null, 1)]);
 
         $second = $this->import('sumup');
 

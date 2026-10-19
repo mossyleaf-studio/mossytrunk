@@ -8,7 +8,6 @@ use App\Application\Integration\AddedConnection;
 use App\Application\Integration\ConnectionSession;
 use App\Application\Integration\Connectors;
 use App\Application\Integration\ItemReference;
-use App\Domain\Integration\ExternalItem;
 use App\Domain\Integration\ExternalItemRepository;
 use App\Domain\Product\Product;
 use App\Domain\Product\ProductRepository;
@@ -32,14 +31,19 @@ final readonly class PublishReferencesHandler
         $description = $connector->describe();
         $connection = $this->addedConnections->of($connector);
 
-        $linked = array_values(array_filter($this->items->ofService($service), static fn (ExternalItem $item): bool => null !== $item->productId()));
-        $products = $this->products->findByIds(array_values(array_filter(array_map(static fn (ExternalItem $item): ?Ulid => $item->productId(), $linked))));
+        $singles = [];
+        foreach ($this->items->ofService($service) as $item) {
+            if ($item->isSingle()) {
+                $singles[] = [$item, $item->components()[0]];
+            }
+        }
+        $products = $this->products->findByIds(array_map(static fn (array $single): Ulid => $single[1]->productId(), $singles));
 
         $references = [];
-        foreach ($linked as $item) {
-            $product = $products[(string) $item->productId()] ?? null;
+        foreach ($singles as [$item, $component]) {
+            $product = $products[(string) $component->productId()] ?? null;
             if ($product instanceof Product) {
-                $references[] = new ItemReference($item->externalRef(), $item->variation(), Sku::of($product->reference(), $item->variant()));
+                $references[] = new ItemReference($item->externalRef(), $item->variation(), Sku::of($product->reference(), $component->variant()));
             }
         }
 

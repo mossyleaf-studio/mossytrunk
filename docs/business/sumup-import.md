@@ -4,7 +4,7 @@ SumUp is the card terminal used at events. Its sales go through the generic [imp
 
 Configuration: « Paramètres › Services connectés › Ajouter un service › SumUp »: merchant code and API key (SumUp dashboard → API keys, `sup_sk_…`, stored encrypted).
 Defaults: sales **at the day's market**, unknown items **create the product**, line prices **may be discounted**.
-Trigger: « Importer depuis SumUp » on `/orders` → `POST /api/services/sumup/import`.
+Trigger: « Synchroniser » on `/orders` or « Importer les ventes » in Paramètres › Services connectés → `POST /api/services/sumup/import`.
 
 Code: `src/Infrastructure/Connector/SumUp/` — `SumUpConnector`, `SumUpApiGateway` (real API), `SumUpPayloadMapper`, `FakeSumUpGateway` (test env, fixture `tests/Fixtures/sumup/transactions.json`), `ShowSumUpTransactionCommand` (`app:sumup:transaction <code> --workspace=…`).
 

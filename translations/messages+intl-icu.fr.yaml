@@ -1,6 +1,5 @@
 problem:
     business_rule: 'Règle métier non respectée'
-    product_required: 'Choisissez un produit.'
     unknown_periodicity: 'Périodicité inconnue.'
     check_fields: 'Vérifiez les champs du formulaire.'
     cross_origin:

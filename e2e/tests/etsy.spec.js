@@ -2,7 +2,7 @@ import { test, expect } from './support/test.js';
 import { choose } from './support/select.js';
 import { createProduct, forgetService } from './support/api.js';
 
-test('connect the Etsy shop, import its orders and link an unknown listing to a product', async ({ page, request }) => {
+test('connect the Etsy shop, import its orders and link an unknown listing to a bundle of products', async ({ page, request }) => {
     await createProduct(request, { name: 'Sticker Mousse', sellingPrice: 400 });
     const print = await createProduct(request, { name: 'Print Forêt Etsy', sellingPrice: 1_800, variants: ['A4', 'A3'] });
 
@@ -29,23 +29,30 @@ test('connect the Etsy shop, import its orders and link an unknown listing to a 
     await page.getByRole('alertdialog').getByRole('button', { name: 'Écrire les références' }).click();
     await expect(page.getByTestId('toast').last()).toContainText('Etsy :');
 
-    await page.goto('/orders');
-    await page.getByRole('button', { name: 'Importer depuis Etsy' }).click();
+    await services.getByRole('button', { name: 'Importer les ventes' }).click();
     await expect(page.getByTestId('toast').last()).toContainText('1 commande importée');
-    await page.getByRole('button', { name: 'Associer les articles' }).click();
+    await services.getByRole('button', { name: /articles? à associer/ }).click();
 
     const linker = page.getByRole('dialog', { name: 'Articles Etsy' });
-    const a4 = linker.getByRole('listitem').filter({ has: page.getByRole('combobox', { name: /^Produit pour Illustration forêt.* — A4$/ }) });
-    await choose(page, a4.getByRole('combobox', { name: /^Produit pour/ }), print.name);
-    await expect(a4.getByRole('combobox', { name: /^Variante pour/ })).toHaveText('A4');
+    const a4 = linker.getByRole('listitem').filter({ hasText: /^Illustration forêt/ }).filter({ has: page.getByText('A4', { exact: true }) });
     await a4.getByRole('button', { name: 'Associer', exact: true }).click();
+    await choose(page, a4.getByRole('combobox', { name: 'Produit' }), `${print.name} — 18,00 €`);
+    await expect(a4.getByRole('group', { name: 'Variante' }).getByRole('button', { name: 'A4' })).toHaveAttribute('data-state', 'on');
+    await a4.getByRole('button', { name: 'Ajouter', exact: true }).click();
+    await choose(page, a4.getByRole('combobox', { name: 'Produit' }), 'Sticker Mousse — 4,00 €');
+    await a4.getByLabel('Quantité', { exact: true }).fill('2');
+    await a4.getByRole('button', { name: 'Ajouter', exact: true }).click();
+    await a4.getByRole('button', { name: "Enregistrer l'association" }).click();
     await expect(page.getByTestId('toast').last()).toContainText('associé');
 
     await linker.getByRole('button', { name: "Relancer l'import Etsy" }).click();
     await expect(page.getByTestId('toast').last()).toContainText('1 commande importée, 1 déjà importée');
-    await expect(linker.getByRole('listitem')).toHaveCount(1);
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toHaveCount(0);
+
+    await page.goto('/orders');
+    await page.getByRole('button', { name: 'Synchroniser' }).click();
+    await expect(page.getByTestId('toast').last()).toContainText('0 commande importée, 2 déjà importées');
 
     await page.getByLabel('Rechercher une commande').fill('ETSY-3100000001');
     await page.getByRole('row').filter({ hasText: 'ETSY-3100000001' }).getByRole('link', { name: /^CMD-/ }).click();

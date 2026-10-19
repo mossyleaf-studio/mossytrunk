@@ -100,10 +100,11 @@ final class ImportSumUpCatalogueTest extends KernelTestCase
 
     private static function linkLabel(ExternalItemView $item): ?string
     {
-        if (null === $item->linkedTo) {
+        $linked = $item->components[0] ?? null;
+        if (null === $linked) {
             return null;
         }
 
-        return null === $item->linkedTo['variant'] ? $item->linkedTo['name'] : $item->linkedTo['name'].' — '.$item->linkedTo['variant'];
+        return null === $linked['variant'] ? $linked['name'] : $linked['name'].' — '.$linked['variant'];
     }
 }

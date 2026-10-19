@@ -17,23 +17,22 @@
     },
     "notice": {
         "count": "{count} article {service} à associer à vos produits. | {count} articles {service} à associer à vos produits.",
-        "text": "Les commandes qui en contiennent restent en attente : associez chaque article une fois, puis relancez l'import.",
+        "text": "Les commandes qui en contiennent restent en attente : associez chaque article une fois dans Paramètres, puis synchronisez.",
         "link": "Associer les articles"
     },
     "linker": {
-        "intro": "{service} ne connaît pas vos produits : indiquez ce que vend chaque article, une fois pour toutes. Astuce : quand le SKU de l'article est la référence du produit (ex. {example}), l'association est automatique.",
+        "intro": "{service} ne connaît pas vos produits : indiquez ce que vend chaque article, une fois pour toutes (plusieurs produits pour un lot). Astuce : quand le SKU de l'article est la référence du produit (ex. {example}), l'association est automatique.",
         "unlinked": "Articles à associer",
         "allLinked": "Tous les articles vus sur {service} sont associés.",
         "linked": "Articles déjà associés ({count})",
         "reimport": "Relancer l'import {service}"
     },
     "row": {
-        "chooseProduct": "Choisissez le produit vendu par cet article.",
-        "chooseVariant": "Choisissez la variante de « {product} ».",
-        "productPlaceholder": "Produit MossyTrunk…",
-        "productFor": "Produit pour {item}",
-        "variantPlaceholder": "Variante",
-        "variantFor": "Variante pour {item}",
+        "toLink": "À associer",
         "link": "Associer"
+    },
+    "form": {
+        "intro": "Ajoutez le ou les produits vendus par cet article, avec leur quantité. Un lot se vend aux prix de ses produits ; l'écart avec le prix payé devient une remise.",
+        "save": "Enregistrer l'association"
     }
 }

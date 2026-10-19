@@ -28,19 +28,25 @@ final readonly class ListExternalItemsHandler
         }
 
         $views = array_map(static function (ExternalItem $item) use ($products): ExternalItemView {
-            $product = null === $item->productId() ? null : ($products[(string) $item->productId()] ?? null);
+            $components = [];
+            foreach ($item->components() as $component) {
+                $product = $products[(string) $component->productId()] ?? null;
+                if ($product instanceof Product) {
+                    $components[] = ['productId' => (string) $product->id(), 'name' => $product->displayName(), 'variant' => $component->variant(), 'quantity' => $component->quantity()];
+                }
+            }
 
             return new ExternalItemView(
                 (string) $item->id(),
                 $item->externalRef(),
                 $item->label(),
                 $item->variation(),
-                $product instanceof Product ? ['productId' => (string) $product->id(), 'name' => $product->displayName(), 'variant' => $item->variant()] : null,
+                $components,
                 $item->seenAt()->format(\DateTimeInterface::ATOM),
             );
         }, $this->items->ofService($service));
 
-        usort($views, static fn (ExternalItemView $a, ExternalItemView $b): int => [null !== $a->linkedTo, $b->seenAt] <=> [null !== $b->linkedTo, $a->seenAt]);
+        usort($views, static fn (ExternalItemView $a, ExternalItemView $b): int => [[] !== $a->components, $b->seenAt] <=> [[] !== $b->components, $a->seenAt]);
 
         return $views;
     }

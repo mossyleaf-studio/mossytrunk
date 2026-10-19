@@ -1,20 +1,21 @@
 <script setup>
-import { Download, Pencil, Trash2 } from '@lucide/vue';
+import { Download, Link2, Pencil, RefreshCw, Trash2 } from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
 import BaseButton from '../ui/BaseButton.vue';
 import ConfirmButton from '../ui/ConfirmButton.vue';
 import CatalogueImportButton from './CatalogueImportButton.vue';
 import IconButton from '../ui/IconButton.vue';
 import StatusBadge from '../ui/StatusBadge.vue';
-import { SALES_CONTEXTS, UNKNOWN_ITEMS } from '../../composables/useServices.js';
+import { isReady, SALES_CONTEXTS, UNKNOWN_ITEMS } from '../../composables/useServices.js';
 
 const { t } = useI18n();
 
 defineProps({
     services: { type: Array, required: true },
     importing: { type: String, default: null },
+    importingSales: { type: String, default: null },
 });
-const emit = defineEmits(['edit', 'remove', 'disconnect', 'import-catalogue', 'read-catalogue', 'publish-references']);
+const emit = defineEmits(['edit', 'remove', 'disconnect', 'import-sales', 'open-items', 'import-catalogue', 'read-catalogue', 'publish-references']);
 
 const labelOf = (options, value) => {
     const label = options.find((option) => option.value === value)?.label;
@@ -50,10 +51,16 @@ function status(service) {
                     </div>
                 </dl>
                 <p v-if="service.connection.itemsToLink" class="connected-services__waiting">
-                    <a href="/orders">{{ t('settings.connected.itemsToLink', service.connection.itemsToLink) }}</a>
+                    <button type="button" @click="emit('open-items', service)">{{ t('settings.connected.itemsToLink', service.connection.itemsToLink) }}</button>
                 </p>
             </div>
             <div class="actions-row connected-services__actions">
+                <BaseButton v-if="isReady(service)" variant="secondary" :loading="importingSales === service.key" @click="emit('import-sales', service)">
+                    <RefreshCw size="1rem" aria-hidden="true" /> {{ t('settings.connected.importSales') }}
+                </BaseButton>
+                <BaseButton variant="secondary" @click="emit('open-items', service)">
+                    <Link2 size="1rem" aria-hidden="true" /> {{ t('settings.connected.items') }}
+                </BaseButton>
                 <CatalogueImportButton
                     v-if="service.importsCatalogue"
                     :label="t('settings.connected.importCatalogue')"
@@ -140,7 +147,7 @@ function status(service) {
 .connected-services__options dd { margin: 0; color: var(--color-text); }
 
 .connected-services__waiting { margin: 0; font-size: var(--font-size-md); }
-.connected-services__waiting a { color: var(--color-warning); }
+.connected-services__waiting button { padding: 0; border: none; background: none; color: var(--color-warning); font: inherit; text-decoration: underline; cursor: pointer; }
 
 
 @media (max-width: 40rem) {

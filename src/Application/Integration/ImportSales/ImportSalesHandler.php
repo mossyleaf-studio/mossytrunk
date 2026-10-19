@@ -18,7 +18,6 @@ use App\Application\Translator;
 use App\Domain\Event\EventRepository;
 use App\Domain\Integration\SalesContext;
 use App\Domain\Order\Order;
-use App\Domain\Order\OrderedItem;
 use App\Domain\Order\OrderRepository;
 use App\Domain\Reference\ReferenceKind;
 use App\Domain\Reference\ReferenceSubject;
@@ -80,12 +79,12 @@ final readonly class ImportSalesHandler
             $items = [];
             $resolved = true;
             foreach ($sale->lines as $line) {
-                $item = $resolver->resolve($line, $sale->placedAt);
-                if (null === $item) {
+                $ordered = $resolver->resolve($line, $sale->placedAt);
+                if (null === $ordered) {
                     $resolved = false;
                     continue;
                 }
-                $items[] = new OrderedItem($item, $line->quantity);
+                array_push($items, ...$ordered);
             }
 
             $day = BusinessTime::day($sale->placedAt);

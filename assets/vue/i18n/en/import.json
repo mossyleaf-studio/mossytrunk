@@ -17,23 +17,22 @@
     },
     "notice": {
         "count": "{count} {service} item to link to your products. | {count} {service} items to link to your products.",
-        "text": "Orders containing them stay on hold: link each item once, then run the import again.",
+        "text": "Orders holding them keep waiting: link each item once in Settings, then sync.",
         "link": "Link items"
     },
     "linker": {
-        "intro": "{service} does not know your products: tell what each item sells, once and for all. Tip: when the item's SKU is the product reference (e.g. {example}), it is linked automatically.",
+        "intro": "{service} does not know your products: say what each item sells, once and for all (several products for a bundle). Tip: when the item's SKU is the product reference (e.g. {example}), it links by itself.",
         "unlinked": "Items to link",
         "allLinked": "All items seen on {service} are linked.",
         "linked": "Items already linked ({count})",
         "reimport": "Run the {service} import again"
     },
     "row": {
-        "chooseProduct": "Choose the product this item sells.",
-        "chooseVariant": "Choose the variant of “{product}”.",
-        "productPlaceholder": "MossyTrunk product…",
-        "productFor": "Product for {item}",
-        "variantPlaceholder": "Variant",
-        "variantFor": "Variant for {item}",
+        "toLink": "To link",
         "link": "Link"
+    },
+    "form": {
+        "intro": "Add the product or products this item sells, with their quantity. A bundle sells at its products' prices; the gap with the price paid becomes a discount.",
+        "save": "Save link"
     }
 }

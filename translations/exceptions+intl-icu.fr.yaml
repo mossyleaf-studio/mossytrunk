@@ -67,6 +67,8 @@ integration:
     invalid_setting: 'Paramètre invalide « {name} ».'
     service_already_added: '{service} est déjà ajouté.'
     unknown_service: 'Service inconnu « {service} ».'
+    empty_item_link: 'Choisissez au moins un produit.'
+    non_positive_linked_quantity: 'La quantité de « {product} » doit être d''au moins 1.'
 order:
     discount_already_granted: '« {name} » est déjà appliquée à la commande {reference}.'
     negative_postage: 'L''affranchissement ne peut pas être négatif.'

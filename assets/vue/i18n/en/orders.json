@@ -4,11 +4,8 @@
     "page": {
         "title": "Orders",
         "new": "New order",
-        "importFrom": "Import from {service}",
-        "items": "Items",
-        "serviceItems": "{service} items",
+        "sync": "Sync",
         "placed": "Order {reference} saved.",
-        "itemLinked": "Item “{label}” linked.",
         "fillCosts": "Fill in buying costs",
         "costsFilled": "{count} line got its buying cost. | {count} lines got their buying cost.",
         "noCostToFill": "No buying cost known for these products: receive a supplier order or restock them first."

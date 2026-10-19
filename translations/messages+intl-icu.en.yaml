@@ -1,6 +1,5 @@
 problem:
     business_rule: 'Business rule not respected'
-    product_required: 'Choose a product.'
     unknown_periodicity: 'Unknown frequency.'
     check_fields: 'Check the form fields.'
     cross_origin:

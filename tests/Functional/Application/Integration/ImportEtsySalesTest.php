@@ -17,6 +17,7 @@ use App\Application\Integration\ListServices\ListServicesHandler;
 use App\Application\Integration\ListServices\ServiceView;
 use App\Application\Order\GetOrder\GetOrderHandler;
 use App\Application\Order\ListOrders\ListOrdersHandler;
+use App\Application\Order\RequestedLine;
 use App\Application\Product\CreateProductType\CreateProductTypeHandler;
 use App\Application\Stock\GetProductStock\GetProductStockHandler;
 use App\Domain\Integration\ServiceConnectionRepository;
@@ -71,8 +72,8 @@ final class ImportEtsySalesTest extends KernelTestCase
         self::assertSame([1, 0, 1, 1], [$first->ordersImported, $first->ordersAlreadyImported, $first->ordersWaitingForItems, $first->itemsToLink]);
 
         $item = self::getContainer()->get(ListExternalItemsHandler::class)('etsy')[0];
-        self::assertSame(['A4', null], [$item->variation, $item->linkedTo]);
-        self::getContainer()->get(LinkExternalItemHandler::class)('etsy', $item->id, $this->print, 'A4');
+        self::assertSame(['A4', []], [$item->variation, $item->components]);
+        self::getContainer()->get(LinkExternalItemHandler::class)('etsy', $item->id, [new RequestedLine($this->print, 'A4', 1)]);
 
         $second = $this->import();
         self::assertSame([1, 1, 0, 0], [$second->ordersImported, $second->ordersAlreadyImported, $second->ordersWaitingForItems, $second->itemsToLink]);
@@ -100,7 +101,28 @@ final class ImportEtsySalesTest extends KernelTestCase
 
         $this->expectException(\App\Domain\Shared\Exception\NotFound::class);
 
-        self::getContainer()->get(LinkExternalItemHandler::class)('sumup', $item->id, $this->print, 'A4');
+        self::getContainer()->get(LinkExternalItemHandler::class)('sumup', $item->id, [new RequestedLine($this->print, 'A4', 1)]);
+    }
+
+    public function testAListingLinkedToSeveralProductsSellsThemAtTheirPricesAndTheGapBecomesTheEtsyDiscount(): void
+    {
+        $this->authorize();
+        $this->import();
+        $item = self::getContainer()->get(ListExternalItemsHandler::class)('etsy')[0];
+
+        self::getContainer()->get(LinkExternalItemHandler::class)('etsy', $item->id, [new RequestedLine($this->print, 'A4', 1), new RequestedLine($this->sticker, null, 2)]);
+        $linked = array_find(self::getContainer()->get(ListExternalItemsHandler::class)('etsy'), static fn ($seen): bool => $seen->id === $item->id);
+        self::assertSame([['Print Forêt', 'A4', 1], ['Sticker Mousse', null, 2]], array_map(static fn (array $component): array => [$component['name'], $component['variant'], $component['quantity']], $linked->components ?? []));
+
+        $report = $this->import();
+        self::assertSame([1, 0], [$report->ordersImported, $report->ordersWaitingForItems]);
+        self::getContainer()->get('doctrine')->getManager()->clear();
+
+        $receipt = array_values(array_filter(self::getContainer()->get(ListOrdersHandler::class)(), static fn ($order): bool => ['ETSY-3100000001'] === $order->externalReferences))[0];
+        $order = self::getContainer()->get(GetOrderHandler::class)($receipt->id);
+        self::assertSame([3_400, 900, 250, 2_750], [$order->subtotal, $order->discountTotal, $order->shipping, $order->total]);
+        self::assertSame(-5, self::getContainer()->get(GetProductStockHandler::class)($this->sticker)[0]->onHand);
+        self::assertSame([['A4', -1]], array_values(array_map(static fn ($stock): array => [$stock->variant, $stock->onHand], array_filter(self::getContainer()->get(GetProductStockHandler::class)($this->print), static fn ($stock): bool => 0 !== $stock->onHand))));
     }
 
     public function testAnExpiredTokenIsRenewed(): void
