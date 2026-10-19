@@ -56,6 +56,13 @@ interface OrderRepository
      */
     public function awaitingSaleFees(string $source): array;
 
+    /**
+     * @param list<string> $externalIds
+     *
+     * @return list<Order>
+     */
+    public function importedAsOneOf(string $source, array $externalIds): array;
+
     public function countOutside(Ulid $eventId, DateRange $period): int;
 
     public function countWithoutEventOn(Ulid $channelId): int;

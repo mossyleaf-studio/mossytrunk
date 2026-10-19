@@ -25,7 +25,7 @@ final readonly class DoctrineOrderSummaries implements OrderSummaries
     {
         $rows = $this->connection->fetchAllAssociative(
             <<<'SQL'
-                SELECT o.id, o.reference, o.placed_at, o.refunded_at, o.source, o.payment_method, o.note,
+                SELECT o.id, o.reference, o.placed_at, o.refunded_at, o.cancelled, o.source, o.payment_method, o.note,
                     o.event_id, e.name AS event_name, o.channel_id, c.name AS channel_name,
                     o.subtotal_cents, o.discount_total_cents, o.total_cents,
                     o.total_cents - o.cost_of_goods_cents - o.supplies_cost_cents - o.channel_costs_cents AS profit,
@@ -80,6 +80,7 @@ final readonly class DoctrineOrderSummaries implements OrderSummaries
             SqlValue::int($row['profit']),
             SqlValue::int($row['unknown_costs']),
             SqlValue::nullableString($row['note']),
+            SqlValue::bool($row['cancelled']),
         );
     }
 

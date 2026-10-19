@@ -137,7 +137,7 @@ onMounted(() => Promise.all([load(), loadProducts(), loadChannels(), loadDiscoun
 
         <div v-if="order" class="order-detail-page">
             <p class="order-detail-page__meta">
-                <StatusBadge v-if="order.refundedAt" tone="warning">{{ t('orders.detail.refundedOn', { date: formatDate(order.refundedAt) }) }}</StatusBadge>
+                <StatusBadge v-if="order.refundedAt" tone="warning">{{ t(order.cancelled ? 'orders.detail.cancelledOn' : 'orders.detail.refundedOn', { date: formatDate(order.refundedAt) }) }}</StatusBadge>
                 {{ formatDateTime(order.placedAt) }} ·
                 <a v-if="order.event" :href="`/events/${order.event.id}`">{{ order.event.name }}</a>
                 <template v-else-if="order.source !== 'manual'">{{ t('orders.shop', { source: order.sourceLabel }) }}</template>

@@ -27,7 +27,8 @@
         "refundMessage": "The customer gave the items back: they return to stock today and the order no longer counts in turnover. It stays in the history.",
         "refunded": "Order refunded.",
         "refundedOn": "Refunded on {date}",
-        "channel": "{channel} channel"
+        "channel": "{channel} channel",
+        "cancelledOn": "Cancelled on {date}"
     },
     "eventFilter": {
         "label": "Event",
@@ -87,7 +88,8 @@
         "profit": "Real profit",
         "profitHint": "Total cashed − buying cost − supplies − channel costs.",
         "unknownCost": "Unknown buying cost for {count} line | Unknown buying cost for {count} lines",
-        "selectDay": "Select the orders of {day} · {place}"
+        "selectDay": "Select the orders of {day} · {place}",
+        "cancelled": "Cancelled"
     },
     "margin": {
         "collected": "Collected",

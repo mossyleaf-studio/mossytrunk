@@ -26,11 +26,11 @@ final class ExternalSales
     /**
      * @param list<ExternalLine> $lines
      */
-    public static function etsy(string $receiptId, \DateTimeImmutable $placedAt, array $lines, int $discount = 0, int $shipping = 0): ExternalSale
+    public static function etsy(string $receiptId, \DateTimeImmutable $placedAt, array $lines, int $discount = 0, int $shipping = 0, ?\DateTimeImmutable $cancelledAt = null): ExternalSale
     {
         $listed = Money::sum(array_map(static fn (ExternalLine $line): Money => $line->unitPrice->multiply($line->quantity), $lines));
 
-        return new ExternalSale($receiptId, 'ETSY-'.$receiptId, $placedAt, $lines, $listed->subtract(Money::cents($discount)), Money::cents($shipping), PaymentMethod::Card);
+        return new ExternalSale($receiptId, 'ETSY-'.$receiptId, $placedAt, $lines, $listed->subtract(Money::cents($discount)), Money::cents($shipping), PaymentMethod::Card, cancelledAt: $cancelledAt);
     }
 
     public static function line(string $name, Money $unitPrice, int $quantity = 1, ?string $category = null, ?string $variant = null): ExternalLine

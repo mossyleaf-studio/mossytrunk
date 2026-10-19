@@ -40,6 +40,7 @@ final readonly class ImportSalesHandler
         private Translator $translator,
         private OrderChannel $orderChannel,
         private SaleFees $saleFees,
+        private SaleCancellations $cancellations,
     ) {
     }
 
@@ -56,6 +57,7 @@ final readonly class ImportSalesHandler
         uasort($sales, static fn (ExternalSale $a, ExternalSale $b): int => $a->placedAt <=> $b->placedAt);
         $alreadyImported = array_flip($this->orders->importedExternalIds($service, array_map(strval(...), array_keys($sales))));
         $feesUpdated = $this->saleFees->settleImported($service, $sales);
+        $cancelled = $this->cancellations->cancelImported($service, $sales);
 
         $catalogue = $this->resolution->catalogue();
         $resolver = $this->resolution->resolver($catalogue, $connection, $description->linePrices);
@@ -130,6 +132,9 @@ final readonly class ImportSalesHandler
             }
             $this->charges->charge($order);
             $this->orders->add($order);
+            if (null !== $sale->cancelledAt) {
+                $this->cancellations->cancel($order, $sale->cancelledAt);
+            }
             ++$imported;
         }
 
@@ -151,6 +156,7 @@ final readonly class ImportSalesHandler
             $resolver->itemsToLink(),
             $empty,
             $feesUpdated,
+            $cancelled,
         );
     }
 }

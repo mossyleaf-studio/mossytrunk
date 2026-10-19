@@ -53,6 +53,9 @@ function summary(report) {
     if (report.feesUpdated > 0) {
         parts.push(t('import.summary.feesUpdated', report.feesUpdated));
     }
+    if (report.ordersCancelled > 0) {
+        parts.push(t('import.summary.ordersCancelled', report.ordersCancelled));
+    }
     if (report.ordersWaitingForItems > 0) {
         parts.push(t('import.summary.ordersWaitingForItems', report.ordersWaitingForItems));
     }

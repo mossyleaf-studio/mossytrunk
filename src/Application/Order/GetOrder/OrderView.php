@@ -48,6 +48,7 @@ final readonly class OrderView
         public int $postage,
         public int $channelCosts,
         public ?string $note,
+        public bool $cancelled,
     ) {
     }
 
@@ -94,6 +95,7 @@ final readonly class OrderView
             $order->postage()->amount(),
             $order->channelCosts()->amount(),
             $order->note(),
+            $order->isCancelled(),
         );
     }
 }

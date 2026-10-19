@@ -22,6 +22,7 @@ final readonly class ImportReport
         public int $itemsToLink,
         public int $salesWithoutItems,
         public int $feesUpdated = 0,
+        public int $ordersCancelled = 0,
     ) {
     }
 }

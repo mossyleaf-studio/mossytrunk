@@ -6,7 +6,8 @@
         "typesCreated": "{count} type created | {count} types created",
         "feesUpdated": "actual fees of {count} order updated | actual fees of {count} orders updated",
         "ordersWaitingForItems": "{count} order waiting to be linked | {count} orders waiting to be linked",
-        "done": "{service} import finished: {parts}."
+        "done": "{service} import finished: {parts}.",
+        "ordersCancelled": "{count} order cancelled | {count} orders cancelled"
     },
     "problem": {
         "ordersWithoutEvent": "{count} order not imported: no event covers its date. Create the event, then run the import again. | {count} orders not imported: no event covers their date. Create the event, then run the import again.",

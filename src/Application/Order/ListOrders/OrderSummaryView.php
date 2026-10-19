@@ -34,6 +34,7 @@ final readonly class OrderSummaryView
         public int $profit,
         public int $unknownCosts,
         public ?string $note,
+        public bool $cancelled = false,
     ) {
     }
 
@@ -60,6 +61,7 @@ final readonly class OrderSummaryView
             $order->profit()->amount(),
             $order->unknownCostLines(),
             $order->note(),
+            $order->isCancelled(),
         );
     }
 }

@@ -30,7 +30,20 @@ final class EtsyPayloadMapper
             EtsyMoney::of($receipt['total_shipping_cost'] ?? null),
             PaymentMethod::Card,
             $fee,
+            self::cancelledAt($receipt),
         );
+    }
+
+    /**
+     * @param array<string, mixed> $receipt
+     */
+    private static function cancelledAt(array $receipt): ?\DateTimeImmutable
+    {
+        if ('canceled' !== strtolower(trim(Json::string($receipt['status'] ?? '')))) {
+            return null;
+        }
+
+        return new \DateTimeImmutable('@'.Json::string($receipt['update_timestamp'] ?? $receipt['updated_timestamp'] ?? $receipt['create_timestamp'] ?? '0'));
     }
 
     /**

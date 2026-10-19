@@ -10,6 +10,7 @@ use App\Application\Integration\ConfigureConnection\AddConnectionHandler;
 use App\Application\Integration\ConnectionSession;
 use App\Application\Integration\DisconnectService\DisconnectServiceHandler;
 use App\Application\Integration\Exception\ServiceNotConnected;
+use App\Application\Integration\ExternalSale;
 use App\Application\Integration\ImportSales\ImportSalesHandler;
 use App\Application\Integration\LinkExternalItem\LinkExternalItemHandler;
 use App\Application\Integration\ListExternalItems\ListExternalItemsHandler;
@@ -21,6 +22,7 @@ use App\Application\Order\RequestedLine;
 use App\Application\Product\CreateProductType\CreateProductTypeHandler;
 use App\Application\Stock\GetProductStock\GetProductStockHandler;
 use App\Domain\Integration\ServiceConnectionRepository;
+use App\Infrastructure\Connector\Etsy\FakeEtsyGateway;
 use App\Tests\Support\ActsAsUser;
 use App\Tests\Support\CreatesProducts;
 use App\Tests\Support\ExternalSales;
@@ -126,6 +128,30 @@ final class ImportEtsySalesTest extends KernelTestCase
         self::assertSame([3_400, 900, 250, 2_750], [$order->subtotal, $order->discountTotal, $order->shipping, $order->total]);
         self::assertSame(-5, self::getContainer()->get(GetProductStockHandler::class)($this->sticker)[0]->onHand);
         self::assertSame([['A4', -1]], array_values(array_map(static fn ($stock): array => [$stock->variant, $stock->onHand], array_filter(self::getContainer()->get(GetProductStockHandler::class)($this->print), static fn ($stock): bool => 0 !== $stock->onHand))));
+    }
+
+    public function testACancelledReceiptIsImportedCancelledAndOneCancelledLaterIsCancelledOnTheNextImport(): void
+    {
+        $this->authorize();
+        $receipt = static fn (string $id, ?string $cancelledAt = null): ExternalSale => ExternalSales::etsy($id, new \DateTimeImmutable('2030-01-01T10:00:00Z'), [ExternalSales::listing('1500000001', 'Sticker Mousse', 400)], cancelledAt: null === $cancelledAt ? null : new \DateTimeImmutable($cancelledAt));
+        $gateway = self::getContainer()->get(FakeEtsyGateway::class);
+        $cancelled = static fn (): array => array_map(
+            static fn ($order): array => [$order->externalReferences[0], $order->cancelled, null !== $order->refundedAt],
+            array_values(array_filter(self::getContainer()->get(ListOrdersHandler::class)(), static fn ($order): bool => 'etsy' === $order->source)),
+        );
+        $onHand = fn (): int => self::getContainer()->get(GetProductStockHandler::class)($this->sticker)[0]->onHand;
+
+        $gateway->willReturn([$receipt('C1', '2030-01-02T10:00:00Z'), $receipt('C2')]);
+        $first = $this->import();
+        self::assertSame([2, 0], [$first->ordersImported, $first->ordersCancelled]);
+        self::assertEqualsCanonicalizing([['ETSY-C1', true, true], ['ETSY-C2', false, false]], $cancelled());
+        self::assertSame(-1, $onHand());
+
+        $gateway->willReturn([$receipt('C1', '2030-01-02T10:00:00Z'), $receipt('C2', '2030-01-03T10:00:00Z')]);
+        self::assertSame(1, $this->import()->ordersCancelled);
+        self::assertEqualsCanonicalizing([['ETSY-C1', true, true], ['ETSY-C2', true, true]], $cancelled());
+        self::assertSame(0, $onHand());
+        self::assertSame(0, $this->import()->ordersCancelled);
     }
 
     public function testAnExpiredTokenIsRenewed(): void

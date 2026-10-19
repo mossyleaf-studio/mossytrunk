@@ -21,6 +21,7 @@ final readonly class ExternalSale
         public Money $shipping,
         public ?PaymentMethod $paymentMethod = null,
         public ?Money $fee = null,
+        public ?\DateTimeImmutable $cancelledAt = null,
     ) {
     }
 }

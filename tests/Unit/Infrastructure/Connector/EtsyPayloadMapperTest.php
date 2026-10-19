@@ -33,7 +33,15 @@ final class EtsyPayloadMapperTest extends TestCase
         self::assertSame([4_850, 490], [$sale->charged->amount(), $sale->shipping->amount()]);
         self::assertSame(PaymentMethod::Card, $sale->paymentMethod);
         self::assertSame(351, $sale->fee?->amount());
+        self::assertNull($sale->cancelledAt);
         $line = $sale->lines[0];
         self::assertSame(['7', 'T-shirt Lichen', 'TSH-LICHEN', 'M / Vert', 2, 2_500], [$line->externalRef, $line->name, $line->sku, $line->variant, $line->quantity, $line->unitPrice->amount()]);
+    }
+
+    public function testACanceledReceiptIsCancelledWhenEtsyLastUpdatedIt(): void
+    {
+        $sale = (new EtsyPayloadMapper())->sale(['receipt_id' => 42, 'status' => 'Canceled', 'create_timestamp' => 1_893_456_000, 'update_timestamp' => 1_893_542_400, 'transactions' => []]);
+
+        self::assertSame('2030-01-02T00:00:00+00:00', $sale->cancelledAt?->format(\DATE_ATOM));
     }
 }

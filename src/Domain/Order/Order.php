@@ -103,6 +103,9 @@ class Order implements Referenced
     #[ORM\Column(type: Types::DATETIMETZ_IMMUTABLE, nullable: true)]
     private ?\DateTimeImmutable $refundedAt = null;
 
+    #[ORM\Column(options: ['default' => false])]
+    private bool $cancelled = false;
+
     #[ORM\Column(type: Types::DATETIMETZ_IMMUTABLE, nullable: true)]
     private ?\DateTimeImmutable $checkedAt = null;
 
@@ -335,6 +338,17 @@ class Order implements Referenced
         }
 
         $this->refundedAt = $refundedAt;
+    }
+
+    public function cancel(\DateTimeImmutable $cancelledAt): void
+    {
+        $this->refund($cancelledAt);
+        $this->cancelled = true;
+    }
+
+    public function isCancelled(): bool
+    {
+        return $this->cancelled;
     }
 
     public function isRefunded(): bool

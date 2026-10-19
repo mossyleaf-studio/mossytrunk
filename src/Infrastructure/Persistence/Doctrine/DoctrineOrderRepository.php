@@ -147,6 +147,19 @@ final readonly class DoctrineOrderRepository implements OrderRepository
             ->getResult();
     }
 
+    public function importedAsOneOf(string $source, array $externalIds): array
+    {
+        if ([] === $externalIds) {
+            return [];
+        }
+
+        return $this->loaded($this->orders(null)
+            ->andWhere('o.id IN (SELECT IDENTITY(s.order) FROM '.ImportedSale::class.' s WHERE s.source = :source AND s.externalId IN (:ids))')
+            ->setParameter('source', $source)
+            ->setParameter('ids', $externalIds, ArrayParameterType::STRING)
+            ->getQuery(), 'lines', 'importedSales');
+    }
+
     public function countWithoutEventOn(Ulid $channelId): int
     {
         return (int) $this->scope->restrict($this->entityManager->createQueryBuilder()->select('COUNT(o.id)')->from(Order::class, 'o'), 'o')

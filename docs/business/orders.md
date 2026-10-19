@@ -14,6 +14,7 @@ An **order** is a sale made during an event, a manual order entered on a channel
 | `source` | `manual` or the key of the service it was imported from (`sumup`, `etsy`) |
 | `externalId` | The sale's id at the service; unique per source within the workspace |
 | `refundedAt` | Date-time of the refund, null while the order is not refunded |
+| `cancelled` | The refund is a cancellation on the service the order was imported from (imports.md I14): shown « Annulée » instead of « Remboursée » |
 | `note` | Optional comment typed on the order (who a gift was for…), up to 1000 characters |
 
 Model: `src/Domain/Order/Order.php`, `OrderLine.php`, `OrderedItem.php`.

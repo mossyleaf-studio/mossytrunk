@@ -141,7 +141,7 @@ const withDayHeaders = (rows) => rows.map((order, index) => ({
                     </td>
                     <td class="order-list__payment"><PaymentMethod :method="order.paymentMethod" /></td>
                     <td class="order-list__source">
-                        <StatusBadge v-if="order.refundedAt" tone="warning">{{ t('orders.list.refunded') }}</StatusBadge>
+                        <StatusBadge v-if="order.refundedAt" tone="warning">{{ order.cancelled ? t('orders.list.cancelled') : t('orders.list.refunded') }}</StatusBadge>
                         <StatusBadge v-if="order.source !== 'manual'" tone="outline">{{ order.sourceLabel }}</StatusBadge>
                         <span v-if="order.externalReferences.length" class="order-list__external">{{ order.externalReferences.join(', ') }}</span>
                         <span v-if="order.note" class="order-list__note" :title="order.note">{{ order.note }}</span>

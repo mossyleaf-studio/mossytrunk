@@ -329,6 +329,17 @@ final class OrderTest extends TestCase
         DomainExceptions::assertThrown(new RefundedOrderLocked($order->reference()), static fn () => $order->lineToIdentify($line->id()));
     }
 
+    public function testACancelledOrderLeavesTheTurnoverLikeARefundButStaysKnownAsCancelled(): void
+    {
+        $order = $this->imported('TX1', 1, 400);
+
+        $order->cancel(self::at('2026-07-20 10:00'));
+
+        self::assertSame([true, true], [$order->isRefunded(), $order->isCancelled()]);
+        self::assertEquals(self::at('2026-07-20 10:00'), $order->refundedAt());
+        self::assertFalse($this->imported('TX2', 1, 400)->isCancelled());
+    }
+
     /**
      * @param list<AppliedDiscount> $rules
      */
