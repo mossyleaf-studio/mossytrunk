@@ -213,3 +213,21 @@ test('delete several orders from the list', async ({ page, request }) => {
     await expect(page.getByRole('row').filter({ hasText: kept.reference })).toBeVisible();
     await expect(page.getByRole('region', { name: 'Sélection' })).toHaveCount(0);
 });
+
+test('filter orders by sales channel', async ({ page, request }) => {
+    const sticker = await createProduct(request, { name: unique('Sticker') });
+    const channel = async (name) => ({ name, ...(await (await request.post('/api/sales-channels', { data: { name, kind: 'direct' } })).json()) });
+    const gifts = await channel(unique('Cadeaux'));
+    const shows = await channel(unique('Dépôt'));
+    const place = async (channel) => (await (await request.post('/api/orders', {
+        data: { placedAt: '2099-12-31T10:00', channelId: channel.id, lines: [{ productId: sticker.id, variant: null, quantity: 1 }] },
+    })).json());
+    const gift = await place(gifts);
+    const deposit = await place(shows);
+
+    await page.goto('/orders');
+    await choose(page, page.getByRole('combobox', { name: 'Canal de vente' }), gifts.name);
+    await expect(page.getByRole('row').filter({ hasText: gift.reference })).toBeVisible();
+    await expect(page.getByRole('row').filter({ hasText: deposit.reference })).toHaveCount(0);
+    await expect(page).toHaveURL(new RegExp(`channel=${gifts.id}`));
+});

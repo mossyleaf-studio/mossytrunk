@@ -27,7 +27,7 @@ import { useToast } from '../composables/useToast.js';
 
 const { orders, eventFilter, load, place, removeSelected, addSupplies, recomputeCharges, fillMissingCosts, missingCosts } = useOrders();
 const { channels, load: loadChannels } = useSalesChannels();
-const { search, unassigned, unassignedCount, visible, filtering } = useOrderSearch(orders);
+const { search, unassigned, channel, unassignedCount, visible, filtering } = useOrderSearch(orders);
 const { articles: products, load: loadProducts } = useProducts();
 const { events, load: loadEvents } = useEvents();
 const { rules: discountRules, load: loadDiscountRules } = useDiscountRules();
@@ -101,7 +101,7 @@ watch(eventFilter, () => {
     checkedIds.value = [];
     load();
 });
-watch([search, unassigned], () => {
+watch([search, unassigned, channel], () => {
     checkedIds.value = [];
 });
 onMounted(async () => {
@@ -136,7 +136,7 @@ onMounted(async () => {
             <template #actions>
                 <EventFilter v-model="eventFilter" :events="events" />
             </template>
-            <OrderFilters v-model:search="search" v-model:unassigned="unassigned" :unassigned-count="unassignedCount" />
+            <OrderFilters v-model:search="search" v-model:unassigned="unassigned" v-model:channel="channel" :unassigned-count="unassignedCount" :channels="channels" />
             <OrderList v-model:checked-ids="checkedIds" :orders="visible" :filtered="filtering" :highlight-id="lastPlacedId" />
         </BaseCard>
         <SelectionBar :count="checkedIds.length" :summary="t('orders.selection.count', checkedIds.length)" @clear="checkedIds = []">

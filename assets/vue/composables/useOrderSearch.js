@@ -19,6 +19,7 @@ function searchableText(order) {
 export function useOrderSearch(orders) {
     const search = queryText('search');
     const unassigned = queryFlag('unassigned', 'yes');
+    const channel = queryText('channel');
 
     const unassignedCount = computed(() => orders.value.filter((order) => order.unidentifiedLines > 0).length);
 
@@ -26,10 +27,11 @@ export function useOrderSearch(orders) {
     const visible = computed(() => {
         const terms = normalize(search.value).split(/\s+/).filter(Boolean);
         return orders.value.filter((order) => (!unassigned.value || order.unidentifiedLines > 0)
+            && (!channel.value || order.channelId === channel.value)
             && terms.every((term) => texts.value.get(order.id).includes(term)));
     });
 
-    const filtering = computed(() => search.value !== '' || unassigned.value);
+    const filtering = computed(() => search.value !== '' || unassigned.value || channel.value !== '');
 
-    return { search, unassigned, unassignedCount, visible, filtering };
+    return { search, unassigned, channel, unassignedCount, visible, filtering };
 }

@@ -142,7 +142,9 @@
     "filters": {
         "searchLabel": "Rechercher une commande",
         "searchPlaceholder": "N° de commande, date, heure…",
-        "unassigned": "{count} commande avec un article sans produit | {count} commandes avec des articles sans produit"
+        "unassigned": "{count} commande avec un article sans produit | {count} commandes avec des articles sans produit",
+        "allChannels": "Tous les canaux",
+        "channel": "Canal de vente"
     },
     "supplies": {
         "title": "Fournitures",

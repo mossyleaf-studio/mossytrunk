@@ -142,7 +142,9 @@
     "filters": {
         "searchLabel": "Search orders",
         "searchPlaceholder": "Order number, date, time…",
-        "unassigned": "{count} order with an item without product | {count} orders with items without product"
+        "unassigned": "{count} order with an item without product | {count} orders with items without product",
+        "allChannels": "All channels",
+        "channel": "Sales channel"
     },
     "supplies": {
         "title": "Supplies",
