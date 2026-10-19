@@ -17,6 +17,9 @@ final class EtsyFees
     /** @var array<string, true> */
     private array $paid = [];
 
+    /** @var array<string, list<array<string, mixed>>> */
+    private array $entries = [];
+
     /**
      * @param list<array<string, mixed>> $receipts
      * @param list<array<string, mixed>> $entries
@@ -38,6 +41,7 @@ final class EtsyFees
             if (null === $receiptId) {
                 continue;
             }
+            $this->entries[$receiptId][] = $entry;
             if ('payment' === strtolower(Json::string($entry['reference_type'] ?? ''))) {
                 $this->paid[$receiptId] = true;
             }
@@ -54,6 +58,14 @@ final class EtsyFees
         }
 
         return Money::cents(max(0, $this->cents[$receiptId] ?? 0));
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function entriesOf(string $receiptId): array
+    {
+        return $this->entries[$receiptId] ?? [];
     }
 
     /**

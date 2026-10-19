@@ -82,6 +82,22 @@ final readonly class EtsyApiGateway implements EtsyGateway
         return $this->pages($app, $accessToken, \sprintf('/v3/application/shops/%s/listings', rawurlencode($shopId)), ['state' => 'active', 'includes' => 'Inventory']);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    public function receipt(EtsyApp $app, string $accessToken, string $shopId, string $receiptId): array
+    {
+        return $this->get($app, $accessToken, \sprintf('/v3/application/shops/%s/receipts/%s', rawurlencode($shopId), rawurlencode($receiptId)));
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function receiptPayments(EtsyApp $app, string $accessToken, string $shopId, string $receiptId): array
+    {
+        return Json::objects($this->get($app, $accessToken, \sprintf('/v3/application/shops/%s/receipts/%s/payments', rawurlencode($shopId), rawurlencode($receiptId)))['results'] ?? []);
+    }
+
     public function inventory(EtsyApp $app, string $accessToken, string $listingId): array
     {
         return $this->get($app, $accessToken, \sprintf('/v3/application/listings/%s/inventory', rawurlencode($listingId)));
@@ -95,7 +111,7 @@ final readonly class EtsyApiGateway implements EtsyGateway
     /**
      * @return list<array<string, mixed>>
      */
-    private function ledgerEntries(EtsyApp $app, string $accessToken, string $shopId, int $since): array
+    public function ledgerEntries(EtsyApp $app, string $accessToken, string $shopId, int $since): array
     {
         $entries = [];
         $now = $this->clock->now()->getTimestamp();

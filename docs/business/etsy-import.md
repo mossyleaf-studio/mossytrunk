@@ -5,7 +5,7 @@ The workspace connects its Etsy shop once; its **paid receipts** then go through
 Configuration: « Paramètres › Services connectés › Ajouter un service › Etsy »: each workspace brings its own Etsy developer app — « Keystring » and « Shared secret » (stored encrypted); the app must declare the return address shown in the form, `<site>/settings/etsy/callback`. Then « Connecter la boutique ».
 Defaults: sales **online** (no event), unknown items **ask me**, line prices **listed**.
 
-Code: `src/Infrastructure/Connector/Etsy/` — `EtsyConnector` (`AuthorizingConnector`), `EtsyApiGateway`, `EtsyPayloadMapper`, `FakeEtsyGateway` (test env: fake consent that redirects straight back, fixture `tests/Fixtures/etsy/receipts.json`).
+Code: `src/Infrastructure/Connector/Etsy/` — `EtsyConnector` (`AuthorizingConnector`), `EtsyApiGateway`, `EtsyPayloadMapper`, `FakeEtsyGateway` (test env: fake consent that redirects straight back, fixtures `tests/Fixtures/etsy/receipts.json` and `ledger.json`), `ShowEtsyReceiptCommand` (`app:etsy:receipt <order number> --workspace=…`: prints the receipt, its payments and the ledger entries tied to it as Etsy returns them, with the fee read from them — to check Y7 and Y8 on a real order).
 
 ## What is read from Etsy
 
