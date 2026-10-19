@@ -99,7 +99,7 @@ final readonly class EtsyApiGateway implements EtsyGateway
      */
     public function receiptPayments(EtsyApp $app, string $accessToken, string $shopId, string $receiptId): array
     {
-        return Json::objects($this->get($app, $accessToken, \sprintf('/v3/application/shops/%s/receipts/%s/payments', rawurlencode($shopId), rawurlencode($receiptId)))['results'] ?? []);
+        return Json::objects($this->get($app, $accessToken, \sprintf('/v3/application/shops/%s/receipts/%s/payments', rawurlencode($shopId), rawurlencode($receiptId)), emptyWhenMissing: true)['results'] ?? []);
     }
 
     public function inventory(EtsyApp $app, string $accessToken, string $listingId): array
@@ -163,9 +163,9 @@ final readonly class EtsyApiGateway implements EtsyGateway
     /**
      * @return array<string, mixed>
      */
-    private function get(EtsyApp $app, string $accessToken, string $url): array
+    private function get(EtsyApp $app, string $accessToken, string $url, bool $emptyWhenMissing = false): array
     {
-        return $this->call($app, $accessToken, 'GET', $url);
+        return $this->call($app, $accessToken, 'GET', $url, emptyWhenMissing: $emptyWhenMissing);
     }
 
     /**
@@ -173,13 +173,17 @@ final readonly class EtsyApiGateway implements EtsyGateway
      *
      * @return array<string, mixed>
      */
-    private function call(EtsyApp $app, string $accessToken, string $method, string $url, array $options = []): array
+    private function call(EtsyApp $app, string $accessToken, string $method, string $url, array $options = [], bool $emptyWhenMissing = false): array
     {
         try {
             return Json::object($this->client->request($method, $url, ['auth_bearer' => $accessToken, 'headers' => ['x-api-key' => self::apiKey($app)]] + $options)->toArray());
         } catch (ClientExceptionInterface $exception) {
-            if (Response::HTTP_FORBIDDEN === $exception->getResponse()->getStatusCode()) {
+            $status = $exception->getResponse()->getStatusCode();
+            if (Response::HTTP_FORBIDDEN === $status) {
                 throw new MissingPermission('Etsy');
+            }
+            if ($emptyWhenMissing && Response::HTTP_NOT_FOUND === $status) {
+                return [];
             }
             throw new ServiceUnreachable('Etsy', $exception->getMessage());
         } catch (ExceptionInterface $exception) {

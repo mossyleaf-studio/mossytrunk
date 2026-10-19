@@ -47,4 +47,26 @@ final class EtsyApiGatewayTest extends TestCase
         self::assertStringContainsString('min_created=1896048000&max_created=1896912000', $requests[2]);
         self::assertStringContainsString('/shops/42/receipts/1/payments', $requests[3]);
     }
+
+    public function testAReceiptWithoutPaymentHasAnUnknownFee(): void
+    {
+        $responses = [
+            new JsonMockResponse(['results' => [[
+                'receipt_id' => 1,
+                'create_timestamp' => 1_893_456_000,
+                'total_shipping_cost' => ['amount' => 0, 'divisor' => 100],
+                'transactions' => [['transaction_id' => 11, 'listing_id' => 7, 'title' => 'Sticker', 'quantity' => 1, 'price' => ['amount' => 400, 'divisor' => 100]]],
+            ]]]),
+            new JsonMockResponse(['results' => [['entry_id' => 1, 'ledger_type' => 'transaction', 'reference_type' => 'transaction', 'reference_id' => '11', 'amount' => -26]]]),
+            new JsonMockResponse(['error' => 'Payment not found'], ['http_code' => 404]),
+        ];
+        $client = new MockHttpClient(static function () use (&$responses): MockResponse {
+            return array_shift($responses) ?? throw new \LogicException('Unexpected Etsy request.');
+        }, 'https://api.etsy.com');
+        $gateway = new EtsyApiGateway($client, new EtsyPayloadMapper(), new MockClock('@'.(1_893_456_000 + 86_400)));
+
+        $sales = iterator_to_array($gateway->paidReceipts(new EtsyApp('key', 'secret'), 'token', '42'), false);
+
+        self::assertNull($sales[0]->fee);
+    }
 }
