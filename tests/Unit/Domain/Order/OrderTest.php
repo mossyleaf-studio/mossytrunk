@@ -58,15 +58,19 @@ final class OrderTest extends TestCase
         self::assertSame('CMD-1', $order->reference());
     }
 
-    public function testAManualOrderOutsideEventsHasNoEventNorChannelAndKeepsAComment(): void
+    public function testAManualOrderOnAnOnlineChannelHasNoEventAndKeepsAComment(): void
     {
-        $order = Order::placeOutsideEvents('CMD-1', TestWorkspace::get(), self::at('2026-07-10 15:00'), [new OrderedItem($this->sticker->sellable(null), 1)], []);
+        $gifts = SalesChannel::open(TestWorkspace::get(), 'Cadeaux');
+        $order = Order::placeOn('CMD-1', $gifts, self::at('2026-07-10 15:00'), [new OrderedItem($this->sticker->sellable(null), 1)], []);
         $order->annotate('  Cadeau pour Léa ');
 
-        self::assertSame([null, null, Order::MANUAL, 400, 'Cadeau pour Léa'], [$order->event(), $order->channel(), $order->source(), $order->total()->amount(), $order->note()]);
+        self::assertSame([null, $gifts, Order::MANUAL, 400, 'Cadeau pour Léa'], [$order->event(), $order->channel(), $order->source(), $order->total()->amount(), $order->note()]);
 
         $order->annotate('');
         self::assertNull($order->note());
+
+        $this->expectException(MarketOrderWithoutEvent::class);
+        Order::placeOn('CMD-2', SalesChannel::main(TestWorkspace::get(), 'Marchés'), self::at('2026-07-10 15:00'), [new OrderedItem($this->sticker->sellable(null), 1)], []);
     }
 
     public function testEachLineRecordsItsShareOfTheDiscountsInProportionToItsAmount(): void

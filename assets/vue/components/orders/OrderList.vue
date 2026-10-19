@@ -20,12 +20,12 @@ const checkedIds = defineModel('checkedIds', { type: Array, required: true });
 
 const { t } = useI18n();
 
-const placeOf = (order) => order.eventName ?? (order.source === 'manual' ? t('orders.outsideEvents') : t('orders.shop', { source: order.sourceLabel }));
-const dayKey = (order) => `${order.placedAt.slice(0, 10)}|${order.eventId ?? order.source}`;
+const placeOf = (order) => order.eventName ?? (order.source === 'manual' ? (order.channelName ?? t('orders.outsideEvents')) : t('orders.shop', { source: order.sourceLabel }));
+const dayKey = (order) => `${order.placedAt.slice(0, 10)}|${order.eventId ?? order.channelId ?? order.source}`;
 
 const grouped = computed(() => [...props.orders].sort((a, b) => b.placedAt.slice(0, 10).localeCompare(a.placedAt.slice(0, 10))
     || Number(a.eventId === null) - Number(b.eventId === null)
-    || (a.eventName ?? a.sourceLabel).localeCompare(b.eventName ?? b.sourceLabel)
+    || placeOf(a).localeCompare(placeOf(b))
     || b.placedAt.localeCompare(a.placedAt)));
 
 const days = computed(() => {

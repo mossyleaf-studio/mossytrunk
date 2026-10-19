@@ -18,10 +18,13 @@ use App\Application\Order\PlaceOrder\PlaceOrderHandler;
 use App\Application\Order\PreviewOrder\PreviewOrderHandler;
 use App\Application\Order\RequestedLine;
 use App\Application\Product\RecordSellingPrice\RecordSellingPriceHandler;
+use App\Application\Product\SetChannelPrice\SetChannelPriceHandler;
+use App\Application\Sales\CreateChannel\CreateChannelHandler;
 use App\Domain\Event\Exception\InvalidEvent;
 use App\Domain\Order\Exception\InvalidOrder;
 use App\Domain\Order\Exception\NoEventOnOrderDate;
 use App\Domain\Product\Exception\InvalidProduct;
+use App\Domain\Sales\ChannelKind;
 use App\Domain\Shared\BusinessTime;
 use App\Tests\Support\ActsAsUser;
 use App\Tests\Support\CreatesProducts;
@@ -77,21 +80,30 @@ final class OrderUseCasesTest extends KernelTestCase
         }
     }
 
-    public function testAnOrderCanBePlacedOutsideEventsWithAComment(): void
+    public function testAnOrderOnAChannelWithoutEventsTakesItsPricesAndKeepsAComment(): void
     {
-        $order = self::getContainer()->get(PlaceOrderHandler::class)(new PlaceOrder(BusinessTime::at('2026-07-13 10:00'), [new RequestedLine($this->sticker, null, 1)], [], true, '  Cadeau pour Léa  '));
-        $outsideEvent = self::getContainer()->get(PlaceOrderHandler::class)(new PlaceOrder(BusinessTime::at('2026-07-10 15:30'), [new RequestedLine($this->sticker, null, 1)], [], true));
+        $gifts = (string) self::getContainer()->get(CreateChannelHandler::class)('Cadeaux', ChannelKind::Online, null);
+        self::getContainer()->get(SetChannelPriceHandler::class)($this->sticker, $gifts, 0);
+        $order = self::getContainer()->get(PlaceOrderHandler::class)(new PlaceOrder(BusinessTime::at('2026-07-10 15:30'), [new RequestedLine($this->sticker, null, 1)], [], '  Cadeau pour Léa  ', $gifts));
         self::getContainer()->get('doctrine')->getManager()->clear();
 
         $view = self::getContainer()->get(GetOrderHandler::class)((string) $order->id());
-        self::assertSame([null, null, 'manual', 'Cadeau pour Léa', 400], [$view->event, $view->channelName, $view->source, $view->note, $view->total]);
-        self::assertNull(self::getContainer()->get(GetOrderHandler::class)((string) $outsideEvent->id())->event, 'outside events even on the day of an event');
-        self::assertNull(self::getContainer()->get(PreviewOrderHandler::class)(BusinessTime::at('2026-07-10 15:30'), [new RequestedLine($this->sticker, null, 1)], [], true)->event);
+        self::assertSame([null, 'Cadeaux', 'manual', 'Cadeau pour Léa', 0], [$view->event, $view->channelName, $view->source, $view->note, $view->total], 'no event even on the day of an event');
+        self::assertSame(0, self::getContainer()->get(PreviewOrderHandler::class)(BusinessTime::at('2026-07-10 15:30'), [new RequestedLine($this->sticker, null, 1)], [], $gifts)->total);
 
         self::getContainer()->get(AnnotateOrderHandler::class)((string) $order->id(), 'Cadeau pour Paul');
         self::assertSame('Cadeau pour Paul', self::getContainer()->get(GetOrderHandler::class)((string) $order->id())->note);
         self::getContainer()->get(AnnotateOrderHandler::class)((string) $order->id(), ' ');
         self::assertNull(self::getContainer()->get(GetOrderHandler::class)((string) $order->id())->note);
+    }
+
+    public function testAnOrderOnAMarketChannelGoesToTheChosenEventWhichMustCoverItsDate(): void
+    {
+        $order = self::getContainer()->get(PlaceOrderHandler::class)(new PlaceOrder(BusinessTime::at('2026-07-11 10:00'), [new RequestedLine($this->sticker, null, 1)], [], null, null, $this->eventId));
+        self::assertSame($this->eventId, (string) $order->event()?->id());
+
+        $this->expectException(InvalidOrder::class);
+        self::getContainer()->get(PlaceOrderHandler::class)(new PlaceOrder(BusinessTime::at('2026-07-13 10:00'), [new RequestedLine($this->sticker, null, 1)], [], null, null, $this->eventId));
     }
 
     public function testVariantIsRequiredForProductsWithVariants(): void
@@ -126,13 +138,9 @@ final class OrderUseCasesTest extends KernelTestCase
             [new RequestedLine($this->sticker, null, 7)],
         );
 
-        self::assertSame('Japan Expo', $preview->event['name'] ?? null);
         self::assertSame(2_800, $preview->subtotal);
         self::assertSame([['label' => '3 stickers pour 10 € ×2', 'amount' => 400, 'ruleId' => $this->rule]], $preview->discounts);
         self::assertSame(2_400, $preview->total);
-
-        $noEvent = self::getContainer()->get(PreviewOrderHandler::class)(new \DateTimeImmutable('2026-08-01 12:00'), [new RequestedLine($this->sticker, null, 1)]);
-        self::assertNull($noEvent->event);
     }
 
     public function testListFilterAndDelete(): void

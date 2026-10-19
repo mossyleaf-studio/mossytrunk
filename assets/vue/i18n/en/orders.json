@@ -43,6 +43,8 @@
     },
     "form": {
         "date": "Date",
+        "channel": "Sales channel",
+        "chooseEvent": "Choose an event",
         "event": "Event",
         "noEvent": "No event on this date.",
         "createEvent": "Create an event",
@@ -50,7 +52,6 @@
         "submit": "Save order",
         "items": "Items",
         "manualDiscounts": "Manual discounts",
-        "outsideEvents": "Outside events (gift, sale to a friend…)",
         "note": "Comment",
         "notePlaceholder": "Who for, why… (e.g. birthday gift for Lea)"
     },

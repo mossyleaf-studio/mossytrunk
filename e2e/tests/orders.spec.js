@@ -72,19 +72,21 @@ test('warns when no event exists at the order date', async ({ page, request }) =
     await expect(form.getByRole('alert').filter({ hasText: 'Créez d\'abord' })).toBeVisible();
 });
 
-test('place a gift outside events with a comment, then edit the comment', async ({ page, request }) => {
+test('place a gift on a channel without events with a comment, then edit the comment', async ({ page, request }) => {
     const sticker = await createProduct(request, { name: unique('Sticker') });
+    const gifts = unique('Cadeaux');
+    await request.post('/api/sales-channels', { data: { name: gifts, kind: 'online' } });
 
     await page.goto('/orders');
     await page.getByRole('button', { name: 'Nouvelle commande' }).click();
     const form = page.getByRole('dialog', { name: 'Nouvelle commande' }).locator('form');
     await fillDate(form.getByRole('group', { name: 'Date', exact: true }), '2099-12-31T10:00');
-    await choose(page, form.getByRole('combobox', { name: 'Produit' }), `${sticker.name} — 4,00 €`);
-    await form.getByRole('button', { name: 'Ajouter', exact: true }).click();
     await expect(form.getByText('Aucun événement à cette date.')).toBeVisible();
 
-    await form.getByRole('switch', { name: /Hors événement/ }).click();
-    await expect(form.getByText('Aucun événement à cette date.')).toHaveCount(0);
+    await choose(page, form.getByRole('combobox', { name: 'Canal de vente' }), gifts);
+    await expect(form.getByRole('group', { name: 'Événement' })).toHaveCount(0);
+    await choose(page, form.getByRole('combobox', { name: 'Produit' }), `${sticker.name} — 4,00 €`);
+    await form.getByRole('button', { name: 'Ajouter', exact: true }).click();
     await form.getByLabel('Commentaire').fill('Cadeau pour Léa');
     await form.getByRole('button', { name: 'Enregistrer la commande' }).click();
 
@@ -96,7 +98,7 @@ test('place a gift outside events with a comment, then edit the comment', async 
     await expect(row).toContainText('Cadeau pour Léa');
 
     await row.getByRole('link', { name: reference }).click();
-    await expect(page.locator('.order-detail-page__meta')).toContainText('Hors événement');
+    await expect(page.locator('.order-detail-page__meta')).toContainText(`canal ${gifts}`);
     await page.getByRole('button', { name: 'Modifier le commentaire' }).click();
     const dialog = page.getByRole('dialog', { name: 'Commentaire' });
     await dialog.getByLabel('Commentaire').fill('Cadeau pour Paul');

@@ -43,6 +43,8 @@
     },
     "form": {
         "date": "Date",
+        "channel": "Canal de vente",
+        "chooseEvent": "Choisir un événement",
         "event": "Événement",
         "noEvent": "Aucun événement à cette date.",
         "createEvent": "Créer un événement",
@@ -50,7 +52,6 @@
         "submit": "Enregistrer la commande",
         "items": "Articles",
         "manualDiscounts": "Remises manuelles",
-        "outsideEvents": "Hors événement (cadeau, vente à un proche…)",
         "note": "Commentaire",
         "notePlaceholder": "Pour qui, pourquoi… (ex. cadeau pour l'anniversaire de Léa)"
     },

@@ -185,9 +185,9 @@ class Order implements Referenced
      * @param list<OrderedItem>     $items
      * @param list<AppliedDiscount> $discounts
      */
-    public static function placeOutsideEvents(string $reference, Workspace $workspace, \DateTimeImmutable $placedAt, array $items, array $discounts): self
+    public static function placeOn(string $reference, SalesChannel $channel, \DateTimeImmutable $placedAt, array $items, array $discounts): self
     {
-        return new self($reference, $workspace, null, $placedAt, $items, $discounts, self::MANUAL, null);
+        return new self($reference, $channel->workspace(), null, $placedAt, $items, $discounts, self::MANUAL, $channel);
     }
 
     public function annotate(?string $note): void

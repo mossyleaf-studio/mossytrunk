@@ -15,6 +15,6 @@ final class PreviewOrderController extends AbstractController
 {
     public function __invoke(#[MapRequestPayload] OrderPayload $payload, PreviewOrderHandler $previewOrder): JsonResponse
     {
-        return $this->json($previewOrder($payload->placedAt(), $payload->requestedLines(), $payload->discountRuleIds, $payload->outsideEvents));
+        return $this->json($previewOrder($payload->placedAt(), $payload->requestedLines(), $payload->discountRuleIds, $payload->channelId));
     }
 }

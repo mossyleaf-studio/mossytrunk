@@ -34,15 +34,16 @@ final class OrderApiTest extends WebTestCase
         self::assertSame('T-shirt — M', Json::at(Json::decode((string) $client->getResponse()->getContent()), 'lines', 0, 'label'));
     }
 
-    public function testAnOrderOutsideEventsKeepsItsComment(): void
+    public function testAnOrderOnAChannelWithoutEventsKeepsItsComment(): void
     {
         $client = self::signedInClient();
         $product = $this->post($client, '/api/products', ['name' => 'Zine', 'sellingPrice' => 1_000, 'typeId' => ProductTypesApi::create($client)])['id'];
+        $gifts = Json::string($this->post($client, '/api/sales-channels', ['name' => 'Cadeaux', 'kind' => 'online']), 'id');
 
-        $order = Json::string($this->post($client, '/api/orders', ['placedAt' => '2026-07-10T15:30', 'lines' => [['productId' => $product, 'variant' => null, 'quantity' => 1]], 'outsideEvents' => true, 'note' => 'Cadeau pour Léa']), 'id');
+        $order = Json::string($this->post($client, '/api/orders', ['placedAt' => '2026-07-10T15:30', 'lines' => [['productId' => $product, 'variant' => null, 'quantity' => 1]], 'channelId' => $gifts, 'note' => 'Cadeau pour Léa']), 'id');
         $client->jsonRequest('GET', '/api/orders');
         $listed = Json::decode((string) $client->getResponse()->getContent());
-        self::assertSame([null, 'Cadeau pour Léa'], [Json::at($listed, 0, 'eventId'), Json::at($listed, 0, 'note')]);
+        self::assertSame([null, 'Cadeaux', 'Cadeau pour Léa'], [Json::at($listed, 0, 'eventId'), Json::at($listed, 0, 'channelName'), Json::at($listed, 0, 'note')]);
 
         $client->jsonRequest('PUT', "/api/orders/$order/note", ['note' => 'Cadeau pour Paul']);
         self::assertResponseStatusCodeSame(204);

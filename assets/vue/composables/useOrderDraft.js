@@ -42,7 +42,8 @@ export function useOrderDraft() {
     const placedAt = ref(nowForInput());
     const { lines, add, setQuantity, remove, requested } = useDraftLines();
     const discountRuleIds = ref([]);
-    const outsideEvents = ref(false);
+    const channelId = ref('');
+    const eventId = ref('');
     const note = ref('');
 
     function reset() {
@@ -57,16 +58,17 @@ export function useOrderDraft() {
         placedAt: placedAt.value,
         lines: requested(),
         discountRuleIds: discountRuleIds.value,
-        outsideEvents: outsideEvents.value,
+        channelId: channelId.value || null,
+        eventId: eventId.value || null,
         note: note.value,
     });
 
     const { result: preview, error } = useDebouncedQuery(
-        [placedAt, lines, discountRuleIds, outsideEvents],
+        [placedAt, lines, discountRuleIds, channelId],
         () => (lines.length === 0 || !placedAt.value ? null : api.query('/api/orders/preview', payload())),
         { delay: 200, deep: true },
     );
     const previewError = computed(() => error.value?.message ?? null);
 
-    return { placedAt, lines, discountRuleIds, outsideEvents, note, preview, previewError, add, setQuantity, remove, reset, payload };
+    return { placedAt, lines, discountRuleIds, channelId, eventId, note, preview, previewError, add, setQuantity, remove, reset, payload };
 }

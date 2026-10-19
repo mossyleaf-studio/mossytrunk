@@ -140,9 +140,9 @@ onMounted(() => Promise.all([load(), loadProducts(), loadChannels(), loadDiscoun
                 <StatusBadge v-if="order.refundedAt" tone="warning">{{ t('orders.detail.refundedOn', { date: formatDate(order.refundedAt) }) }}</StatusBadge>
                 {{ formatDateTime(order.placedAt) }} ·
                 <a v-if="order.event" :href="`/events/${order.event.id}`">{{ order.event.name }}</a>
-                <template v-else-if="order.source === 'manual'">{{ t('orders.outsideEvents') }}</template>
-                <template v-else>{{ t('orders.shop', { source: order.sourceLabel }) }}</template>
-                <template v-if="order.channelName"> · {{ t('orders.detail.channel', { channel: order.channelName }) }}</template>
+                <template v-else-if="order.source !== 'manual'">{{ t('orders.shop', { source: order.sourceLabel }) }}</template>
+                <template v-else>{{ order.channelName ? t('orders.detail.channel', { channel: order.channelName }) : t('orders.outsideEvents') }}</template>
+                <template v-if="order.channelName && (order.event || order.source !== 'manual')"> · {{ t('orders.detail.channel', { channel: order.channelName }) }}</template>
                 <span v-if="order.source !== 'manual'"> · {{ t('orders.detail.importedFrom', { source: order.sourceLabel }) }}</span>
                 <template v-if="order.paymentMethod"> · <PaymentMethod :method="order.paymentMethod" /></template>
                 <template v-if="order.importedSales.length"> · {{ t('orders.detail.externalReferences', { source: order.sourceLabel, references: order.importedSales.map((sale) => sale.reference).join(', ') }) }}</template>

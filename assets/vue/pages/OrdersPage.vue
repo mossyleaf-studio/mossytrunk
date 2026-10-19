@@ -191,7 +191,7 @@ onMounted(async () => {
             />
         </BaseModal>
         <BaseModal v-model:open="formOpen" :title="t('orders.page.new')" variant="drawer">
-            <OrderForm :products="products" :discount-rules="discountRules" :submit="place" @placed="onPlaced" />
+            <OrderForm :products="products" :discount-rules="discountRules" :channels="channels" :events="events" :submit="place" @placed="onPlaced" />
         </BaseModal>
     </AppLayout>
 </template>

@@ -17,7 +17,7 @@ final class PlaceOrderController extends AbstractController
 {
     public function __invoke(#[MapRequestPayload] OrderPayload $payload, PlaceOrderHandler $placeOrder): JsonResponse
     {
-        $order = $placeOrder(new PlaceOrder($payload->placedAt(), $payload->requestedLines(), $payload->discountRuleIds, $payload->outsideEvents, $payload->note));
+        $order = $placeOrder(new PlaceOrder($payload->placedAt(), $payload->requestedLines(), $payload->discountRuleIds, $payload->note, $payload->channelId, $payload->eventId));
 
         return $this->json(['id' => (string) $order->id(), 'reference' => $order->reference()], Response::HTTP_CREATED);
     }
