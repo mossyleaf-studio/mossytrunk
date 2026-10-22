@@ -108,6 +108,7 @@ catalogue with variants, supplies (sleeves on every market order, envelopes and 
 
 ## Testing expectations
 
+- **Tests first**: write the tests of a change (unit, functional, Playwright as below) before the code, run them and see them **fail** for the expected reason (missing behaviour, not a typo or setup error); only then write the code that makes them pass.
 - PHPStan runs at **level 10** on `src`, `tests` and `fixtures`: no `mixed` leaks — narrow with `instanceof`/`is_*`, type arrays with shapes (`array{…}`, `list<…>`), read decoded JSON in tests through `tests/Support/Json`. Ignores live in `phpstan.dist.neon` only (never inline).
 
 - Unit test (`tests/Unit`) every business rule (entities, value objects, domain services).
