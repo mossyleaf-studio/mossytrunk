@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import MoneyAmount from '../ui/MoneyAmount.vue';
 import ResultReceipt from '../reporting/ResultReceipt.vue';
 import OrderRecap from './OrderRecap.vue';
+import SalesTarget from './SalesTarget.vue';
 import { formatPercent } from '../../composables/useMoney.js';
 import { resultLines } from '../../composables/useResultLines.js';
 
@@ -11,6 +12,7 @@ const props = defineProps({
     report: { type: Object, required: true },
     eventId: { type: String, required: true },
     upcoming: { type: Boolean, default: false },
+    target: { type: Object, default: null },
     typeColors: { type: Map, required: true },
 });
 
@@ -28,6 +30,7 @@ const lines = computed(() => resultLines(props.report.total, {
         <h2 class="event-report__title">{{ t('events.report.committedExpenses') }}</h2>
         <p class="event-report__committed"><MoneyAmount :cents="report.total.expenses" /></p>
         <p class="event-report__summary">{{ t('events.report.noSales') }}</p>
+        <SalesTarget v-if="target && target.expenses > 0" :target="target" />
         <div class="event-report__aside"><slot name="aside" /></div>
     </section>
     <ResultReceipt

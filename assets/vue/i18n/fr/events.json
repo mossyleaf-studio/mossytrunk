@@ -114,5 +114,16 @@
         "unlabelled": "Don",
         "remove": "Supprimer {label}",
         "total": "Total"
+    },
+    "target": {
+        "title": "Objectif de ventes",
+        "perDay": "Par jour | Par jour sur {count} jours",
+        "total": "Sur l'événement",
+        "usualPerDay": "Ventes médianes par jour",
+        "unreachable": "Objectif hors d'atteinte : les coûts médians des événements passés dépassent ce qu'ils rapportent.",
+        "covers": "Pour couvrir {expenses} de dépenses et l'URSSAF ({urssaf} du CA),",
+        "costs": "avec le coût d'achat, les fournitures et les frais médians : {rate} du CA {events}.",
+        "events": "sur {count} événement passé | sur {count} événements passés",
+        "noHistory": "sans compter le coût d'achat : aucun événement passé n'a de ventes."
     }
 }

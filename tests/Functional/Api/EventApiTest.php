@@ -74,6 +74,19 @@ final class EventApiTest extends WebTestCase
         self::assertSame(['label' => 'Nappe', 'amount' => 5_000, 'fullAmount' => 10_000, 'sharedBy' => 2, 'sharedOverEvents' => 10, 'sharedUntil' => '2031-12-31', 'own' => false, 'originId' => $first], array_diff_key(Json::array($event, 'expenses', 0), ['id' => true, 'originName' => true]));
     }
 
+    public function testAnUpcomingEventGivesTheSalesTargetCoveringItsExpensesAndUrssaf(): void
+    {
+        $client = self::signedInClient();
+        $id = $this->schedule($client, '2031-05-01');
+        $client->jsonRequest('POST', "/api/events/$id/expenses", ['label' => 'Stand', 'amount' => 8_720]);
+
+        $client->jsonRequest('GET', "/api/events/$id/target");
+        self::assertResponseIsSuccessful();
+        $target = Json::decode((string) $client->getResponse()->getContent());
+
+        self::assertSame([8_720, 1, 12.8, 10_000, 10_000], [$target['expenses'], $target['days'], $target['urssafRate'], $target['total'], $target['perDay']]);
+    }
+
     public function testEndBeforeStartIsRejected(): void
     {
         $client = self::signedInClient();

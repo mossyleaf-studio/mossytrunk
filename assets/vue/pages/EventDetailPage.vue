@@ -24,7 +24,7 @@ const props = defineProps({
     eventId: { type: String, required: true },
 });
 
-const { event, report, load, update, addExpense, reviseExpense, removeExpense, receiveDonation, removeDonation } = useEvent(props.eventId);
+const { event, report, target, load, update, addExpense, reviseExpense, removeExpense, receiveDonation, removeDonation } = useEvent(props.eventId);
 const { colors: typeColors, load: loadTypes } = useTypeColors();
 const toast = useToast();
 const { t } = useI18n();
@@ -99,7 +99,7 @@ onMounted(() => Promise.all([load(), loadTypes(), loadChecks()]));
             <EventHeader :event="event" />
             <StockDiscrepancies :checks="checks" @dismiss="onDismissed" />
 
-            <EventReport :report="report" :event-id="event.id" :upcoming="event.timing === 'upcoming'" :type-colors="typeColors">
+            <EventReport :report="report" :event-id="event.id" :upcoming="event.timing === 'upcoming'" :target="target" :type-colors="typeColors">
                 <template #aside>
                     <section class="event-detail-page__expenses" aria-labelledby="event-expenses">
                         <h3 id="event-expenses" class="event-detail-page__expenses-title">{{ t('events.detail.expenses') }}</h3>

@@ -42,3 +42,21 @@ chiffre d'affaires − coût d'achat − dépenses − URSSAF (rate shown) = **R
   The article list can be hidden with « Afficher le détail des articles » (remembered in the browser). Link to the orders list filtered on the event.
 - Expenses are listed (and edited) in their own card below the receipt.
 - An **upcoming** event without orders shows its **committed expenses** instead of a (negative) result.
+
+## Sales target (Objectif de ventes)
+
+An **upcoming** event with expenses shows how much it must sell to break even (result = 0), over the event and per day.
+Use case `GetSalesTarget` → `GET /api/events/{id}/target`; model `src/Domain/Reporting/SalesTarget.php`; UI: `SalesTarget.vue` in the upcoming report card.
+
+```
+cost rate          = median over past events with sales of (cost of goods + supplies + supplies consumed + channel costs) / turnover
+target             = expenses / (1 − URSSAF rate − cost rate)       (rounded up to the cent)
+target per day     = target / days of the event                      (rounded up to the cent)
+usual sales per day = median over past events with sales of turnover / days
+```
+
+| # | Rule | Where | Tests |
+|---|---|---|---|
+| R8 | The target covers the event's expenses (its shares, E8), URSSAF (R1) and the **median** cost rate of the workspace's **past** events with a turnover > 0 (a median, so one odd event does not skew it). Without such an event the cost rate is 0. Donations are not counted | `SalesTarget::of()`, `GetSalesTargetHandler` | `SalesTargetTest`, `EventApiTest` |
+| R9 | When URSSAF and the cost rate reach 100 % of the turnover the target is out of reach (`total`/`perDay` null) | `SalesTarget::of()` | `SalesTargetTest` |
+| R10 | The median sales per day of past events are shown next to the target, to judge whether it is realistic | `SalesTarget::of()` | `SalesTargetTest` |

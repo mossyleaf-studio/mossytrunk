@@ -114,5 +114,16 @@
         "unlabelled": "Donation",
         "remove": "Remove {label}",
         "total": "Total"
+    },
+    "target": {
+        "title": "Sales target",
+        "perDay": "Per day | Per day over {count} days",
+        "total": "Over the event",
+        "usualPerDay": "Median sales per day",
+        "unreachable": "Target out of reach: the median costs of past events exceed what they brought in.",
+        "covers": "To cover {expenses} of expenses and URSSAF ({urssaf} of turnover),",
+        "costs": "with the median buying cost, supplies and fees: {rate} of turnover {events}.",
+        "events": "over {count} past event | over {count} past events",
+        "noHistory": "not counting the buying cost: no past event has sales."
     }
 }

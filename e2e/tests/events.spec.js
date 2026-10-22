@@ -40,6 +40,10 @@ test('schedule an event and track its expenses', async ({ page }) => {
 
     await page.getByRole('button', { name: 'Supprimer Train' }).click();
     await expect(page.getByRole('row', { name: /Total/ })).toContainText('320,00');
+
+    const target = page.getByRole('region', { name: 'Objectif de ventes' });
+    await expect(target.getByTestId('target-total')).toContainText('366,98');
+    await expect(target.getByTestId('target-per-day')).toContainText('122,33');
 });
 
 test('share an expense with the next event', async ({ page, request }) => {

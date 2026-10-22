@@ -41,6 +41,7 @@ The profitability of an event is described in [event-report.md](event-report.md)
 | `RemoveExpense` | `DELETE /api/events/{id}/expenses/{expenseId}` |
 | `ReceiveDonation` | `POST /api/events/{id}/donations` `{label?, amount}` |
 | `RemoveDonation` | `DELETE /api/events/{id}/donations/{donationId}` |
+| `GetSalesTarget` | `GET /api/events/{id}/target` (sales needed to break even, see [event-report.md](event-report.md#sales-target-objectif-de-ventes)) |
 
 `ListEvents` also gives each event its number of `days`, `costOfGoods` and `urssaf`; `GetEvent` gives its `timing`.
 

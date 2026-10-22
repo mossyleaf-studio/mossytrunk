@@ -25,11 +25,13 @@ export function useEvent(eventId) {
     const api = useApi();
     const event = ref(null);
     const report = ref(null);
+    const target = ref(null);
 
     async function load() {
         await Promise.all([
             api.load(`/api/events/${eventId}`, event),
             api.load(`/api/events/${eventId}/report`, report),
+            api.load(`/api/events/${eventId}/target`, target),
         ]);
     }
 
@@ -41,5 +43,5 @@ export function useEvent(eventId) {
     const receiveDonation = (payload) => api.post(`/api/events/${eventId}/donations`, payload);
     const removeDonation = (donationId) => api.del(`/api/events/${eventId}/donations/${donationId}`);
 
-    return { event, report, load, update, addExpense, reviseExpense, removeExpense, receiveDonation, removeDonation };
+    return { event, report, target, load, update, addExpense, reviseExpense, removeExpense, receiveDonation, removeDonation };
 }

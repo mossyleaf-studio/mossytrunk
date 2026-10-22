@@ -20,6 +20,6 @@ final readonly class EventDetailPageController
 
     public function __invoke(string $id): Response
     {
-        return $this->page->render('EventDetailPage', 'event', ['eventId' => $id], preload: ["/api/events/$id", "/api/events/$id/report", '/api/product-types', "/api/events/$id/stock-checks"]);
+        return $this->page->render('EventDetailPage', 'event', ['eventId' => $id], preload: ["/api/events/$id", "/api/events/$id/report", "/api/events/$id/target", '/api/product-types', "/api/events/$id/stock-checks"]);
     }
 }
