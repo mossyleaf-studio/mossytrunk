@@ -1,4 +1,4 @@
-FROM dunglas/frankenphp:1-php8.5-bookworm AS base
+FROM dunglas/frankenphp:1-php8.5.12-bookworm AS base
 
 RUN install-php-extensions pdo_pgsql intl zip opcache apcu
 
