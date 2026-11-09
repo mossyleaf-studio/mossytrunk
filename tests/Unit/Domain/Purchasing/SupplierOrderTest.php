@@ -6,6 +6,7 @@ namespace App\Tests\Unit\Domain\Purchasing;
 
 use App\Domain\Product\Product;
 use App\Domain\Purchasing\Exception\InvalidPurchase;
+use App\Domain\Purchasing\Exception\NonPositiveLeadTime;
 use App\Domain\Purchasing\PurchasedItem;
 use App\Domain\Purchasing\Supplier;
 use App\Domain\Purchasing\SupplierOrder;
@@ -145,6 +146,27 @@ final class SupplierOrderTest extends TestCase
         $this->expectException(InvalidPurchase::class);
 
         Supplier::create(TestWorkspace::get(), '  ');
+    }
+
+    public function testASupplierHasNoLeadTimeUntilOneIsGiven(): void
+    {
+        self::assertNull($this->printer->leadDays());
+
+        $supplier = Supplier::create(TestWorkspace::get(), 'Atelier Textile', leadDays: 10);
+        self::assertSame(10, $supplier->leadDays());
+
+        $supplier->describe('Atelier Textile', null, null, 14);
+        self::assertSame(14, $supplier->leadDays());
+
+        $supplier->describe('Atelier Textile', null, null, null);
+        self::assertNull($supplier->leadDays());
+    }
+
+    public function testASupplierLeadTimeIsAtLeastOneDay(): void
+    {
+        $this->expectException(NonPositiveLeadTime::class);
+
+        $this->printer->describe('Imprimerie du Lac', null, null, 0);
     }
 
     private function order(): SupplierOrder

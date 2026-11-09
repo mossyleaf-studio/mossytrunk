@@ -13,11 +13,12 @@ final readonly class SupplierView
         public string $name,
         public ?string $contact,
         public ?string $notes,
+        public ?int $leadDays,
     ) {
     }
 
     public static function of(Supplier $supplier): self
     {
-        return new self((string) $supplier->id(), $supplier->name(), $supplier->contact(), $supplier->notes());
+        return new self((string) $supplier->id(), $supplier->name(), $supplier->contact(), $supplier->notes(), $supplier->leadDays());
     }
 }

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Domain\Planning\Exception;
 
-final class ReleaseDayAndEvent extends InvalidRelease
+final class PastRestockTarget extends InvalidPlanning
 {
     public function __construct()
     {
-        parent::__construct('planning.release_day_and_event');
+        parent::__construct('planning.past_restock_target');
     }
 }

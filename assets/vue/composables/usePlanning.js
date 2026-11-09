@@ -6,6 +6,8 @@ export const releaseOf = (planning, kind, id) => planning?.releases.find((releas
 export function usePlanning() {
     const api = useApi();
     const planning = ref(null);
+    const tick = (id, step, done) => api.put(`/api/releases/${id}/steps`, { step, done });
+    const tickRestock = (id, ordered) => api.put(`/api/restocks/${id}/ordered`, { ordered });
 
     return {
         planning,
@@ -13,9 +15,29 @@ export function usePlanning() {
         plan: (owner, payload) => api.post(`/api/${owner.kind === 'collection' ? 'design-collections' : 'designs'}/${owner.id}/release`, payload),
         replan: (id, payload) => api.put(`/api/releases/${id}`, payload),
         cancel: (id) => api.del(`/api/releases/${id}`),
-        tick: (id, step, done) => api.put(`/api/releases/${id}/steps`, { step, done }),
+        tick,
+        tickRestock,
+        tickItem: (item, done) => (item.kind === 'restock' ? tickRestock(item.id, done) : tick(item.release.id, item.label, done)),
+        planRestock: (payload) => api.post('/api/restocks', payload),
+        reviseRestock: (id, payload) => api.put(`/api/restocks/${id}`, payload),
+        cancelRestock: (id) => api.del(`/api/restocks/${id}`),
+        orderRestock: (id, supplierOrderId) => api.put(`/api/restocks/${id}/supplier-order`, { supplierOrderId }),
     };
 }
+
+export function useTarget(source) {
+    const moment = ref(source?.event ? 'event' : 'day');
+    const day = ref(source && !source.event ? source.day : '');
+    const eventId = ref(source?.event?.id ?? '');
+    const payload = () => ({
+        day: moment.value === 'day' ? day.value || null : null,
+        eventId: moment.value === 'event' ? eventId.value || null : null,
+    });
+
+    return { moment, day, eventId, payload };
+}
+
+export const orderRestockUrl = (restock) => `/supplier-orders?restock=${restock.id}&supplier=${restock.supplier.id}`;
 
 export const ownerUrl = (owner) => (owner.kind === 'collection' ? `/designs?collection=${owner.id}` : `/designs/${owner.id}`);
 

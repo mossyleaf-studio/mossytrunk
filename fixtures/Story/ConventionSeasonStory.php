@@ -25,6 +25,7 @@ use App\Domain\Order\OrderedItem;
 use App\Domain\Order\PaymentMethod;
 use App\Domain\Planning\Release;
 use App\Domain\Planning\ReleaseTemplate;
+use App\Domain\Planning\Restock;
 use App\Domain\Product\Product;
 use App\Domain\Product\ProductType;
 use App\Domain\Purchasing\PurchasedItem;
@@ -180,7 +181,7 @@ final class ConventionSeasonStory extends Story
             new StockCount($forestA4, max(0, $forestA4->onHand()), $prints[0]->buyingPrice()),
         ]));
 
-        $this->purchase($prints, $others[0]);
+        $this->purchase($prints, $others[0], $events[3]);
         $this->designs($sticker, $print, $stickers[0], $events[3]);
         $this->etsy($stickers, $prints[0]);
 
@@ -326,9 +327,9 @@ final class ConventionSeasonStory extends Story
     /**
      * @param list<Product> $prints
      */
-    private function purchase(array $prints, Product $tshirt): void
+    private function purchase(array $prints, Product $tshirt, Event $upcoming): void
     {
-        $printer = Supplier::create($this->workspace, 'Imprimerie du Lac', 'commandes@imprimerie-du-lac.test', 'Tirages giclée, délai 10 jours.');
+        $printer = Supplier::create($this->workspace, 'Imprimerie du Lac', 'commandes@imprimerie-du-lac.test', 'Tirages giclée, délai 10 jours.', 10);
         $textile = Supplier::create($this->workspace, 'Atelier Textile', '04 78 00 00 00');
         $this->entityManager->persist($printer);
         $this->entityManager->persist($textile);
@@ -345,6 +346,11 @@ final class ConventionSeasonStory extends Story
             $product->bought($lot->unitCost());
         }
         $this->entityManager->persist($received);
+
+        $this->persisted(Restock::plan($printer, 'Tirages A3 Forêt', null, $upcoming, 10));
+        $ordered = Restock::plan($printer, 'Tirages A4 Rivière', new \DateTimeImmutable('+30 days'), null, 10);
+        $ordered->orderedThrough($received);
+        $this->persisted($ordered);
 
         $this->entityManager->persist(SupplierOrder::place(self::reference('CMF', new \DateTimeImmutable('-3 days')), $textile, new \DateTimeImmutable('-3 days'), array_map(
             static fn (string $size): PurchasedItem => new PurchasedItem($tshirt->sellable($size), 6, Money::cents(6 * 1_050)),

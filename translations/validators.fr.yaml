@@ -52,6 +52,8 @@ products.selectAtLeastOne: 'Sélectionnez au moins un produit.'
 orders.selectAtLeastOne: 'Sélectionnez au moins une commande.'
 release.done.required: "L'état de l'étape est obligatoire."
 release.step.required: "L'étape est obligatoire."
+restock.ordered.required: "L'état de commande est obligatoire."
+supplier_order.invalid: 'Commande fournisseur invalide.'
 supply.required: 'Choisissez une fourniture.'
 quantity.atLeastOne: 'La quantité doit être d''au moins 1.'
 sellingPrice.negative: 'Le prix de vente ne peut pas être négatif.'

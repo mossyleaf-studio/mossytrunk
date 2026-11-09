@@ -96,6 +96,7 @@
         "discountFromPaid": "Deduced discount",
         "draftRestored": "Order picked up where you left it.",
         "draftDiscard": "Start over",
+        "draftKept": "Your draft with another supplier is kept for later.",
         "receivedOn": "Received on",
         "currency": "Currency",
         "currencies": {
@@ -140,7 +141,10 @@
         "contact": "Contact",
         "contactPlaceholder": "Email, phone, website…",
         "notes": "Notes",
-        "add": "Add the supplier"
+        "add": "Add the supplier",
+        "leadTime": "Order lead time (days)",
+        "leadTimeHint": "Pre-fills the lead time of the restocks prepared with this supplier.",
+        "leadTimeOf": "Order lead time: {n} day | Order lead time: {n} days"
     },
     "supplierSelect": {
         "new": "New supplier…",

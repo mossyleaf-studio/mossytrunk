@@ -27,8 +27,8 @@ use App\Application\Planning\ReleaseView;
 use App\Application\Planning\ReplanRelease\ReplanRelease;
 use App\Application\Planning\ReplanRelease\ReplanReleaseHandler;
 use App\Application\Planning\TickReleaseStep\TickReleaseStepHandler;
+use App\Domain\Planning\Exception\DayAndEvent;
 use App\Domain\Planning\Exception\ReleaseAlreadyPlanned;
-use App\Domain\Planning\Exception\ReleaseDayAndEvent;
 use App\Domain\Shared\Exception\NotFound;
 use App\Tests\Support\ActsAsUser;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -200,11 +200,12 @@ final class PlanningUseCasesTest extends KernelTestCase
         $planning = $this->planning();
 
         self::assertSame([
-            ['label' => 'Encrage', 'days' => 1, 'done' => false, 'start' => '2026-11-08', 'end' => '2026-11-08', 'state' => 'late', 'release' => ['id' => $fernRelease, 'day' => '2026-11-10'], 'owner' => ['kind' => 'design', 'id' => $fern, 'name' => 'Fougère']],
+            ['kind' => 'step', 'label' => 'Encrage', 'days' => 1, 'done' => false, 'start' => '2026-11-08', 'end' => '2026-11-08', 'state' => 'late', 'release' => ['id' => $fernRelease, 'day' => '2026-11-10'], 'owner' => ['kind' => 'design', 'id' => $fern, 'name' => 'Fougère']],
         ], $planning->late);
         self::assertSame(['Vernis', 'Dessins', 'Impression'], array_column($planning->thisWeek, 'label'));
+        self::assertSame(['step', 'step', 'step'], array_column($planning->thisWeek, 'kind'));
         self::assertSame(['ongoing', 'ongoing', 'upcoming'], array_column($planning->thisWeek, 'state'));
-        self::assertSame(['id' => $woods, 'day' => '2026-11-20'], $planning->thisWeek[1]['release']);
+        self::assertSame(['id' => $woods, 'day' => '2026-11-20'], $planning->thisWeek[1]['release'] ?? null);
         self::assertSame(['Photos', 'Annonce'], array_column($planning->later, 'label'));
         self::assertSame(['Mousse', 'Fougère', 'Sous-bois'], array_map(static fn (ReleaseView $release): string => $release->owner['name'], $planning->releases));
         self::assertSame([true, false, false], array_map(static fn (ReleaseView $release): bool => $release->past, $planning->releases));
@@ -255,7 +256,7 @@ final class PlanningUseCasesTest extends KernelTestCase
     {
         $eventId = $this->event();
 
-        $this->expectException(ReleaseDayAndEvent::class);
+        $this->expectException(DayAndEvent::class);
         $this->planDesign(new PlanDesignRelease($this->design('Héron'), new \DateTimeImmutable('2026-11-20'), $eventId, []));
     }
 

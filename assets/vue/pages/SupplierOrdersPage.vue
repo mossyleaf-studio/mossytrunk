@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { ToggleGroupItem } from 'reka-ui';
 import { useI18n } from 'vue-i18n';
 import AppLayout from '../layouts/AppLayout.vue';
@@ -12,8 +12,9 @@ import SupplierOrderForm from '../components/purchasing/SupplierOrderForm.vue';
 import SupplierOrderList from '../components/purchasing/SupplierOrderList.vue';
 import { useProducts } from '../composables/useProducts.js';
 import { useProductTypes } from '../composables/useProductTypes.js';
+import { usePlanning } from '../composables/usePlanning.js';
 import { useSupplierOrders, useSuppliers } from '../composables/usePurchasing.js';
-import { queryText } from '../composables/useQueryState.js';
+import { queryText, takeQuery } from '../composables/useQueryState.js';
 import { useToast } from '../composables/useToast.js';
 
 const { t } = useI18n();
@@ -22,9 +23,13 @@ const { orders, load, create } = useSupplierOrders();
 const { suppliers, load: loadSuppliers, save: saveSupplier } = useSuppliers();
 const { products, load: loadProducts } = useProducts();
 const { load: loadTypes } = useProductTypes();
+const { orderRestock } = usePlanning();
 const toast = useToast();
 
-const formOpen = ref(false);
+const restock = ref(takeQuery('restock'));
+const restockSupplier = ref(takeQuery('supplier') ?? '');
+const formOpen = ref(restock.value !== null);
+let placedId = null;
 const suppliersOpen = ref(false);
 const status = queryText('status', 'ordered');
 
@@ -42,10 +47,30 @@ async function saveAndReload(id, payload) {
     return supplier;
 }
 
+watch(formOpen, (open) => {
+    if (open) return;
+    restock.value = null;
+    restockSupplier.value = '';
+});
+
+async function place(payload) {
+    placedId = (await create(payload)).id;
+}
+
+async function linkRestock(id) {
+    try {
+        await orderRestock(id, placedId);
+    } catch (exception) {
+        toast.error(exception.message);
+    }
+}
+
 async function onOrderSaved() {
+    const restockId = restock.value;
     formOpen.value = false;
     toast.success(t('purchasing.page.orderPlaced'));
     status.value = 'ordered';
+    if (restockId) await linkRestock(restockId);
     await load();
 }
 
@@ -77,7 +102,7 @@ onMounted(async () => {
         </BaseCard>
 
         <BaseModal v-model:open="formOpen" :title="t('purchasing.page.newOrderTitle')" variant="drawer">
-            <SupplierOrderForm :products="products" :suppliers="suppliers" :save-supplier="saveAndReload" :submit="create" :reload-products="loadProducts" @saved="onOrderSaved" @cancel="formOpen = false" />
+            <SupplierOrderForm :products="products" :suppliers="suppliers" :supplier-id="restockSupplier" :save-supplier="saveAndReload" :submit="place" :reload-products="loadProducts" @saved="onOrderSaved" @cancel="formOpen = false" />
         </BaseModal>
         <BaseModal v-model:open="suppliersOpen" :title="t('purchasing.page.suppliers')">
             <SupplierManager :suppliers="suppliers" :save="saveSupplier" @saved="onSupplierSaved" />

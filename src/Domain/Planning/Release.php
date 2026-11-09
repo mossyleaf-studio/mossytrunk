@@ -8,8 +8,6 @@ use App\Domain\Design\Design;
 use App\Domain\Design\DesignCollection;
 use App\Domain\Event\Event;
 use App\Domain\Identity\Workspace;
-use App\Domain\Planning\Exception\ReleaseDayAndEvent;
-use App\Domain\Planning\Exception\ReleaseWithoutDay;
 use App\Domain\Planning\Exception\UnknownStep;
 use App\Domain\Shared\BusinessTime;
 use Doctrine\DBAL\Types\Types;
@@ -79,14 +77,7 @@ class Release
 
     public function schedule(?\DateTimeImmutable $day, ?Event $event): void
     {
-        if (null === $day && null === $event) {
-            throw new ReleaseWithoutDay();
-        }
-        if (null !== $day && null !== $event) {
-            throw new ReleaseDayAndEvent();
-        }
-
-        $this->day = null === $day ? null : BusinessTime::midnightOf($day);
+        $this->day = TargetDay::chosen($day, $event);
         $this->event = $event;
     }
 
@@ -140,7 +131,7 @@ class Release
 
     public function releaseDay(): \DateTimeImmutable
     {
-        return BusinessTime::midnightOf($this->day ?? $this->event?->period()->start() ?? throw new ReleaseWithoutDay());
+        return TargetDay::of($this->day, $this->event);
     }
 
     public function isPastOn(\DateTimeImmutable $today): bool

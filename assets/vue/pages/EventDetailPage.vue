@@ -12,6 +12,7 @@ import DonationList from '../components/events/DonationList.vue';
 import EventReport from '../components/events/EventReport.vue';
 import ExpenseForm from '../components/events/ExpenseForm.vue';
 import ExpenseList from '../components/events/ExpenseList.vue';
+import RestockForm from '../components/planning/RestockForm.vue';
 import StockDiscrepancies from '../components/stock/StockDiscrepancies.vue';
 import { useEvent } from '../composables/useEvents.js';
 import { formatCents } from '../composables/useMoney.js';
@@ -35,6 +36,7 @@ const editOpen = ref(false);
 const expenseOpen = ref(false);
 const editingExpense = ref(null);
 const donationOpen = ref(false);
+const restockOpen = ref(false);
 
 const submitExpense = (payload) => (editingExpense.value ? reviseExpense(editingExpense.value.id, payload) : addExpense(payload));
 
@@ -53,6 +55,11 @@ async function onExpenseSaved(label) {
     expenseOpen.value = false;
     toast.success(t(editingExpense.value ? 'events.detail.expenseUpdated' : 'events.detail.expenseAdded', { label }));
     await load();
+}
+
+function onRestockSaved(supplier) {
+    restockOpen.value = false;
+    toast.success(t('planning.restock.toast.planned', { supplier }));
 }
 
 async function onDismissed(line) {
@@ -90,6 +97,7 @@ onMounted(() => Promise.all([load(), loadTypes(), loadChecks()]));
                 <BaseButton variant="secondary" @click="editOpen = true">{{ t('common.edit') }}</BaseButton>
                 <BaseButton variant="secondary" :href="`/events/${event.id}/check`">{{ t('events.detail.checkOrders') }}</BaseButton>
                 <BaseButton variant="secondary" :href="`/events/${event.id}/stock-check`">{{ t('events.detail.stockCheck') }}</BaseButton>
+                <BaseButton v-if="event.timing === 'upcoming'" variant="secondary" @click="restockOpen = true">{{ t('planning.restock.prepare') }}</BaseButton>
                 <BaseButton variant="secondary" @click="donationOpen = true">{{ t('events.detail.addDonation') }}</BaseButton>
                 <BaseButton @click="openExpense()">{{ t('events.detail.addExpense') }}</BaseButton>
             </template>
@@ -118,6 +126,9 @@ onMounted(() => Promise.all([load(), loadTypes(), loadChecks()]));
         </BaseModal>
         <BaseModal v-model:open="expenseOpen" :title="editingExpense ? t('events.detail.editExpense') : t('events.detail.newExpense')">
             <ExpenseForm :expense="editingExpense" :submit="submitExpense" @saved="onExpenseSaved" @cancel="expenseOpen = false" />
+        </BaseModal>
+        <BaseModal v-model:open="restockOpen" :title="t('planning.restock.prepare')">
+            <RestockForm v-if="event" :event="event" @saved="onRestockSaved" @cancel="restockOpen = false" />
         </BaseModal>
         <BaseModal v-model:open="donationOpen" :title="t('events.detail.newDonation')">
             <DonationForm :submit="receiveDonation" @saved="onDonationSaved" @cancel="donationOpen = false" />

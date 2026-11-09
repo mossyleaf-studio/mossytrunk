@@ -57,7 +57,42 @@
             "late": "Nothing late.",
             "thisWeek": "Nothing to do this week.",
             "later": "Nothing planned later.",
-            "releases": "No upcoming releases."
+            "releases": "No upcoming releases.",
+            "restocks": "No upcoming restocks."
+        },
+        "restocks": "Upcoming restocks"
+    },
+    "restock": {
+        "prepare": "Prepare a restock",
+        "editTitle": "Edit the restock",
+        "form": {
+            "note": "Note",
+            "notePlaceholder": "E.g. holo stickers",
+            "moment": "Restock deadline",
+            "day": "Date",
+            "leadTime": "Order lead time (days)",
+            "leadTimeHint": "Pre-filled with the supplier's lead time.",
+            "submit": "Prepare"
+        },
+        "item": {
+            "title": "Order from {supplier}",
+            "orderBy": "Order by {day}",
+            "target": "For {day}",
+            "ordered": "Ordered",
+            "order": "Place the order",
+            "edit": "Edit the restock",
+            "cancel": "Delete the restock",
+            "cancelMessage": "The restock will be removed from the planning."
+        },
+        "states": {
+            "late": "Late",
+            "upcoming": "To order",
+            "done": "Ordered on {day}"
+        },
+        "toast": {
+            "planned": "Restock from {supplier} prepared.",
+            "revised": "Restock from {supplier} updated.",
+            "cancelled": "Restock from {supplier} deleted."
         }
     }
 }

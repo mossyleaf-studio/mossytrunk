@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Domain\Planning\Exception;
 
-use App\Domain\Shared\Exception\DomainException;
-
-abstract class InvalidRelease extends DomainException
+abstract class InvalidRelease extends InvalidPlanning
 {
 }

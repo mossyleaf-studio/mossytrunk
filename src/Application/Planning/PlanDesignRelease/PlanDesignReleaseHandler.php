@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Application\Planning\PlanDesignRelease;
 
 use App\Application\Planning\ReleasePlanning;
+use App\Application\Planning\TargetEvent;
 use App\Domain\Design\DesignRepository;
 use App\Domain\Planning\Exception\ReleaseAlreadyPlanned;
 use App\Domain\Planning\Release;
@@ -17,6 +18,7 @@ final readonly class PlanDesignReleaseHandler
         private ReleaseRepository $releases,
         private DesignRepository $designs,
         private ReleasePlanning $planning,
+        private TargetEvent $targetEvent,
     ) {
     }
 
@@ -27,6 +29,6 @@ final readonly class PlanDesignReleaseHandler
             throw new ReleaseAlreadyPlanned($design->name());
         }
 
-        return $this->planning->keep(Release::ofDesign($design, $command->day, $this->planning->event($command->eventId), $command->steps));
+        return $this->planning->keep(Release::ofDesign($design, $command->day, $this->targetEvent->of($command->eventId), $command->steps));
     }
 }

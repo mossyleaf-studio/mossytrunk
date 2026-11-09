@@ -24,7 +24,7 @@ final readonly class CreateSupplierHandler
     {
         $this->availability->assertNameFree($command->name);
 
-        $supplier = Supplier::create($this->workspace->current(), $command->name, $command->contact, $command->notes);
+        $supplier = Supplier::create($this->workspace->current(), $command->name, $command->contact, $command->notes, $command->leadDays);
         $this->suppliers->add($supplier);
         $this->transaction->commit();
 

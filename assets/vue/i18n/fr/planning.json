@@ -57,7 +57,42 @@
             "late": "Rien en retard.",
             "thisWeek": "Rien à faire cette semaine.",
             "later": "Rien de prévu plus tard.",
-            "releases": "Aucune sortie à venir."
+            "releases": "Aucune sortie à venir.",
+            "restocks": "Aucun réassort à venir."
+        },
+        "restocks": "Réassorts à venir"
+    },
+    "restock": {
+        "prepare": "Préparer un réassort",
+        "editTitle": "Modifier le réassort",
+        "form": {
+            "note": "Note",
+            "notePlaceholder": "Ex. stickers holo",
+            "moment": "Échéance du réassort",
+            "day": "Date",
+            "leadTime": "Délai de commande (jours)",
+            "leadTimeHint": "Pré-rempli avec le délai du fournisseur.",
+            "submit": "Préparer"
+        },
+        "item": {
+            "title": "Commander chez {supplier}",
+            "orderBy": "À commander avant le {day}",
+            "target": "Pour le {day}",
+            "ordered": "Commandé",
+            "order": "Passer la commande",
+            "edit": "Modifier le réassort",
+            "cancel": "Supprimer le réassort",
+            "cancelMessage": "Le réassort sera retiré du planning."
+        },
+        "states": {
+            "late": "En retard",
+            "upcoming": "À commander",
+            "done": "Commandé le {day}"
+        },
+        "toast": {
+            "planned": "Réassort chez {supplier} préparé.",
+            "revised": "Réassort chez {supplier} modifié.",
+            "cancelled": "Réassort chez {supplier} supprimé."
         }
     }
 }

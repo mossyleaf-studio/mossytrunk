@@ -32,13 +32,14 @@ const props = defineProps({
     order: { type: Object, default: null },
     products: { type: Array, required: true },
     suppliers: { type: Array, required: true },
+    supplierId: { type: String, default: '' },
     saveSupplier: { type: Function, required: true },
     submit: { type: Function, required: true },
     reloadProducts: { type: Function, required: true },
 });
 const emit = defineEmits(['saved', 'cancel']);
 
-const blank = () => ({ supplierId: '', orderedOn: localDay(), receivedOn: null, supplierReference: '', lines: [], discount: 0, deliveryFees: 0, currency: 'EUR', exchangeRate: 1 });
+const blank = () => ({ supplierId: props.supplierId, orderedOn: localDay(), receivedOn: null, supplierReference: '', lines: [], discount: 0, deliveryFees: 0, currency: 'EUR', exchangeRate: 1 });
 const fromOrder = (order) => ({
     supplierId: order.supplier.id,
     orderedOn: order.orderedOn,
@@ -85,6 +86,8 @@ const landed = computed(() => landedCosts(form.lines, discount.value, form.deliv
 const DRAFT_KEY = 'mossytrunk.supplier-order-draft';
 const DRAFT_DELAY = 300;
 const draftRestored = ref(false);
+const otherDraftKept = ref(false);
+const keepsDraft = () => !props.order && !otherDraftKept.value;
 let draftTimer = null;
 
 function readDraft() {
@@ -116,7 +119,11 @@ onMounted(() => {
     if (props.order) return;
     const draft = readDraft();
     if (!draft?.form?.lines?.length && !draft?.form?.supplierId) return;
-    Object.assign(form, { ...blank(), ...draft.form });
+    if (props.supplierId && draft.form.supplierId && draft.form.supplierId !== props.supplierId) {
+        otherDraftKept.value = true;
+        return;
+    }
+    Object.assign(form, { ...blank(), ...draft.form, supplierId: props.supplierId || draft.form.supplierId });
     adjustBy.value = draft.adjustBy ?? BY_DISCOUNT;
     paid.value = draft.paid ?? null;
     draftRestored.value = true;
@@ -133,13 +140,13 @@ function saveDraft() {
 }
 
 watch([form, adjustBy, paid], () => {
-    if (props.order) return;
+    if (!keepsDraft()) return;
     cancelDraftSave();
     draftTimer = setTimeout(saveDraft, DRAFT_DELAY);
 }, { deep: true });
 
 onBeforeUnmount(() => {
-    if (draftTimer !== null) saveDraft();
+    if (draftTimer !== null && keepsDraft()) saveDraft();
 });
 
 const dollars = computed(() => form.currency === 'USD');
@@ -177,8 +184,8 @@ async function onSubmit() {
             currency: form.currency,
             exchangeRate: dollars.value ? form.exchangeRate ?? 0 : 1,
         });
-        if (!props.order) {
-            cancelDraftSave();
+        cancelDraftSave();
+        if (keepsDraft()) {
             writeDraft(null);
         }
         emit('saved');
@@ -194,6 +201,7 @@ async function onSubmit() {
                 {{ t('purchasing.form.draftRestored') }}
                 <BaseButton variant="ghost" @click="discardDraft">{{ t('purchasing.form.draftDiscard') }}</BaseButton>
             </p>
+            <p v-if="otherDraftKept" class="supplier-order-form__draft" role="status">{{ t('purchasing.form.draftKept') }}</p>
 
             <FormSection>
                 <FormField as="group" :label="t('purchasing.form.supplier')" :error="errors.supplierId">

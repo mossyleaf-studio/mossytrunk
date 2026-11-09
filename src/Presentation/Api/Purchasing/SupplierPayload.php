@@ -17,16 +17,17 @@ final readonly class SupplierPayload
         #[Assert\Length(max: 255)]
         public ?string $contact = null,
         public ?string $notes = null,
+        public ?int $leadDays = null,
     ) {
     }
 
     public function toCreate(): CreateSupplier
     {
-        return new CreateSupplier($this->name, $this->contact, $this->notes);
+        return new CreateSupplier($this->name, $this->contact, $this->notes, $this->leadDays);
     }
 
     public function toUpdate(string $supplierId): UpdateSupplier
     {
-        return new UpdateSupplier($supplierId, $this->name, $this->contact, $this->notes);
+        return new UpdateSupplier($supplierId, $this->name, $this->contact, $this->notes, $this->leadDays);
     }
 }

@@ -34,19 +34,22 @@ class Supplier
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $notes = null;
 
-    private function __construct(Workspace $workspace, string $name, ?string $contact, ?string $notes)
+    #[ORM\Column(nullable: true)]
+    private ?int $leadDays = null;
+
+    private function __construct(Workspace $workspace, string $name, ?string $contact, ?string $notes, ?int $leadDays)
     {
         $this->id = new Ulid();
         $this->workspace = $workspace;
-        $this->describe($name, $contact, $notes);
+        $this->describe($name, $contact, $notes, $leadDays);
     }
 
-    public static function create(Workspace $workspace, string $name, ?string $contact = null, ?string $notes = null): self
+    public static function create(Workspace $workspace, string $name, ?string $contact = null, ?string $notes = null, ?int $leadDays = null): self
     {
-        return new self($workspace, $name, $contact, $notes);
+        return new self($workspace, $name, $contact, $notes, $leadDays);
     }
 
-    public function describe(string $name, ?string $contact, ?string $notes): void
+    public function describe(string $name, ?string $contact, ?string $notes, ?int $leadDays = null): void
     {
         $name = trim($name);
         if ('' === $name) {
@@ -56,6 +59,7 @@ class Supplier
         $this->name = $name;
         $this->contact = OptionalText::of($contact);
         $this->notes = OptionalText::of($notes);
+        $this->leadDays = null === $leadDays ? null : LeadTime::days($leadDays);
     }
 
     public function id(): Ulid
@@ -76,6 +80,11 @@ class Supplier
     public function notes(): ?string
     {
         return $this->notes;
+    }
+
+    public function leadDays(): ?int
+    {
+        return $this->leadDays;
     }
 
     public function workspace(): Workspace

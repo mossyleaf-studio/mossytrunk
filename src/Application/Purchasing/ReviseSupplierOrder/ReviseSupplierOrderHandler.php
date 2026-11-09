@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\Purchasing\ReviseSupplierOrder;
 
+use App\Application\Planning\OrderedRestocks;
 use App\Application\Purchasing\PurchasedItems;
 use App\Application\Purchasing\SupplierOrderDraft;
 use App\Application\Purchasing\SupplierOrderStock;
@@ -20,6 +21,7 @@ final readonly class ReviseSupplierOrderHandler
         private SupplierOrderRepository $orders,
         private PurchasedItems $items,
         private SupplierOrderStock $stock,
+        private OrderedRestocks $restocks,
         private Transaction $transaction,
     ) {
     }
@@ -40,6 +42,7 @@ final readonly class ReviseSupplierOrderHandler
             $order->redateReception($draft->receivedOn);
         }
         $this->stock->follow($order);
+        $this->restocks->follow($order);
         $this->transaction->commit();
     }
 }

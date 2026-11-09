@@ -32,6 +32,9 @@ use App\Application\Purchasing\ReceiveSupplierOrder\ReceiveSupplierOrderHandler;
 use App\Application\Purchasing\ReviseSupplierOrder\ReviseSupplierOrderHandler;
 use App\Application\Purchasing\SupplierOrderDraft;
 use App\Application\Purchasing\SupplierOrderView;
+use App\Application\Purchasing\SupplierView;
+use App\Application\Purchasing\UpdateSupplier\UpdateSupplier;
+use App\Application\Purchasing\UpdateSupplier\UpdateSupplierHandler;
 use App\Application\Sales\OfferSupplies\OfferSuppliesHandler;
 use App\Application\Stock\GetProductStock\GetProductStockHandler;
 use App\Domain\Product\ProductKind;
@@ -254,6 +257,21 @@ final class PurchasingUseCasesTest extends KernelTestCase
 
         self::getContainer()->get(DeleteSupplierOrderHandler::class)($orderId);
         self::assertSame([], self::getContainer()->get(ListSupplierOrdersHandler::class)());
+    }
+
+    public function testASupplierKeepsItsOptionalLeadTime(): void
+    {
+        $supplier = (string) self::getContainer()->get(CreateSupplierHandler::class)(new CreateSupplier('Cartonnerie', leadDays: 10))->id();
+        self::assertSame([10, null], array_map(static fn (SupplierView $view): ?int => $view->leadDays, self::getContainer()->get(ListSuppliersHandler::class)()));
+
+        $update = self::getContainer()->get(UpdateSupplierHandler::class);
+        $update(new UpdateSupplier($supplier, 'Cartonnerie', leadDays: 15));
+        $this->clear();
+        self::assertSame(15, self::getContainer()->get(ListSuppliersHandler::class)()[0]->leadDays);
+
+        $update(new UpdateSupplier($supplier, 'Cartonnerie'));
+        $this->clear();
+        self::assertNull(self::getContainer()->get(ListSuppliersHandler::class)()[0]->leadDays);
     }
 
     public function testSupplierNamesAreUniquePerWorkspace(): void

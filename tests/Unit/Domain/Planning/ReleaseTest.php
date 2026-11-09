@@ -7,11 +7,11 @@ namespace App\Tests\Unit\Domain\Planning;
 use App\Domain\Design\Design;
 use App\Domain\Design\DesignCollection;
 use App\Domain\Event\Event;
+use App\Domain\Planning\Exception\DayAndEvent;
+use App\Domain\Planning\Exception\DayOrEventMissing;
 use App\Domain\Planning\Exception\DuplicateStepLabel;
 use App\Domain\Planning\Exception\EmptyStepLabel;
 use App\Domain\Planning\Exception\NonPositiveStepDuration;
-use App\Domain\Planning\Exception\ReleaseDayAndEvent;
-use App\Domain\Planning\Exception\ReleaseWithoutDay;
 use App\Domain\Planning\Exception\UnknownStep;
 use App\Domain\Planning\Release;
 use App\Domain\Planning\ScheduledStep;
@@ -78,14 +78,14 @@ final class ReleaseTest extends TestCase
 
     public function testAReleaseNeedsADayOrAnEvent(): void
     {
-        $this->expectException(ReleaseWithoutDay::class);
+        $this->expectException(DayOrEventMissing::class);
 
         Release::ofCollection(DesignCollection::start(TestWorkspace::get(), 'Forêt'), null, null, self::STEPS);
     }
 
     public function testAReleaseCannotHaveBothADayAndAnEvent(): void
     {
-        $this->expectException(ReleaseDayAndEvent::class);
+        $this->expectException(DayAndEvent::class);
 
         Release::ofDesign(Design::start(TestWorkspace::get(), 'Renard'), BusinessTime::at('2026-07-09'), self::event('2026-07-09', '2026-07-12'), self::STEPS);
     }
@@ -106,7 +106,7 @@ final class ReleaseTest extends TestCase
     {
         $release = Release::ofCollection(DesignCollection::start(TestWorkspace::get(), 'Forêt'), BusinessTime::at('2026-07-09'), null, self::STEPS);
 
-        $this->expectException(ReleaseWithoutDay::class);
+        $this->expectException(DayOrEventMissing::class);
 
         $release->schedule(null, null);
     }

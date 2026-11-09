@@ -23,7 +23,7 @@ import { useToast } from '../composables/useToast.js';
 const { t } = useI18n();
 const { dashboard, load } = useDashboard();
 const { colors: typeColors, load: loadTypes } = useTypeColors();
-const { planning, load: loadPlanning, tick } = usePlanning();
+const { planning, load: loadPlanning, tickItem } = usePlanning();
 const dueSteps = computed(() => (planning.value ? [...planning.value.late, ...planning.value.thisWeek] : []));
 const isEmpty = computed(() => dashboard.value !== null && dashboard.value.byYear.length === 0 && dashboard.value.events.length === 0);
 const yearOptions = computed(() => (dashboard.value?.years ?? []).map((year) => ({ value: year, label: String(year) })));
@@ -42,8 +42,8 @@ const eventBars = computed(() => dashboard.value.events.map((event) => ({
     href: `/events/${event.id}`,
 })));
 
-async function onTick(step, done) {
-    await useToast().attempt(() => tick(step.release.id, step.label, done));
+async function onTick(item, done) {
+    await useToast().attempt(() => tickItem(item, done));
     await loadPlanning();
 }
 

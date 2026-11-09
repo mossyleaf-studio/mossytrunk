@@ -24,7 +24,7 @@ final readonly class UpdateSupplierHandler
         $supplier = $this->suppliers->get(Ulid::fromString($command->supplierId));
         $this->availability->assertNameFree($command->name, $supplier);
 
-        $supplier->describe($command->name, $command->contact, $command->notes);
+        $supplier->describe($command->name, $command->contact, $command->notes, $command->leadDays);
         $this->transaction->commit();
 
         return $supplier;

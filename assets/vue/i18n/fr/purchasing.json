@@ -96,6 +96,7 @@
         "discountFromPaid": "Remise déduite",
         "draftRestored": "Commande reprise là où vous l'aviez laissée.",
         "draftDiscard": "Repartir de zéro",
+        "draftKept": "Votre brouillon chez un autre fournisseur est gardé pour plus tard.",
         "receivedOn": "Reçue le",
         "currency": "Devise",
         "currencies": {
@@ -140,7 +141,10 @@
         "contact": "Contact",
         "contactPlaceholder": "E-mail, téléphone, site…",
         "notes": "Notes",
-        "add": "Ajouter le fournisseur"
+        "add": "Ajouter le fournisseur",
+        "leadTime": "Délai de commande (jours)",
+        "leadTimeHint": "Pré-remplit le délai des réassorts préparés chez ce fournisseur.",
+        "leadTimeOf": "Délai de commande : {n} jour | Délai de commande : {n} jours"
     },
     "supplierSelect": {
         "new": "Nouveau fournisseur…",

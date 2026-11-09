@@ -3,6 +3,7 @@ import { reactive, ref } from 'vue';
 import { Pencil } from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
 import BaseButton from '../ui/BaseButton.vue';
+import BaseNumberField from '../ui/BaseNumberField.vue';
 import EditableList from '../ui/EditableList.vue';
 import EmptyState from '../ui/EmptyState.vue';
 import FormActions from '../ui/FormActions.vue';
@@ -20,18 +21,18 @@ const props = defineProps({
 const emit = defineEmits(['saved']);
 
 const editingId = ref(null);
-const form = reactive({ name: '', contact: '', notes: '' });
+const form = reactive({ name: '', contact: '', notes: '', leadDays: null });
 const { saving, errors, run } = useFormSubmit('name');
 
 function edit(supplier) {
     editingId.value = supplier?.id ?? null;
-    Object.assign(form, { name: supplier?.name ?? '', contact: supplier?.contact ?? '', notes: supplier?.notes ?? '' });
+    Object.assign(form, { name: supplier?.name ?? '', contact: supplier?.contact ?? '', notes: supplier?.notes ?? '', leadDays: supplier?.leadDays ?? null });
     errors.value = {};
 }
 
 async function onSubmit() {
     await run(async () => {
-        await props.save(editingId.value, { ...form });
+        await props.save(editingId.value, { ...form, leadDays: form.leadDays || null });
         emit('saved', form.name);
         edit(null);
     });
@@ -46,6 +47,7 @@ async function onSubmit() {
                 <div>
                     <strong>{{ supplier.name }}</strong>
                     <span v-if="supplier.contact" class="supplier-manager__contact">{{ supplier.contact }}</span>
+                    <span v-if="supplier.leadDays" class="supplier-manager__contact">{{ t('purchasing.suppliers.leadTimeOf', supplier.leadDays) }}</span>
                     <p v-if="supplier.notes" class="supplier-manager__notes">{{ supplier.notes }}</p>
                 </div>
                 <IconButton :icon="Pencil" :label="t('purchasing.suppliers.edit', { name: supplier.name })" @click="edit(supplier)" />
@@ -60,6 +62,9 @@ async function onSubmit() {
                     </FormField>
                     <FormField :label="t('purchasing.suppliers.contact')" :error="errors.contact" optional>
                         <input v-model="form.contact" type="text" :placeholder="t('purchasing.suppliers.contactPlaceholder')">
+                    </FormField>
+                    <FormField as="group" :label="t('purchasing.suppliers.leadTime')" :error="errors.leadDays" :hint="t('purchasing.suppliers.leadTimeHint')" optional>
+                        <BaseNumberField v-model="form.leadDays" :min="1" :label="t('purchasing.suppliers.leadTime')" class="control--short" />
                     </FormField>
                     <FormField :label="t('purchasing.suppliers.notes')" :error="errors.notes" optional>
                         <textarea v-model="form.notes" rows="2" />

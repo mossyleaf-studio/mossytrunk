@@ -10,6 +10,7 @@ final readonly class CreateSupplier
         public string $name,
         public ?string $contact = null,
         public ?string $notes = null,
+        public ?int $leadDays = null,
     ) {
     }
 }
