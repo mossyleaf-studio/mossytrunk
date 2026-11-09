@@ -16,8 +16,11 @@ import BaseSwitch from '../components/ui/BaseSwitch.vue';
 import ChoiceGroup from '../components/ui/ChoiceGroup.vue';
 import GabaritManager from '../components/designs/GabaritManager.vue';
 import WorkbenchCard from '../components/designs/WorkbenchCard.vue';
+import ReleaseForm from '../components/planning/ReleaseForm.vue';
+import ReleaseTimeline from '../components/planning/ReleaseTimeline.vue';
 import { DESIGN_STATUSES, useDesignFilters } from '../composables/useDesignFilters.js';
 import { useDesignBoard, useGabarits } from '../composables/useDesigns.js';
+import { releaseOf, usePlanning } from '../composables/usePlanning.js';
 import { useProductTypes } from '../composables/useProductTypes.js';
 import { visit } from '../composables/useNavigation.js';
 import { useToast } from '../composables/useToast.js';
@@ -25,6 +28,7 @@ import { useToast } from '../composables/useToast.js';
 const { board, load, createDesign, saveCollection, removeCollection, workOnCollection, validateCollection } = useDesignBoard();
 const { gabarits, load: loadGabarits, save: saveGabarit, remove: removeGabarit } = useGabarits();
 const { load: loadTypes } = useProductTypes();
+const { planning, load: loadPlanning, cancel: cancelRelease, tick: tickRelease } = usePlanning();
 const toast = useToast();
 const { t } = useI18n();
 
@@ -33,10 +37,12 @@ const designCollectionId = ref('');
 const collectionOpen = ref(false);
 const editingCollection = ref(null);
 const gabaritsOpen = ref(false);
+const releaseOpen = ref(false);
 
 const filters = useDesignFilters(board);
 const collections = computed(() => board.value?.collections ?? []);
 const { selected, allDesigns, onBench } = filters;
+const collectionRelease = computed(() => (selected.value?.collection ? releaseOf(planning.value, 'collection', selected.value.collection.id) : null));
 const shelfName = (shelf) => shelf.collection?.name ?? t('designs.noCollection');
 const emptyShelf = computed(() => {
     if (filters.searching.value) return t('designs.shelf.nothingFound');
@@ -95,7 +101,23 @@ async function onGabaritSaved(name) {
     await Promise.all([loadGabarits(), loadTypes()]);
 }
 
-onMounted(() => Promise.all([load(), loadGabarits(), loadTypes()]));
+async function onReleaseSaved(collection) {
+    const planned = !collectionRelease.value;
+    releaseOpen.value = false;
+    toast.success(t(planned ? 'planning.toast.planned' : 'planning.toast.replanned', { name: collection.name }));
+    await loadPlanning();
+}
+
+async function onReleaseCancelled(collection, release) {
+    if (await toast.attempt(() => cancelRelease(release.id), t('planning.toast.cancelled', { name: collection.name }))) await loadPlanning();
+}
+
+async function onStepTicked(release, step, done) {
+    await toast.attempt(() => tickRelease(release.id, step, done));
+    await loadPlanning();
+}
+
+onMounted(() => Promise.all([load(), loadGabarits(), loadTypes(), loadPlanning()]));
 </script>
 
 <template>
@@ -160,6 +182,15 @@ onMounted(() => Promise.all([load(), loadGabarits(), loadTypes()]));
                         <EmptyState v-if="filters.groups.value.length === 0">{{ emptyShelf }}</EmptyState>
                     </template>
 
+                    <ReleaseTimeline
+                        v-if="collectionRelease"
+                        :release="collectionRelease"
+                        editable
+                        @tick="(step, done) => onStepTicked(collectionRelease, step, done)"
+                        @edit="releaseOpen = true"
+                        @cancel="onReleaseCancelled(selected.collection, collectionRelease)"
+                    />
+
                     <footer v-if="selected" class="actions-row">
                         <template v-if="selected.collection">
                             <ConfirmButton
@@ -169,6 +200,7 @@ onMounted(() => Promise.all([load(), loadGabarits(), loadTypes()]));
                                 @confirm="onRemoveCollection(selected.collection)"
                             />
                             <BaseButton variant="ghost" @click="openCollection(selected.collection)">{{ t('common.edit') }}</BaseButton>
+                            <BaseButton v-if="!collectionRelease" variant="secondary" @click="releaseOpen = true">{{ t('planning.form.planTitle') }}</BaseButton>
                         </template>
                         <BaseButton variant="secondary" @click="newDesign(selected.collection?.id ?? '')">{{ t('designs.page.addDesign') }}</BaseButton>
                         <ConfirmButton
@@ -189,6 +221,15 @@ onMounted(() => Promise.all([load(), loadGabarits(), loadTypes()]));
         </BaseModal>
         <BaseModal v-model:open="collectionOpen" :title="editingCollection ? t('designs.page.editCollection') : t('designs.page.newCollection')">
             <CollectionForm :collection="editingCollection" :submit="(payload) => saveCollection(editingCollection?.id, payload)" @saved="onCollectionSaved" @cancel="collectionOpen = false" />
+        </BaseModal>
+        <BaseModal v-model:open="releaseOpen" :title="collectionRelease ? t('planning.form.editTitle') : t('planning.form.planTitle')">
+            <ReleaseForm
+                v-if="selected?.collection"
+                :owner="{ kind: 'collection', id: selected.collection.id }"
+                :release="collectionRelease"
+                @saved="onReleaseSaved(selected.collection)"
+                @cancel="releaseOpen = false"
+            />
         </BaseModal>
         <BaseModal v-model:open="gabaritsOpen" :title="t('designs.page.gabarits')">
             <GabaritManager :gabarits="gabarits" :save="saveGabarit" :remove="removeGabarit" @saved="onGabaritSaved" @removed="onGabaritRemoved" />

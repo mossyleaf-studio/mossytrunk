@@ -10,16 +10,21 @@ import EmptyState from '../components/ui/EmptyState.vue';
 import BestSellers from '../components/dashboard/BestSellers.vue';
 import MonthlyResultChart from '../components/dashboard/MonthlyResultChart.vue';
 import ResultsTable from '../components/dashboard/ResultsTable.vue';
+import PlanningSteps from '../components/planning/PlanningSteps.vue';
 import ResultBars from '../components/reporting/ResultBars.vue';
 import ResultReceipt from '../components/reporting/ResultReceipt.vue';
 import { monthName, useDashboard } from '../composables/useDashboard.js';
 import { resultLines } from '../composables/useResultLines.js';
 import { useTypeColors } from '../composables/useTypeColor.js';
 import { formatDate } from '../composables/useDate.js';
+import { usePlanning } from '../composables/usePlanning.js';
+import { useToast } from '../composables/useToast.js';
 
 const { t } = useI18n();
 const { dashboard, load } = useDashboard();
 const { colors: typeColors, load: loadTypes } = useTypeColors();
+const { planning, load: loadPlanning, tick } = usePlanning();
+const dueSteps = computed(() => (planning.value ? [...planning.value.late, ...planning.value.thisWeek] : []));
 const isEmpty = computed(() => dashboard.value !== null && dashboard.value.byYear.length === 0 && dashboard.value.events.length === 0);
 const yearOptions = computed(() => (dashboard.value?.years ?? []).map((year) => ({ value: year, label: String(year) })));
 
@@ -37,7 +42,12 @@ const eventBars = computed(() => dashboard.value.events.map((event) => ({
     href: `/events/${event.id}`,
 })));
 
-onMounted(() => Promise.all([load(), loadTypes()]));
+async function onTick(step, done) {
+    await useToast().attempt(() => tick(step.release.id, step.label, done));
+    await loadPlanning();
+}
+
+onMounted(() => Promise.all([load(), loadTypes(), loadPlanning()]));
 </script>
 
 <template>
@@ -45,6 +55,11 @@ onMounted(() => Promise.all([load(), loadTypes()]));
         <template #actions>
             <BaseSelect v-if="dashboard && !isEmpty" :model-value="dashboard.year" :options="yearOptions" size="small" :aria-label="t('dashboard.year')" @update:model-value="load" />
         </template>
+
+        <BaseCard v-if="dueSteps.length" class="dashboard-page__planning" :title="t('dashboard.planning.title')">
+            <template #actions><a href="/planning">{{ t('dashboard.planning.see') }}</a></template>
+            <PlanningSteps :steps="dueSteps" @tick="onTick" />
+        </BaseCard>
 
         <section v-if="isEmpty" class="dashboard-page__welcome" aria-labelledby="dashboard-welcome">
             <h2 id="dashboard-welcome" class="dashboard-page__welcome-title">{{ t('dashboard.welcome.title') }}</h2>
@@ -114,6 +129,7 @@ onMounted(() => Promise.all([load(), loadTypes()]));
 </template>
 
 <style scoped>
+.dashboard-page__planning { margin-bottom: var(--space-5); }
 .dashboard-page { display: flex; flex-direction: column; gap: var(--space-5); }
 .dashboard-page__pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(22rem, 100%), 1fr)); gap: var(--space-5); align-items: start; }
 .dashboard-page__check {

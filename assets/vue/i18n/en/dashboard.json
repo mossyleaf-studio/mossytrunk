@@ -62,5 +62,9 @@
         "hideEmpty": "Hide months without activity",
         "showAll": "Show all {count} months",
         "sellingCosts": "Selling costs"
+    },
+    "planning": {
+        "title": "Planning",
+        "see": "See the planning"
     }
 }

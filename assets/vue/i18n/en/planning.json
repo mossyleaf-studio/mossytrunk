@@ -1,0 +1,63 @@
+{
+    "steps": {
+        "label": "Step {n} name",
+        "days": "Step {n} days",
+        "unit": "day | days",
+        "moveUp": "Move step {n} up",
+        "moveDown": "Move step {n} down",
+        "remove": "Remove step {n}",
+        "add": "Add a step",
+        "empty": "No steps."
+    },
+    "form": {
+        "planTitle": "Plan the release",
+        "editTitle": "Edit the release",
+        "moment": "Release moment",
+        "onDay": "A date",
+        "onEvent": "An event",
+        "day": "Release date",
+        "event": "Event",
+        "noEvent": "No upcoming event.",
+        "steps": "Steps",
+        "stepsHint": "In order: the last step ends the day before the release.",
+        "plan": "Plan"
+    },
+    "timeline": {
+        "label": "Release planning",
+        "releaseOn": "Release on {day}",
+        "edit": "Edit the release",
+        "cancel": "Cancel the release",
+        "cancelMessage": "The planning and its ticked steps will be deleted.",
+        "noSteps": "No steps to prepare."
+    },
+    "states": {
+        "done": "Done",
+        "late": "Late",
+        "ongoing": "Ongoing",
+        "upcoming": "Upcoming"
+    },
+    "toast": {
+        "planned": "Release of “{name}” planned.",
+        "replanned": "Release of “{name}” updated.",
+        "cancelled": "Release of “{name}” cancelled."
+    },
+    "design": {
+        "inherited": "Release of the collection {name}",
+        "planApart": "Plan this design separately"
+    },
+    "page": {
+        "title": "Planning",
+        "groups": {
+            "late": "Late",
+            "thisWeek": "This week",
+            "later": "Later"
+        },
+        "releases": "Upcoming releases",
+        "empty": {
+            "late": "Nothing late.",
+            "thisWeek": "Nothing to do this week.",
+            "later": "Nothing planned later.",
+            "releases": "No upcoming releases."
+        }
+    }
+}

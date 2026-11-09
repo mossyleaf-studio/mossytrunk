@@ -12,8 +12,11 @@ import StatusBadge from '../components/ui/StatusBadge.vue';
 import BackLink from '../components/ui/BackLink.vue';
 import DeclinationCard from '../components/designs/DeclinationCard.vue';
 import DesignForm from '../components/designs/DesignForm.vue';
+import ReleaseForm from '../components/planning/ReleaseForm.vue';
+import ReleaseTimeline from '../components/planning/ReleaseTimeline.vue';
 import { useDesign, useDesignBoard, useDesignProgress, useGabarits } from '../composables/useDesigns.js';
 import { formatDateTime } from '../composables/useDate.js';
+import { ownerUrl, useDesignRelease, usePlanning } from '../composables/usePlanning.js';
 import { useProductTypes } from '../composables/useProductTypes.js';
 import { visit } from '../composables/useNavigation.js';
 import { listUrl } from '../composables/useQueryState.js';
@@ -27,9 +30,13 @@ const { design, load, update, remove, workOn, decline, adjust, withdraw, tick, v
 const { board, load: loadBoard } = useDesignBoard();
 const { gabarits, load: loadGabarits } = useGabarits();
 const { load: loadTypes } = useProductTypes();
+const { designRelease, load: loadRelease } = useDesignRelease(props.designId);
+const { cancel: cancelRelease, tick: tickRelease } = usePlanning();
 const toast = useToast();
 const { t } = useI18n();
 const editOpen = ref(false);
+const releaseOpen = ref(false);
+const ownRelease = computed(() => (designRelease.value?.inherited ? null : designRelease.value?.release ?? null));
 
 const validated = computed(() => design.value?.status === 'validated');
 const available = computed(() => gabarits.value.filter((gabarit) => !design.value?.declinations.some((d) => d.gabarit.id === gabarit.id)));
@@ -65,10 +72,26 @@ async function onRemove() {
 async function onSaved({ name }) {
     editOpen.value = false;
     toast.success(t('designs.detail.updated', { name }));
-    await load();
+    await Promise.all([load(), loadRelease()]);
 }
 
-onMounted(() => Promise.all([load(), loadGabarits(), loadBoard(), loadTypes()]));
+async function onReleaseSaved() {
+    const planned = !ownRelease.value;
+    releaseOpen.value = false;
+    toast.success(t(planned ? 'planning.toast.planned' : 'planning.toast.replanned', { name: design.value.name }));
+    await loadRelease();
+}
+
+async function onReleaseCancelled() {
+    if (await toast.attempt(() => cancelRelease(ownRelease.value.id), t('planning.toast.cancelled', { name: design.value.name }))) await loadRelease();
+}
+
+async function onStepTicked(step, done) {
+    await toast.attempt(() => tickRelease(ownRelease.value.id, step, done));
+    await loadRelease();
+}
+
+onMounted(() => Promise.all([load(), loadGabarits(), loadBoard(), loadTypes(), loadRelease()]));
 </script>
 
 <template>
@@ -98,6 +121,19 @@ onMounted(() => Promise.all([load(), loadGabarits(), loadBoard(), loadTypes()]))
             </div>
             <p v-if="design.notes" class="design-page__notes">{{ design.notes }}</p>
 
+            <div v-if="designRelease" class="design-page__release">
+                <template v-if="designRelease.inherited">
+                    <p class="design-page__inherited">
+                        <i18n-t keypath="planning.design.inherited" scope="global"><template #name><a :href="ownerUrl(designRelease.release.owner)">{{ designRelease.release.owner.name }}</a></template></i18n-t>
+                    </p>
+                    <ReleaseTimeline :release="designRelease.release" readonly />
+                </template>
+                <ReleaseTimeline v-else-if="ownRelease" :release="ownRelease" editable @tick="onStepTicked" @edit="releaseOpen = true" @cancel="onReleaseCancelled" />
+                <div v-if="!ownRelease" class="design-page__release-actions">
+                    <BaseButton variant="secondary" @click="releaseOpen = true">{{ designRelease.inherited ? t('planning.design.planApart') : t('planning.form.planTitle') }}</BaseButton>
+                </div>
+            </div>
+
             <div class="design-page__decline">
                 <span class="design-page__decline-label">{{ t('designs.detail.declineOn') }}</span>
                 <BaseButton v-for="gabarit in available" :key="gabarit.id" variant="secondary" @click="onDecline(gabarit)">
@@ -121,6 +157,9 @@ onMounted(() => Promise.all([load(), loadGabarits(), loadBoard(), loadTypes()]))
             </div>
         </div>
 
+        <BaseModal v-model:open="releaseOpen" :title="ownRelease ? t('planning.form.editTitle') : t('planning.form.planTitle')">
+            <ReleaseForm :owner="{ kind: 'design', id: designId }" :release="ownRelease" @saved="onReleaseSaved" @cancel="releaseOpen = false" />
+        </BaseModal>
         <BaseModal v-model:open="editOpen" :title="t('designs.detail.editTitle')">
             <DesignForm v-if="design" :design="design" :collections="board?.collections ?? []" :submit="update" @saved="onSaved" @cancel="editOpen = false" />
         </BaseModal>
@@ -132,6 +171,9 @@ onMounted(() => Promise.all([load(), loadGabarits(), loadBoard(), loadTypes()]))
 .design-page__meta { display: flex; align-items: center; gap: var(--space-4); color: var(--color-muted); }
 .design-page__bench { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--color-text); font-size: var(--font-size-md); }
 .design-page__notes { max-width: 45rem; margin: 0; white-space: pre-line; }
+.design-page__release { display: flex; flex-direction: column; gap: var(--space-2); max-width: 45rem; }
+.design-page__inherited { margin: 0; color: var(--color-muted); }
+.design-page__release-actions { display: flex; justify-content: flex-start; }
 .design-page__decline { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
 .design-page__decline-label { font-weight: 600; }
 .design-page__hint { color: var(--color-muted); font-size: var(--font-size-md); }

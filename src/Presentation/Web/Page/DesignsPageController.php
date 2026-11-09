@@ -19,6 +19,6 @@ final readonly class DesignsPageController
 
     public function __invoke(): Response
     {
-        return $this->page->render('DesignsPage', 'designs', preload: ['/api/designs', '/api/gabarits', '/api/product-types']);
+        return $this->page->render('DesignsPage', 'designs', preload: ['/api/designs', '/api/gabarits', '/api/product-types', '/api/planning']);
     }
 }

@@ -23,6 +23,8 @@ use App\Domain\Integration\UnknownItems;
 use App\Domain\Order\Order;
 use App\Domain\Order\OrderedItem;
 use App\Domain\Order\PaymentMethod;
+use App\Domain\Planning\Release;
+use App\Domain\Planning\ReleaseTemplate;
 use App\Domain\Product\Product;
 use App\Domain\Product\ProductType;
 use App\Domain\Purchasing\PurchasedItem;
@@ -179,7 +181,7 @@ final class ConventionSeasonStory extends Story
         ]));
 
         $this->purchase($prints, $others[0]);
-        $this->designs($sticker, $print, $stickers[0]);
+        $this->designs($sticker, $print, $stickers[0], $events[3]);
         $this->etsy($stickers, $prints[0]);
 
         $this->entityManager->flush();
@@ -266,7 +268,7 @@ final class ConventionSeasonStory extends Story
         $this->entityManager->persist(ExternalItem::seen($this->workspace, 'etsy', '1500000042', 'Tote bag brodé mousse forestière — coton bio', 'Noir', new \DateTimeImmutable('-6 days')));
     }
 
-    private function designs(ProductType $sticker, ProductType $print, Product $moss): void
+    private function designs(ProductType $sticker, ProductType $print, Product $moss, Event $upcoming): void
     {
         $square = $this->gabarit('Tirage 15×15', $print, 1_200, [], ['Recadrage carré', 'Fond perdu 3 mm', 'Profil couleur CMJN']);
         $glossy = $this->gabarit('Sticker brillant', $sticker, 400, [], ['Détourage', 'Contour de découpe']);
@@ -281,6 +283,18 @@ final class ConventionSeasonStory extends Story
         $cepeSticker = $cepe->decline($glossy);
         $cepe->tick($cepeSticker->id(), 'Détourage', true);
         $cepe->tick($cepeSticker->id(), 'Contour de découpe', true);
+
+        $steps = [
+            ['label' => 'Finaliser les fichiers', 'days' => 3],
+            ['label' => 'Commander l\'impression', 'days' => 10],
+            ['label' => 'Contrôler et conditionner', 'days' => 2],
+            ['label' => 'Photos et annonce', 'days' => 2],
+        ];
+        $template = ReleaseTemplate::of($this->workspace);
+        $template->define($steps);
+        $this->persisted($template);
+        $steps[0]['done'] = true;
+        $this->persisted(Release::ofCollection($undergrowth, null, $upcoming, $steps));
 
         $this->persisted(Design::start($this->workspace, 'Héron', null, 'Idée de la brocante de Lyon.'))->workOn(false);
         $this->persisted(Design::fromProduct($this->workspace, $moss, $glossy, $undergrowth, new \DateTimeImmutable('-30 days')));

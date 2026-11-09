@@ -35,6 +35,12 @@
             "unavailable": "Complete the access details for {label} first."
         }
     },
+    "releaseSteps": {
+        "title": "Release steps",
+        "intro": "The steps of your work before a release, in order, with their duration. They pre-fill each new release, which you can then adjust.",
+        "save": "Save the steps",
+        "saved": "Release steps saved."
+    },
     "references": {
         "title": "References",
         "intro": "Choose how MossyTrunk numbers your orders, supplier orders and products. A format mixes your own text with tags replaced at each creation.",

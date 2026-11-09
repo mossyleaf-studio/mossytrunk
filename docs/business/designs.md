@@ -11,7 +11,7 @@ Once every declination is ready, **validating** the design creates one product p
 | `Design` | Name, optional collection, notes, status `in_progress` / `validated`, « sur l'établi » flag, validation date |
 | `Declination` | Design × gabarit: product name (defaults to the design name), selling price and variants (default to the gabarit's; any of the type's variants can be ticked or unticked, e.g. no A4 for this design), its adaptations (copied from the gabarit when declined) and the ones done, the product created at validation |
 
-Model: `src/Domain/Design/`.
+Model: `src/Domain/Design/`. A collection or a design can get a release date or event with dated steps: see [planning.md](planning.md).
 
 ## Rules
 

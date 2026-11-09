@@ -1,0 +1,63 @@
+{
+    "steps": {
+        "label": "Nom de l'étape {n}",
+        "days": "Jours de l'étape {n}",
+        "unit": "jour | jours",
+        "moveUp": "Monter l'étape {n}",
+        "moveDown": "Descendre l'étape {n}",
+        "remove": "Retirer l'étape {n}",
+        "add": "Ajouter une étape",
+        "empty": "Aucune étape."
+    },
+    "form": {
+        "planTitle": "Planifier la sortie",
+        "editTitle": "Modifier la sortie",
+        "moment": "Moment de la sortie",
+        "onDay": "Une date",
+        "onEvent": "Un événement",
+        "day": "Date de sortie",
+        "event": "Événement",
+        "noEvent": "Aucun événement à venir.",
+        "steps": "Étapes",
+        "stepsHint": "Dans l'ordre : la dernière étape se termine la veille de la sortie.",
+        "plan": "Planifier"
+    },
+    "timeline": {
+        "label": "Planning de sortie",
+        "releaseOn": "Sortie le {day}",
+        "edit": "Modifier la sortie",
+        "cancel": "Annuler la sortie",
+        "cancelMessage": "Le planning et ses étapes cochées seront supprimés.",
+        "noSteps": "Aucune étape à préparer."
+    },
+    "states": {
+        "done": "Fait",
+        "late": "En retard",
+        "ongoing": "En cours",
+        "upcoming": "À venir"
+    },
+    "toast": {
+        "planned": "Sortie de « {name} » planifiée.",
+        "replanned": "Sortie de « {name} » modifiée.",
+        "cancelled": "Sortie de « {name} » annulée."
+    },
+    "design": {
+        "inherited": "Sortie de la collection {name}",
+        "planApart": "Planifier ce design à part"
+    },
+    "page": {
+        "title": "Planning",
+        "groups": {
+            "late": "En retard",
+            "thisWeek": "Cette semaine",
+            "later": "Plus tard"
+        },
+        "releases": "Sorties à venir",
+        "empty": {
+            "late": "Rien en retard.",
+            "thisWeek": "Rien à faire cette semaine.",
+            "later": "Rien de prévu plus tard.",
+            "releases": "Aucune sortie à venir."
+        }
+    }
+}

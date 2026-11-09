@@ -11,6 +11,7 @@ import ConnectedServices from '../components/settings/ConnectedServices.vue';
 import ServiceModal from '../components/settings/ServiceModal.vue';
 import ReferenceFormats from '../components/settings/ReferenceFormats.vue';
 import ReferenceFormatForm from '../components/settings/ReferenceFormatForm.vue';
+import ReleaseStepsForm from '../components/settings/ReleaseStepsForm.vue';
 import ExternalItemLinker from '../components/import/ExternalItemLinker.vue';
 import ImportProblem from '../components/import/ImportProblem.vue';
 import BaseModal from '../components/ui/BaseModal.vue';
@@ -21,6 +22,7 @@ import { useToast } from '../composables/useToast.js';
 import { isReady, useServices } from '../composables/useServices.js';
 import { useSession } from '../composables/useSession.js';
 import { useReferenceFormats } from '../composables/useReferenceFormats.js';
+import { useReleaseTemplate } from '../composables/useReleaseTemplate.js';
 
 const { t } = useI18n();
 
@@ -28,6 +30,7 @@ const session = useSession();
 const services = useServices();
 const toast = useToast();
 const references = useReferenceFormats();
+const releaseTemplate = useReleaseTemplate();
 const { articles: products, load: loadProducts } = useProducts();
 const importers = shallowRef([]);
 const importerOf = (service) => importers.value.find((importer) => importer.service.key === service.key);
@@ -147,7 +150,7 @@ const onRemove = (service) => run(() => services.remove(service.key), t('setting
 const onDisconnect = (service) => run(() => services.disconnect(service.key), t('settings.services.disconnected', { label: service.label }));
 
 onMounted(async () => {
-    await Promise.all([loadServices(), references.load(), loadProducts()]);
+    await Promise.all([loadServices(), references.load(), releaseTemplate.load(), loadProducts()]);
     announceConnectionOutcome();
 });
 </script>
@@ -188,6 +191,15 @@ onMounted(async () => {
             <BaseCard :title="t('settings.references.title')">
                 <p class="settings-page__intro">{{ t('settings.references.intro') }}</p>
                 <ReferenceFormats :formats="references.formats.value" @edit="openFormat" />
+            </BaseCard>
+            <BaseCard :title="t('settings.releaseSteps.title')">
+                <p class="settings-page__intro">{{ t('settings.releaseSteps.intro') }}</p>
+                <ReleaseStepsForm
+                    v-if="releaseTemplate.template.value"
+                    :steps="releaseTemplate.template.value.steps"
+                    :submit="releaseTemplate.define"
+                    @saved="toast.success(t('settings.releaseSteps.saved'))"
+                />
             </BaseCard>
             <BaseCard :title="t('settings.appearance.title')">
                 <p class="settings-page__intro">{{ t('settings.appearance.intro') }}</p>

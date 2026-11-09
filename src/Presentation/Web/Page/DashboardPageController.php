@@ -19,6 +19,6 @@ final readonly class DashboardPageController
 
     public function __invoke(): Response
     {
-        return $this->page->render('DashboardPage', 'dashboard', preload: ['/api/dashboard', '/api/product-types']);
+        return $this->page->render('DashboardPage', 'dashboard', preload: ['/api/dashboard', '/api/product-types', '/api/planning']);
     }
 }

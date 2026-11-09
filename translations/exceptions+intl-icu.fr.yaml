@@ -86,6 +86,14 @@ order:
     no_event_on_date: 'Aucun événement le {date, date, short}. Créez d''abord l''événement correspondant.'
     outside_event: 'La date de la commande ({date, date, short} {date, time, short}) doit être comprise dans les dates de l''événement « {event} ».'
     split_worth_less: 'Les produits choisis valent {worth, number, ::currency/EUR}, moins que les {paid, number, ::currency/EUR} payés pour « {label} » : ajoutez-en ou choisissez-en d''autres.'
+planning:
+    duplicate_step_label: 'L''étape « {step} » est en double.'
+    empty_step_label: 'Une étape a besoin d''un nom.'
+    non_positive_step_duration: 'L''étape « {step} » dure au moins 1 jour.'
+    release_already_planned: 'La sortie de « {name} » est déjà planifiée.'
+    release_day_and_event: 'Choisissez une date ou un événement de sortie, pas les deux.'
+    release_without_day: 'Choisissez une date ou un événement de sortie.'
+    unknown_step: 'Étape inconnue « {step} ».'
 product:
     type_still_used: 'Le type « {type} » est encore utilisé par {products, plural, =0 {aucun produit} one {# produit} other {# produits}} et {gabarits, plural, =0 {aucun gabarit} one {# gabarit} other {# gabarits}} : changez leur type, ou archivez-le plutôt.'
     variant_choice_missing: '« {product} » doit avoir au moins une variante du type « {type} ».'
@@ -147,7 +155,7 @@ shared:
     date_range_ends_before_start: 'La date de fin doit être postérieure ou égale à la date de début.'
     negative_amount: '{subject, select, price {Le prix ne peut pas être négatif.} paid_price {Le prix payé ne peut pas être négatif.} selling_price {Le prix de vente ne peut pas être négatif.} buying_price {Le prix d''achat ne peut pas être négatif.} overall_discount {La remise globale ne peut pas être négative.} delivery_cost {Les frais de livraison ne peuvent pas être négatifs.} channel_cost {Un frais de canal ne peut pas être négatif.} payment_fee {Les frais de paiement ne peuvent pas être négatifs.} other {Le montant ne peut pas être négatif.}}'
     non_positive_amount: '{subject, select, price {Le prix doit être supérieur à zéro.} discount {La remise doit être supérieure à zéro.} expense_amount {Le montant de la dépense doit être supérieur à zéro.} donation_amount {Le montant du don doit être supérieur à zéro.} other {Le montant doit être supérieur à zéro.}}'
-    not_found: '{subject, select, external_item {Article} order {Commande} supplier_order {Commande fournisseur} product {Produit} product_type {Type de produit} price {Prix} discount {Remise} supplier {Fournisseur} stock_check {Inventaire} stock_check_line {Ligne d''inventaire} design {Design} adaptation {Déclinaison} template {Gabarit} collection {Collection} sales_channel {Canal de vente} event {Événement} workspace {Espace de travail} user {Utilisateur} service {Service} other {Élément}} introuvable ({id}).'
+    not_found: '{subject, select, external_item {Article} order {Commande} supplier_order {Commande fournisseur} product {Produit} product_type {Type de produit} price {Prix} discount {Remise} supplier {Fournisseur} stock_check {Inventaire} stock_check_line {Ligne d''inventaire} design {Design} adaptation {Déclinaison} template {Gabarit} collection {Collection} release {Sortie} sales_channel {Canal de vente} event {Événement} workspace {Espace de travail} user {Utilisateur} service {Service} other {Élément}} introuvable ({id}).'
 stock:
     counted_twice: '« {item} » est compté deux fois.'
     empty_stock_check: 'L''inventaire doit compter au moins un article.'

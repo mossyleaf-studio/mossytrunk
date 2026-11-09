@@ -14,7 +14,8 @@
         "office": "Bureau",
         "accounting": "Comptabilité",
         "settings": "Paramètres",
-        "productReports": "Bilan produits"
+        "productReports": "Bilan produits",
+        "planning": "Planning"
     },
     "signOut": "Se déconnecter"
 }

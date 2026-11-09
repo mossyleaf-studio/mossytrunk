@@ -62,5 +62,9 @@
         "hideEmpty": "Masquer les mois sans activité",
         "showAll": "Afficher les {count} mois",
         "sellingCosts": "Frais de vente"
+    },
+    "planning": {
+        "title": "Planning",
+        "see": "Voir le planning"
     }
 }

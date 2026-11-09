@@ -35,6 +35,12 @@
             "unavailable": "Complétez d'abord les accès de {label}."
         }
     },
+    "releaseSteps": {
+        "title": "Étapes de sortie",
+        "intro": "Les étapes de votre travail avant une sortie, dans l'ordre, avec leur durée. Elles pré-remplissent chaque nouvelle sortie, que vous pouvez ensuite ajuster.",
+        "save": "Enregistrer les étapes",
+        "saved": "Étapes de sortie enregistrées."
+    },
     "references": {
         "title": "Références",
         "intro": "Choisissez comment MossyTrunk numérote vos commandes, commandes fournisseur et produits. Un format mêle votre texte et des balises remplacées à chaque création.",

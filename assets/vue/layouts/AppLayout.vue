@@ -1,5 +1,5 @@
 <script setup>
-import { CalendarDays, ChartNoAxesColumn, Landmark, LayoutDashboard, LogOut, Palette, Percent, Receipt, Settings, Store, Tag, Truck } from '@lucide/vue';
+import { CalendarClock, CalendarDays, ChartNoAxesColumn, Landmark, LayoutDashboard, LogOut, Palette, Percent, Receipt, Settings, Store, Tag, Truck } from '@lucide/vue';
 import { ConfigProvider, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuRoot, TooltipProvider } from 'reka-ui';
 import { onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -29,6 +29,7 @@ const groups = [
         label: 'layout.nav.workshop',
         links: [
             { href: '/designs', label: 'layout.nav.designs', icon: Palette },
+            { href: '/planning', label: 'layout.nav.planning', icon: CalendarClock },
             { href: '/products', label: 'layout.nav.products', icon: Tag },
             { href: '/supplier-orders', label: 'layout.nav.suppliers', icon: Truck },
         ],

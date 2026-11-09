@@ -14,7 +14,8 @@
         "office": "Office",
         "accounting": "Accounting",
         "settings": "Settings",
-        "productReports": "Product report"
+        "productReports": "Product report",
+        "planning": "Planning"
     },
     "signOut": "Sign out"
 }
