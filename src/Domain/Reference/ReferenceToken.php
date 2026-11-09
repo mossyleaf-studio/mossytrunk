@@ -67,17 +67,24 @@ enum ReferenceToken: string
     public function render(ReferenceSubject $subject, int $size, int $number): string
     {
         return match ($this) {
-            self::Date => $subject->moment->format('Ymd'),
             self::Year => substr($subject->moment->format('Y'), -$size),
-            self::Month => $subject->moment->format('m'),
-            self::Day => $subject->moment->format('d'),
-            self::Time => $subject->moment->format('Hi'),
-            self::Hour => $subject->moment->format('H'),
-            self::Minute => $subject->moment->format('i'),
             self::Number => str_pad((string) $number, $size, '0', \STR_PAD_LEFT),
             self::Random => self::random($size),
             self::Type => $subject->typeCode,
             self::Name => $subject->nameCode,
+            self::Date, self::Month, self::Day, self::Time, self::Hour, self::Minute => $subject->moment->format($this->momentFormat()),
+        };
+    }
+
+    private function momentFormat(): string
+    {
+        return match ($this) {
+            self::Date => 'Ymd',
+            self::Month => 'm',
+            self::Day => 'd',
+            self::Time => 'Hi',
+            self::Hour => 'H',
+            default => 'i',
         };
     }
 

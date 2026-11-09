@@ -106,6 +106,45 @@ final class DesignApiTest extends WebTestCase
         self::assertSame('Clairière', Json::string(self::body($client), 'standalone', 0, 'name'));
     }
 
+    public function testAnExistingProductGetsANewDesignOrJoinsOne(): void
+    {
+        $client = self::signedInClient();
+        $sticker = self::gabarit($client, 'Sticker');
+        $print = self::gabarit($client, 'Print');
+        $client->jsonRequest('POST', '/api/design-collections', ['name' => 'Sous-bois']);
+        $collectionId = Json::string(self::body($client), 'id');
+        [$heron, $loutre, $aigrette] = array_map(static fn (string $name): string => self::product($client, $name), ['Héron', 'Loutre', 'Aigrette']);
+
+        $client->jsonRequest('POST', "/api/products/$heron/design", ['gabaritId' => $sticker, 'collectionId' => $collectionId]);
+        self::assertResponseStatusCodeSame(201);
+        $inCollection = Json::string(self::body($client), 'designId');
+        $client->jsonRequest('POST', "/api/products/$loutre/design", ['gabaritId' => $sticker]);
+        $standalone = Json::string(self::body($client), 'designId');
+        $client->jsonRequest('POST', "/api/products/$aigrette/design", ['gabaritId' => $print, 'designId' => $inCollection]);
+        self::assertResponseStatusCodeSame(201);
+        self::assertSame($inCollection, Json::string(self::body($client), 'designId'));
+
+        $client->jsonRequest('GET', '/api/designs');
+        self::assertSame([$inCollection, 'Héron'], [Json::at(self::body($client), 'collections', 0, 'designs', 0, 'id'), Json::at(self::body($client), 'collections', 0, 'designs', 0, 'name')]);
+        self::assertSame($standalone, Json::at(self::body($client), 'standalone', 0, 'id'));
+        $client->jsonRequest('GET', "/api/products/$aigrette");
+        self::assertSame(['id' => $inCollection, 'name' => 'Héron'], Json::at(self::body($client), 'design'));
+    }
+
+    private static function gabarit(KernelBrowser $client, string $name): string
+    {
+        $client->jsonRequest('POST', '/api/gabarits', ['name' => $name, 'typeId' => ProductTypesApi::create($client, $name), 'sellingPrice' => 400]);
+
+        return Json::string(self::body($client), 'id');
+    }
+
+    private static function product(KernelBrowser $client, string $name): string
+    {
+        $client->jsonRequest('POST', '/api/products', ['name' => $name, 'sellingPrice' => 400, 'typeId' => ProductTypesApi::create($client, "Type $name")]);
+
+        return Json::string(self::body($client), 'id');
+    }
+
     /**
      * @return array<mixed>
      */

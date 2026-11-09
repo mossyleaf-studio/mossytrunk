@@ -6,9 +6,11 @@ namespace App\Tests\Unit\Domain\Order;
 
 use App\Domain\Discount\AppliedDiscount;
 use App\Domain\Event\Event;
+use App\Domain\Order\Exception\EmptyOrder;
 use App\Domain\Order\Exception\LineAlreadyIdentified;
 use App\Domain\Order\Exception\RefundedOrderLocked;
 use App\Domain\Order\Exception\SplitWorthLessThanLine;
+use App\Domain\Order\Exception\UnknownProductChosen;
 use App\Domain\Order\Order;
 use App\Domain\Order\OrderedItem;
 use App\Domain\Order\OrderLine;
@@ -69,6 +71,9 @@ final class OrderSplitLineTest extends TestCase
 
         DomainExceptions::assertThrown(new SplitWorthLessThanLine('Unknown', Money::cents(400), Money::cents(1_000)), fn () => $order->splitLine($lineId, [new OrderedItem($this->print->sellable(null), 1)], [], 'Remise SumUp'));
         DomainExceptions::assertThrown(new LineAlreadyIdentified('Print'), fn () => $order->splitLine($known->id(), [new OrderedItem($this->keychain->sellable(null), 1)], [], 'Remise SumUp'));
+
+        DomainExceptions::assertThrown(new EmptyOrder(), fn () => $order->splitLine($lineId, [], [], 'Remise SumUp'));
+        DomainExceptions::assertThrown(new UnknownProductChosen(), fn () => $order->splitLine($lineId, [new OrderedItem(SellableItem::unknown('Other', Money::cents(1_000)), 1)], [], 'Remise SumUp'));
 
         $order->refund(new \DateTimeImmutable('2026-07-11'));
         DomainExceptions::assertThrown(new RefundedOrderLocked('CMD-1'), fn () => $order->splitLine($lineId, [new OrderedItem($this->keychain->sellable(null), 1)], [], 'Remise SumUp'));

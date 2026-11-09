@@ -32,17 +32,17 @@ final readonly class SumUpCatalogueReader
         $variants = [];
         $current = null;
         foreach ($rows as $row) {
-            $cell = static fn (string $field): string => isset($columns[$field]) ? trim($row[$columns[$field]] ?? '') : '';
+            $cell = static fn (string $field): string => self::cell($row, $columns, $field);
             $name = $cell('name');
-            $variation = $cell('variation');
             if ('' !== $name) {
                 $current = $name;
-                $categories[$name] = '' === $cell('category') ? $categories[$name] ?? null : $cell('category');
+                $categories[$name] = self::filled($cell('category')) ?? $categories[$name] ?? null;
             }
             if (null === $current) {
                 continue;
             }
-            $line = self::line($current, '' === $cell('category') ? $categories[$current] ?? null : $cell('category'), $cell('sku'), $cell('price'), '' === $variation ? null : $variation);
+            $variation = $cell('variation');
+            $line = self::line($current, self::filled($cell('category')) ?? $categories[$current] ?? null, $cell('sku'), $cell('price'), self::filled($variation));
             if ('' !== $variation) {
                 $variants[$current][$variation] = $line;
             } elseif ('' !== $name) {
@@ -50,6 +50,17 @@ final readonly class SumUpCatalogueReader
             }
         }
 
+        return self::flattened($singles, $variants);
+    }
+
+    /**
+     * @param array<string, ExternalLine>                $singles
+     * @param array<string, array<string, ExternalLine>> $variants
+     *
+     * @return list<ExternalLine>
+     */
+    private static function flattened(array $singles, array $variants): array
+    {
         $lines = [];
         foreach ($singles + array_fill_keys(array_keys($variants), null) as $name => $single) {
             $ofItem = array_values($variants[$name] ?? []);
@@ -57,6 +68,20 @@ final readonly class SumUpCatalogueReader
         }
 
         return $lines;
+    }
+
+    /**
+     * @param list<string>       $row
+     * @param array<string, int> $columns
+     */
+    private static function cell(array $row, array $columns, string $field): string
+    {
+        return isset($columns[$field]) ? trim($row[$columns[$field]] ?? '') : '';
+    }
+
+    private static function filled(string $value): ?string
+    {
+        return '' === $value ? null : $value;
     }
 
     /**

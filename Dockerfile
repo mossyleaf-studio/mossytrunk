@@ -56,3 +56,5 @@ CMD ["--config", "/etc/frankenphp/Caddyfile", "--adapter", "caddyfile"]
 
 
 FROM base AS dev
+
+RUN install-php-extensions pcov

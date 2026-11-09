@@ -1,0 +1,32 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+$report = $argv[1] ?? 'var/coverage/crap4j.xml';
+$threshold = (float) ($argv[2] ?? 10);
+
+$xml = @simplexml_load_file($report);
+if (false === $xml) {
+    fwrite(STDERR, "No CRAP report at $report: run PHPUnit with --coverage-crap4j first.\n");
+    exit(2);
+}
+
+$offenders = [];
+foreach ($xml->methods->method as $method) {
+    if ((float) $method->crap > $threshold) {
+        $offenders[] = $method;
+    }
+}
+usort($offenders, static fn ($a, $b) => (float) $b->crap <=> (float) $a->crap);
+
+foreach ($offenders as $method) {
+    printf("%8.2f  complexity %2d  coverage %6.2f%%  %s::%s\n", (float) $method->crap, (int) $method->complexity, (float) $method->coverage, $method->className, $method->methodName);
+}
+
+if ([] !== $offenders) {
+    fwrite(STDERR, sprintf("%d method(s) above CRAP %s.\n", count($offenders), $threshold));
+    exit(1);
+}
+
+echo sprintf("All %d methods at CRAP %s or below.\n", count($xml->methods->method), $threshold);

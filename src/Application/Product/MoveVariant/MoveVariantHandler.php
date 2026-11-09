@@ -39,18 +39,9 @@ final readonly class MoveVariantHandler
         $variant = OptionalText::of($command->variant);
         $source->sellable($variant);
 
-        $target = null === $command->targetProductId ? $this->newProductLike($source, (string) $command->newProductName) : $this->products->get(Ulid::fromString($command->targetProductId));
-        if ($target === $source) {
-            throw new VariantMovedOntoItself();
-        }
-
+        $target = $this->targetOf($command, $source);
         $targetVariant = OptionalText::of($command->targetVariant);
-        if (null !== $targetVariant && !$target->hasVariant($targetVariant)) {
-            if (!$target->hasVariants() && $this->orders->sells($target->id())) {
-                throw new SoldWithoutVariant($target->displayName());
-            }
-            $target->addVariant($targetVariant);
-        }
+        $this->offerVariant($target, $targetVariant);
         $to = $target->sellable($targetVariant);
         $unitCost = $this->stockItems->find($target->id(), $targetVariant)?->firstPurchaseUnitCost() ?? $target->buyingPrice();
 
@@ -61,20 +52,46 @@ final readonly class MoveVariantHandler
         foreach ($this->externalItems->linkedTo($source->id()) as $item) {
             $item->relink($source->id(), $variant, $to);
         }
-
-        if (null !== $variant) {
-            $source->removeVariant($variant);
-        }
-        if (null === $variant || !$source->hasVariants()) {
-            foreach ($this->discountRules->all() as $rule) {
-                $rule->replaceProduct($source, $variant, $target, $targetVariant);
-            }
-            $this->products->remove($source);
-        }
+        $this->retire($source, $variant, $target, $targetVariant);
 
         $this->transaction->commit();
 
         return $target->id();
+    }
+
+    private function targetOf(MoveVariant $command, Product $source): Product
+    {
+        $target = null === $command->targetProductId ? $this->newProductLike($source, (string) $command->newProductName) : $this->products->get(Ulid::fromString($command->targetProductId));
+        if ($target === $source) {
+            throw new VariantMovedOntoItself();
+        }
+
+        return $target;
+    }
+
+    private function offerVariant(Product $target, ?string $targetVariant): void
+    {
+        if (null === $targetVariant || $target->hasVariant($targetVariant)) {
+            return;
+        }
+        if (!$target->hasVariants() && $this->orders->sells($target->id())) {
+            throw new SoldWithoutVariant($target->displayName());
+        }
+        $target->addVariant($targetVariant);
+    }
+
+    private function retire(Product $source, ?string $variant, Product $target, ?string $targetVariant): void
+    {
+        if (null !== $variant) {
+            $source->removeVariant($variant);
+        }
+        if (null !== $variant && $source->hasVariants()) {
+            return;
+        }
+        foreach ($this->discountRules->all() as $rule) {
+            $rule->replaceProduct($source, $variant, $target, $targetVariant);
+        }
+        $this->products->remove($source);
     }
 
     private function newProductLike(Product $source, string $name): Product

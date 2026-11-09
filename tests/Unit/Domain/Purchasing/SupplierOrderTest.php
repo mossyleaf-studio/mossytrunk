@@ -5,15 +5,19 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Domain\Purchasing;
 
 use App\Domain\Product\Product;
+use App\Domain\Purchasing\Currency;
 use App\Domain\Purchasing\Exception\InvalidPurchase;
 use App\Domain\Purchasing\Exception\NonPositiveLeadTime;
+use App\Domain\Purchasing\Exception\SupplierOrdersNotMergeable;
 use App\Domain\Purchasing\PurchasedItem;
 use App\Domain\Purchasing\Supplier;
 use App\Domain\Purchasing\SupplierOrder;
+use App\Domain\Purchasing\SupplierOrderLine;
 use App\Domain\Purchasing\SupplierOrderStatus;
 use App\Domain\Shared\Money;
 use App\Tests\Support\TestProductType;
 use App\Tests\Support\TestWorkspace;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class SupplierOrderTest extends TestCase
@@ -93,7 +97,7 @@ final class SupplierOrderTest extends TestCase
             $products,
         ), deliveryFees: Money::cents(500));
 
-        self::assertSame([1_100, 1_100, 1_100, 1_100, 1_100], array_map(static fn ($line): int => $line->landedCost()->amount(), $order->lines()));
+        self::assertSame([1_100, 1_100, 1_100, 1_100, 1_100], array_map(static fn (SupplierOrderLine $line): int => $line->landedCost()->amount(), $order->lines()));
     }
 
     public function testGlobalDiscountCannotExceedTheLines(): void
@@ -117,7 +121,7 @@ final class SupplierOrderTest extends TestCase
     public function testAReceivedOrderCannotChangeAnyMore(): void
     {
         $order = $this->order();
-        $order->receive(array_fill_keys(array_map(static fn ($line): string => (string) $line->id(), $order->lines()), 1), new \DateTimeImmutable('2026-09-10'));
+        $order->receive(array_fill_keys(array_map(static fn (SupplierOrderLine $line): string => (string) $line->id(), $order->lines()), 1), new \DateTimeImmutable('2026-09-10'));
 
         $this->expectException(InvalidPurchase::class);
 
@@ -190,5 +194,111 @@ final class SupplierOrderTest extends TestCase
 
         $this->expectException(InvalidPurchase::class);
         $order->referToSupplierOrder(str_repeat('X', 101));
+    }
+
+    public function testAbsorbingAnOrderJoinsTheSupplierReferencesThatFit(): void
+    {
+        $order = $this->order();
+        $order->absorb($this->referredOrder(null));
+        self::assertNull($order->supplierReference());
+
+        $order->absorb($this->referredOrder('CMD-1'));
+        self::assertSame('CMD-1', $order->supplierReference());
+
+        $order->absorb($this->referredOrder('CMD-1'));
+        self::assertSame('CMD-1', $order->supplierReference());
+
+        $order->absorb($this->referredOrder('CMD-2'));
+        self::assertSame('CMD-1, CMD-2', $order->supplierReference());
+
+        $order->absorb($this->referredOrder(str_repeat('X', 95)));
+        self::assertSame('CMD-1, CMD-2', $order->supplierReference());
+    }
+
+    public function testAbsorbingAnOrderKeepsTheEarliestDatesAndAddsLinesDiscountsAndFees(): void
+    {
+        $order = SupplierOrder::place('CMF-1', $this->printer, new \DateTimeImmutable('2026-09-05'), [new PurchasedItem($this->sticker->sellable(null), 100, Money::cents(2_000))], Money::cents(100), Money::cents(200));
+        $other = SupplierOrder::place('CMF-2', $this->printer, new \DateTimeImmutable('2026-09-01'), [
+            new PurchasedItem($this->sticker->sellable(null), 50, Money::cents(1_000)),
+            new PurchasedItem($this->print->sellable('A5'), 10, Money::cents(500)),
+        ], Money::cents(50), Money::cents(300));
+
+        $order->absorb($other);
+
+        self::assertSame('2026-09-01', $order->orderedOn()->format('Y-m-d'));
+        self::assertSame([150, 10], array_map(static fn (SupplierOrderLine $line): int => $line->orderedQuantity(), $order->lines()));
+        self::assertSame([150, 500], [$order->discount()->amount(), $order->deliveryFees()->amount()]);
+    }
+
+    public function testAbsorbingReceivedOrdersKeepsTheEarliestReception(): void
+    {
+        $order = $this->order();
+        $other = $this->order();
+        $this->receiveAll($order, '2026-09-12');
+        $this->receiveAll($other, '2026-09-10');
+
+        $order->absorb($other);
+
+        self::assertSame('2026-09-10', $order->receivedAt()?->format('Y-m-d'));
+    }
+
+    /**
+     * @return iterable<string, array{\Closure(self, SupplierOrder): SupplierOrder, string}>
+     */
+    public static function unmergeableOrders(): iterable
+    {
+        yield 'itself' => [static fn (self $test, SupplierOrder $order): SupplierOrder => $order, 'same_order'];
+        yield 'another supplier' => [static fn (self $test, SupplierOrder $order): SupplierOrder => SupplierOrder::place('CMF-2', Supplier::create(TestWorkspace::get(), 'Autre', null), new \DateTimeImmutable('2026-09-01'), [new PurchasedItem($test->sticker->sellable(null), 1, Money::cents(100))]), 'different_supplier'];
+        yield 'another status' => [static function (self $test, SupplierOrder $order): SupplierOrder {
+            $other = $test->order();
+            $test->receiveAll($other, '2026-09-10');
+
+            return $other;
+        }, 'different_status'];
+        yield 'another currency' => [static function (self $test, SupplierOrder $order): SupplierOrder {
+            $other = $test->order();
+            $other->priceIn(Currency::Dollar, 900_000);
+
+            return $other;
+        }, 'different_currency'];
+        yield 'another exchange rate' => [static function (self $test, SupplierOrder $order): SupplierOrder {
+            $order->priceIn(Currency::Dollar, 900_000);
+            $other = $test->order();
+            $other->priceIn(Currency::Dollar, 950_000);
+
+            return $other;
+        }, 'different_currency'];
+    }
+
+    /**
+     * @param \Closure(self, SupplierOrder): SupplierOrder $other
+     */
+    #[DataProvider('unmergeableOrders')]
+    public function testOnlyOrdersOfTheSameSupplierStatusAndCurrencyCanBeMerged(\Closure $other, string $reason): void
+    {
+        $order = $this->order();
+
+        try {
+            $order->absorb($other($this, $order));
+            self::fail('The orders were merged.');
+        } catch (SupplierOrdersNotMergeable $exception) {
+            self::assertSame(['reason' => $reason], $exception->parameters());
+        }
+    }
+
+    private function referredOrder(?string $supplierReference): SupplierOrder
+    {
+        $order = $this->order();
+        $order->referToSupplierOrder($supplierReference);
+
+        return $order;
+    }
+
+    private function receiveAll(SupplierOrder $order, string $on): void
+    {
+        $order->receive(array_combine(
+            array_map(static fn (SupplierOrderLine $line): string => (string) $line->id(), $order->lines()),
+            array_map(static fn (SupplierOrderLine $line): int => $line->orderedQuantity(), $order->lines()),
+        ), new \DateTimeImmutable($on));
     }
 }

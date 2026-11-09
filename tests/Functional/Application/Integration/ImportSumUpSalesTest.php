@@ -294,6 +294,22 @@ final class ImportSumUpSalesTest extends KernelTestCase
         self::assertEqualsCanonicalizing([[null, 'Unknown product', 1_000], [null, 'Unknown product', 200]], array_map(static fn (array $line): array => [$line['productId'], $line['label'], $line['unitPrice']], $lines));
     }
 
+    public function testASaleWithoutItemsIsReportedButNeverImported(): void
+    {
+        $this->scheduleEvent('Salon de printemps', '2030-03-14', '2030-03-15');
+        self::getContainer()->get(FakeSumUpGateway::class)->willReturn([
+            ExternalSales::sumUp('TX-EMPTY', new \DateTimeImmutable('2030-03-14T12:00:00Z'), Money::cents(500), []),
+            ExternalSales::sumUp('TX-STICKER', new \DateTimeImmutable('2030-03-14T13:00:00Z'), Money::cents(400), [ExternalSales::line('Sticker', Money::cents(400), 1)]),
+        ]);
+
+        $first = $this->import();
+        $again = $this->import();
+
+        self::assertSame([1, 1], [$first->salesWithoutItems, $first->ordersImported]);
+        self::assertSame([1, 0, 1], [$again->salesWithoutItems, $again->ordersImported, $again->ordersAlreadyImported]);
+        self::assertSame(['TX-STICKER'], array_keys(self::ordersBySale()));
+    }
+
     public function testAnUnknownProductLineIsLinkedLaterAndTakesStock(): void
     {
         $this->scheduleEvent('Salon de printemps', '2030-03-14', '2030-03-15');

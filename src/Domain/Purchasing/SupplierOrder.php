@@ -134,29 +134,40 @@ class SupplierOrder implements Referenced
 
     public function absorb(self $other): void
     {
-        $obstacle = match (true) {
+        $obstacle = $this->mergeObstacleWith($other);
+        if (null !== $obstacle) {
+            throw new SupplierOrdersNotMergeable($obstacle);
+        }
+
+        foreach ($other->lines() as $line) {
+            $this->absorbLine($line);
+        }
+        $this->orderedOn = min($this->orderedOn, $other->orderedOn);
+        $this->receivedAt = null === $this->receivedAt || null === $other->receivedAt ? $this->receivedAt : min($this->receivedAt, $other->receivedAt);
+        $this->joinSupplierReference($other->supplierReference);
+        $this->allocate($this->discount->add($other->discount), $this->deliveryFees->add($other->deliveryFees));
+    }
+
+    private function mergeObstacleWith(self $other): ?string
+    {
+        return match (true) {
             $other === $this || $other->id->equals($this->id) => 'same_order',
             !$other->supplier->id()->equals($this->supplier->id()) => 'different_supplier',
             $other->status !== $this->status => 'different_status',
             $other->currency !== $this->currency || $other->exchangeRateMicros !== $this->exchangeRateMicros => 'different_currency',
             default => null,
         };
-        if (null !== $obstacle) {
-            throw new SupplierOrdersNotMergeable($obstacle);
-        }
+    }
 
-        foreach ($other->lines() as $line) {
-            $twin = $this->lineFor($line->productId(), $line->variant());
-            if (null === $twin) {
-                $this->lines->add($line->copyInto($this, $this->lines->count()));
-                continue;
-            }
-            $twin->absorb($line);
+    private function absorbLine(SupplierOrderLine $line): void
+    {
+        $twin = $this->lineFor($line->productId(), $line->variant());
+        if (null === $twin) {
+            $this->lines->add($line->copyInto($this, $this->lines->count()));
+
+            return;
         }
-        $this->orderedOn = min($this->orderedOn, $other->orderedOn);
-        $this->receivedAt = null === $this->receivedAt || null === $other->receivedAt ? $this->receivedAt : min($this->receivedAt, $other->receivedAt);
-        $this->joinSupplierReference($other->supplierReference);
-        $this->allocate($this->discount->add($other->discount), $this->deliveryFees->add($other->deliveryFees));
+        $twin->absorb($line);
     }
 
     private function joinSupplierReference(?string $other): void

@@ -12,6 +12,7 @@ use App\Domain\Stock\LotOrigin;
 use App\Domain\Stock\StockCheckRepository;
 use App\Domain\Stock\StockItem;
 use App\Domain\Stock\StockLot;
+use Symfony\Component\Uid\Ulid;
 
 final readonly class ProductMovements
 {
@@ -29,7 +30,24 @@ final readonly class ProductMovements
      */
     public function of(Product $product, array $stockItems): array
     {
-        $productId = $product->id();
+        $movements = [
+            ...$this->lotMovements($stockItems),
+            ...$this->saleMovements($product->id()),
+            ...$product->isSupply() ? $this->supplyMovements($product->id()) : [],
+            ...$this->lossMovements($product->id()),
+        ];
+        usort($movements, static fn (array $a, array $b): int => $b['date'] <=> $a['date']);
+
+        return $movements;
+    }
+
+    /**
+     * @param list<StockItem> $stockItems
+     *
+     * @return list<array{date: string, kind: string, variant: ?string, quantity: int, cost: int, link: ?string, label: ?string}>
+     */
+    private function lotMovements(array $stockItems): array
+    {
         $movements = [];
         foreach ($stockItems as $item) {
             foreach ($item->lots() as $lot) {
@@ -44,6 +62,16 @@ final readonly class ProductMovements
                 ];
             }
         }
+
+        return $movements;
+    }
+
+    /**
+     * @return list<array{date: string, kind: string, variant: ?string, quantity: int, cost: int, link: ?string, label: ?string}>
+     */
+    private function saleMovements(Ulid $productId): array
+    {
+        $movements = [];
         foreach ($this->orders->selling($productId) as $order) {
             foreach ($order->lines() as $line) {
                 if ($line->productId()?->equals($productId) ?? false) {
@@ -59,7 +87,17 @@ final readonly class ProductMovements
                 }
             }
         }
-        foreach ($product->isSupply() ? $this->orders->using($productId) : [] as $order) {
+
+        return $movements;
+    }
+
+    /**
+     * @return list<array{date: string, kind: string, variant: ?string, quantity: int, cost: int, link: ?string, label: ?string}>
+     */
+    private function supplyMovements(Ulid $productId): array
+    {
+        $movements = [];
+        foreach ($this->orders->using($productId) as $order) {
             foreach ($order->supplies() as $supply) {
                 if ($supply->productId()->equals($productId)) {
                     $movements[] = [
@@ -74,6 +112,16 @@ final readonly class ProductMovements
                 }
             }
         }
+
+        return $movements;
+    }
+
+    /**
+     * @return list<array{date: string, kind: string, variant: ?string, quantity: int, cost: int, link: ?string, label: ?string}>
+     */
+    private function lossMovements(Ulid $productId): array
+    {
+        $movements = [];
         foreach ($this->checks->counting($productId) as $check) {
             foreach ($check->lines() as $line) {
                 if ($line->productId()->equals($productId) && $line->missing() > 0) {
@@ -89,8 +137,6 @@ final readonly class ProductMovements
                 }
             }
         }
-
-        usort($movements, static fn (array $a, array $b): int => $b['date'] <=> $a['date']);
 
         return $movements;
     }

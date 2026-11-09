@@ -43,6 +43,15 @@ final class SumUpCatalogueReaderTest extends TestCase
         ], self::described((new SumUpCatalogueReader())->lines($file)));
     }
 
+    public function testReadsWindowsEncodedFilesAndSkipsVariationsBeforeTheFirstItem(): void
+    {
+        $file = mb_convert_encoding("Item name,Variations,Price\r\n,Orphan,5\r\nCafé,,3.50\r\n", 'Windows-1252', 'UTF-8');
+
+        self::assertSame([
+            ['café', 'Café', 350, null, null, null],
+        ], self::described((new SumUpCatalogueReader())->lines($file)));
+    }
+
     public function testAFileWithoutAnItemNameColumnIsRefused(): void
     {
         $this->expectException(UnreadableCatalogue::class);

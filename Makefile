@@ -16,11 +16,12 @@ E2E_LANES ?= 4
 POSTGRES_USER ?= app
 PLAYWRIGHT_ARGS ?=
 CI_BUNDLE ?= ci-build.tgz
+CRAP_REPORT = var/coverage/crap4j.xml
 export E2E_ASSETS_DIR
 OUTPUT_SYNC = $(if $(filter output-sync,$(.FEATURES)),--output-sync=target)
 BUILD = docker buildx build --platform $(PLATFORM) --target prod -t $(IMAGE):$(TAG) -t $(IMAGE):latest
 
-.PHONY: up down build install assets assets-e2e db db-test fixtures migration test test-unit test-functional deptrac phpstan cs cs-fix e2e e2e-run qa ci ci-up ci-build ci-bundle ci-unbundle ci-warmup ci-checks ci-e2e image push deploy deploy-files
+.PHONY: up down build install assets assets-e2e db db-test fixtures migration test crap test-unit test-functional deptrac phpstan cs cs-fix e2e e2e-run qa ci ci-up ci-build ci-bundle ci-unbundle ci-warmup ci-checks ci-e2e image push deploy deploy-files
 
 up: ## Start the stack (app on http://localhost:8080, mock mossyleaf accounts on :8092)
 	$(DC) up -d --wait php database node oidc
@@ -56,7 +57,11 @@ migration: ## Generate a migration from mapping changes
 	$(CONSOLE) doctrine:migrations:diff --no-interaction
 
 test: db-test ## PHPUnit (unit + functional)
-	$(PHP) php bin/phpunit
+	$(PHP) php bin/phpunit $(PHPUNIT_COVERAGE)
+
+crap: PHPUNIT_COVERAGE = --coverage-crap4j $(CRAP_REPORT)
+crap: test ## PHPUnit with coverage, fails when a src method has a CRAP score above 10
+	$(PHP) php bin/crap $(CRAP_REPORT)
 
 test-unit:
 	$(PHP) php bin/phpunit --testsuite unit
@@ -91,7 +96,7 @@ e2e-run: ## Playwright against already built assets (E2E_ASSETS_DIR, default bui
 	done
 	$(DC) --profile e2e run $(NO_TTY) --rm -e E2E_LANES=$(E2E_LANES) playwright sh -c "npm ci --no-audit --no-fund && ./node_modules/.bin/playwright test $(PLAYWRIGHT_ARGS)"
 
-qa: cs phpstan deptrac test e2e
+qa: cs phpstan deptrac crap e2e
 
 ci: ci-build ## Full suite from a fresh checkout (GitHub Actions builds once in ci-build, then runs ci-checks and ci-e2e shards in parallel jobs)
 	$(MAKE) -j4 $(OUTPUT_SYNC) ci-checks
@@ -117,7 +122,7 @@ ci-warmup: ci-up ## Start the dev stack and warm its cache (PHPStan reads the de
 ci-e2e: ## Playwright on the production build (PLAYWRIGHT_ARGS to pick projects or a shard)
 	$(MAKE) e2e-run E2E_ASSETS_DIR=build
 
-ci-checks: cs phpstan deptrac test
+ci-checks: cs phpstan deptrac crap
 
 image: ## Build the production image locally (IMAGE, TAG, PLATFORM)
 	$(BUILD) --load .
