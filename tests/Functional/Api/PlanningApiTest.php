@@ -27,15 +27,50 @@ final class PlanningApiTest extends WebTestCase
     {
         $client = self::signedInClient();
 
-        $client->jsonRequest('GET', '/api/release-template');
+        $client->jsonRequest('GET', '/api/planning-settings');
         self::assertSame([], Json::array(self::body($client), 'steps'));
+        self::assertSame(3, Json::int(self::body($client), 'readyDaysBefore'));
 
-        $client->jsonRequest('PUT', '/api/release-template', ['steps' => [['label' => ' Dessins ', 'days' => 3], ['label' => 'Vernis', 'days' => 1]]]);
+        $client->jsonRequest('PUT', '/api/planning-settings', ['steps' => [['label' => ' Dessins ', 'days' => 3], ['label' => 'Vernis', 'days' => 1]], 'readyDaysBefore' => 5]);
         self::assertResponseStatusCodeSame(204);
 
-        $client->jsonRequest('GET', '/api/release-template');
+        $client->jsonRequest('GET', '/api/planning-settings');
         self::assertSame('Dessins', Json::at(self::body($client), 'steps', 0, 'label'));
         self::assertSame(1, Json::at(self::body($client), 'steps', 1, 'days'));
+        self::assertSame(5, Json::int(self::body($client), 'readyDaysBefore'));
+
+        $client->jsonRequest('PUT', '/api/planning-settings', ['steps' => [], 'readyDaysBefore' => -1]);
+        self::assertResponseStatusCodeSame(422);
+
+        $client->jsonRequest('GET', '/api/release-template');
+        self::assertResponseStatusCodeSame(404);
+    }
+
+    public function testThePlanningTellsTodayAndTheUpcomingEvents(): void
+    {
+        $client = self::signedInClient();
+        $client->jsonRequest('POST', '/api/events', ['name' => 'Salon', 'location' => 'Lyon', 'startDate' => '2099-06-10', 'endDate' => '2099-06-11', 'readyDaysBefore' => 2]);
+        $client->jsonRequest('GET', '/api/planning');
+
+        self::assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2}$/', Json::string(self::body($client), 'today'));
+        self::assertSame(['Salon', '2099-06-10', '2099-06-08', 2], [Json::at(self::body($client), 'events', 0, 'name'), Json::at(self::body($client), 'events', 0, 'start'), Json::at(self::body($client), 'events', 0, 'readyBy'), Json::at(self::body($client), 'events', 0, 'readyDaysBefore')]);
+    }
+
+    public function testAnEventPreparationIsServedOnlyToItsWorkspace(): void
+    {
+        $client = self::signedInClient('Atelier');
+        $client->jsonRequest('POST', '/api/events', ['name' => 'Salon', 'location' => 'Lyon', 'startDate' => '2099-06-10', 'endDate' => '2099-06-11']);
+        $eventId = Json::string(self::body($client), 'id');
+
+        $client->jsonRequest('GET', "/api/events/$eventId/preparation");
+        self::assertResponseIsSuccessful();
+        self::assertSame('2099-06-07', Json::string(self::body($client), 'readyBy'));
+        self::assertSame(3, Json::int(self::body($client), 'readyDaysBefore'));
+        self::assertSame([], Json::array(self::body($client), 'releases'));
+
+        $client->loginUser(SecurityUser::fromUser(self::createMember('Autre atelier')));
+        $client->jsonRequest('GET', "/api/events/$eventId/preparation");
+        self::assertResponseStatusCodeSame(404);
     }
 
     public function testACollectionReleaseIsPlannedReplannedTickedAndCancelled(): void

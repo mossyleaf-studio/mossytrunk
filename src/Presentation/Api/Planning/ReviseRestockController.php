@@ -17,7 +17,7 @@ final class ReviseRestockController extends AbstractController
 {
     public function __invoke(string $id, #[MapRequestPayload] RestockPayload $payload, ReviseRestockHandler $revise): Response
     {
-        $revise(new ReviseRestock($id, $payload->supplierId, $payload->note, $payload->day, $payload->eventId, $payload->leadDays));
+        $revise(new ReviseRestock($id, $payload->supplierId, $payload->note, $payload->eventId, $payload->leadDays));
 
         return new Response(status: Response::HTTP_NO_CONTENT);
     }

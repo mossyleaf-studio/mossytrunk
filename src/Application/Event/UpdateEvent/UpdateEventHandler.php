@@ -36,6 +36,7 @@ final readonly class UpdateEventHandler
 
         $event->describe($command->name, $command->location);
         $event->reschedule($period);
+        $event->planReadiness($command->readyDaysBefore);
         $this->transaction->commit();
     }
 }

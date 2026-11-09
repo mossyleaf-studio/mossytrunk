@@ -10,6 +10,7 @@ use App\Domain\Event\Exception\SharingEndsBeforeEvent;
 use App\Domain\Event\Exception\UnknownDonation;
 use App\Domain\Event\Exception\UnknownExpense;
 use App\Domain\Identity\Workspace;
+use App\Domain\Shared\BusinessTime;
 use App\Domain\Shared\DateRange;
 use App\Domain\Shared\Money;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -38,6 +39,9 @@ class Event
 
     #[ORM\Embedded(class: DateRange::class, columnPrefix: 'period_')]
     private DateRange $period;
+
+    #[ORM\Column(nullable: true)]
+    private ?int $readyDaysBefore = null;
 
     /** @var Collection<int, Expense> */
     #[ORM\OneToMany(targetEntity: Expense::class, mappedBy: 'event', cascade: ['persist'], orphanRemoval: true)]
@@ -83,6 +87,21 @@ class Event
     public function reschedule(DateRange $period): void
     {
         $this->period = $period;
+    }
+
+    public function planReadiness(?int $daysBefore): void
+    {
+        $this->readyDaysBefore = null === $daysBefore ? null : ReadyMargin::days($daysBefore);
+    }
+
+    public function readyDaysBefore(): ?int
+    {
+        return $this->readyDaysBefore;
+    }
+
+    public function readyBy(int $workspaceDaysBefore): \DateTimeImmutable
+    {
+        return BusinessTime::midnightOf($this->period->start())->modify(\sprintf('-%d days', $this->readyDaysBefore ?? $workspaceDaysBefore));
     }
 
     public function addExpense(string $label, Money $amount, ?ExpenseSpread $spread = null): Expense

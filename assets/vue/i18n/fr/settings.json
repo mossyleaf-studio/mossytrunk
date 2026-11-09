@@ -35,11 +35,16 @@
             "unavailable": "Complétez d'abord les accès de {label}."
         }
     },
-    "releaseSteps": {
-        "title": "Étapes de sortie",
-        "intro": "Les étapes de votre travail avant une sortie, dans l'ordre, avec leur durée. Elles pré-remplissent chaque nouvelle sortie, que vous pouvez ensuite ajuster.",
-        "save": "Enregistrer les étapes",
-        "saved": "Étapes de sortie enregistrées."
+    "planning": {
+        "title": "Planning",
+        "intro": "Vos étapes de sortie et la marge que vous gardez avant chaque événement.",
+        "margin": "Marge",
+        "marginHint": "Sorties et réassorts d'un événement sont prêts ce jour-là. Chaque événement peut avoir sa propre marge.",
+        "marginRequired": "Indiquez la marge en jours, 0 pour le jour même.",
+        "steps": "Étapes de sortie",
+        "stepsHint": "Les étapes de votre travail avant une sortie, dans l'ordre, avec leur durée. Elles pré-remplissent chaque nouvelle sortie, que vous pouvez ensuite ajuster.",
+        "save": "Enregistrer",
+        "saved": "Réglages du planning enregistrés."
     },
     "references": {
         "title": "Références",

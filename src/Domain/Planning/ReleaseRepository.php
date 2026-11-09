@@ -6,6 +6,7 @@ namespace App\Domain\Planning;
 
 use App\Domain\Design\Design;
 use App\Domain\Design\DesignCollection;
+use App\Domain\Event\Event;
 use Symfony\Component\Uid\Ulid;
 
 interface ReleaseRepository
@@ -24,4 +25,9 @@ interface ReleaseRepository
      * @return list<Release>
      */
     public function all(): array;
+
+    /**
+     * @return list<Release>
+     */
+    public function ofEvent(Event $event): array;
 }

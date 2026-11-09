@@ -38,9 +38,9 @@ export async function createProduct(request, { name = unique('Produit'), selling
     return { id, name, displayName, sellingPrice, buyingPrice, variants, type };
 }
 
-export async function createEvent(request, { name = unique('Convention'), startDate = uniqueDay(), endDate = null } = {}) {
+export async function createEvent(request, { name = unique('Convention'), startDate = uniqueDay(), endDate = null, readyDaysBefore = null } = {}) {
     const response = await request.post('/api/events', {
-        data: { name, location: 'Lyon', startDate, endDate: endDate ?? startDate },
+        data: { name, location: 'Lyon', startDate, endDate: endDate ?? startDate, readyDaysBefore },
     });
     expect(response.status()).toBe(201);
     return { id: (await response.json()).id, name, startDate, endDate: endDate ?? startDate };

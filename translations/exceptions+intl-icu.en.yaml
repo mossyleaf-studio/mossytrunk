@@ -42,6 +42,7 @@ event:
     unknown_donation: 'Donation not found ({id}).'
     sharing_ends_before_event: 'The sharing cannot end before the event starts.'
     too_few_sharing_events: 'A shared expense counts for at least 2 events.'
+    negative_ready_margin: 'The days of preparation before the event cannot be negative.'
 identity:
     email_already_used: 'A user already exists with the address “{email}”.'
     empty_secret: 'The key cannot be empty.'
@@ -94,6 +95,7 @@ planning:
     non_positive_step_duration: 'The step “{step}” lasts at least 1 day.'
     release_already_planned: 'The release of “{name}” is already planned.'
     restock_from_another_supplier: 'This restock must be ordered from {supplier}.'
+    restock_without_event: 'A restock is prepared for an event.'
     past_restock_target: 'A restock is prepared for today or a later day.'
     unknown_step: 'Unknown step “{step}”.'
 product:

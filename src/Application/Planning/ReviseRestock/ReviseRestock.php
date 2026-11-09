@@ -10,7 +10,6 @@ final readonly class ReviseRestock
         public string $restockId,
         public string $supplierId,
         public ?string $note,
-        public ?\DateTimeImmutable $day,
         public ?string $eventId,
         public int $leadDays,
     ) {

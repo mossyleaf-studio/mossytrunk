@@ -12,9 +12,9 @@ use PHPUnit\Framework\TestCase;
 
 final class ReleaseScheduleTest extends TestCase
 {
-    public function testTheStepsChainBackwardFromTheDayBeforeRelease(): void
+    public function testTheStepsChainBackwardEndingOnTheGivenDay(): void
     {
-        $schedule = ReleaseSchedule::of(BusinessTime::at('2026-07-09 15:30'), [
+        $schedule = ReleaseSchedule::endingOn(BusinessTime::at('2026-07-08 15:30'), [
             ['label' => 'Dessin', 'days' => 3, 'done' => false],
             ['label' => 'Impression', 'days' => 2, 'done' => true],
             ['label' => 'Emballage', 'days' => 1, 'done' => false],
@@ -29,7 +29,7 @@ final class ReleaseScheduleTest extends TestCase
 
     public function testOneDayStepsTakeOneDayEach(): void
     {
-        $schedule = ReleaseSchedule::of(BusinessTime::at('2026-07-09'), [
+        $schedule = ReleaseSchedule::endingOn(BusinessTime::at('2026-07-08'), [
             ['label' => 'Relecture', 'days' => 1, 'done' => false],
             ['label' => 'Envoi', 'days' => 1, 'done' => false],
         ]);
@@ -42,7 +42,7 @@ final class ReleaseScheduleTest extends TestCase
 
     public function testDaysStayParisMidnightsAcrossTheSpringClockChange(): void
     {
-        $schedule = ReleaseSchedule::of(BusinessTime::at('2026-03-31'), [
+        $schedule = ReleaseSchedule::endingOn(BusinessTime::at('2026-03-30'), [
             ['label' => 'Dessin', 'days' => 5, 'done' => false],
         ]);
 
@@ -52,7 +52,7 @@ final class ReleaseScheduleTest extends TestCase
 
     public function testDaysStayParisMidnightsAcrossTheAutumnClockChange(): void
     {
-        $schedule = ReleaseSchedule::of(BusinessTime::at('2026-10-27'), [
+        $schedule = ReleaseSchedule::endingOn(BusinessTime::at('2026-10-26'), [
             ['label' => 'Dessin', 'days' => 4, 'done' => false],
         ]);
 
@@ -62,7 +62,7 @@ final class ReleaseScheduleTest extends TestCase
 
     public function testAStepStateDependsOnToday(): void
     {
-        [$step] = ReleaseSchedule::of(BusinessTime::at('2026-07-09'), [
+        [$step] = ReleaseSchedule::endingOn(BusinessTime::at('2026-07-08'), [
             ['label' => 'Impression', 'days' => 3, 'done' => false],
         ]);
 
@@ -74,7 +74,7 @@ final class ReleaseScheduleTest extends TestCase
 
     public function testADoneStepIsDoneWhateverTheDay(): void
     {
-        [$step] = ReleaseSchedule::of(BusinessTime::at('2026-07-09'), [
+        [$step] = ReleaseSchedule::endingOn(BusinessTime::at('2026-07-08'), [
             ['label' => 'Impression', 'days' => 3, 'done' => true],
         ]);
 
@@ -84,7 +84,7 @@ final class ReleaseScheduleTest extends TestCase
 
     public function testAReleaseWithoutStepsHasNoSchedule(): void
     {
-        self::assertSame([], ReleaseSchedule::of(BusinessTime::at('2026-07-09'), []));
+        self::assertSame([], ReleaseSchedule::endingOn(BusinessTime::at('2026-07-08'), []));
     }
 
     /**

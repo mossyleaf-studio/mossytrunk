@@ -7,6 +7,7 @@ namespace App\Application\Planning\ReviseRestock;
 use App\Application\Planning\TargetEvent;
 use App\Application\Transaction;
 use App\Domain\Planning\Exception\PastRestockTarget;
+use App\Domain\Planning\Exception\RestockWithoutEvent;
 use App\Domain\Planning\RestockRepository;
 use App\Domain\Purchasing\SupplierRepository;
 use Psr\Clock\ClockInterface;
@@ -29,8 +30,7 @@ final readonly class ReviseRestockHandler
         $restock->revise(
             $this->suppliers->get(Ulid::fromString($command->supplierId)),
             $command->note,
-            $command->day,
-            $this->targetEvent->of($command->eventId),
+            $this->targetEvent->of($command->eventId) ?? throw new RestockWithoutEvent(),
             $command->leadDays,
         );
         if ($restock->isPastOn($this->clock->now())) {

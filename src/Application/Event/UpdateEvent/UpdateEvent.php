@@ -12,6 +12,7 @@ final readonly class UpdateEvent
         public string $location,
         public \DateTimeImmutable $startDate,
         public \DateTimeImmutable $endDate,
+        public ?int $readyDaysBefore = null,
     ) {
     }
 }

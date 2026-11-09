@@ -19,7 +19,7 @@
         "event": "Event",
         "noEvent": "No upcoming event.",
         "steps": "Steps",
-        "stepsHint": "In order: the last step ends the day before the release.",
+        "stepsHint": "In order: the last step ends the day before the date, or on the day everything must be ready for an event.",
         "plan": "Plan"
     },
     "timeline": {
@@ -52,15 +52,9 @@
             "thisWeek": "This week",
             "later": "Later"
         },
-        "releases": "Upcoming releases",
         "empty": {
-            "late": "Nothing late.",
-            "thisWeek": "Nothing to do this week.",
-            "later": "Nothing planned later.",
-            "releases": "No upcoming releases.",
-            "restocks": "No upcoming restocks."
-        },
-        "restocks": "Upcoming restocks"
+            "thisWeek": "Nothing to do this week."
+        }
     },
     "restock": {
         "prepare": "Prepare a restock",
@@ -68,11 +62,10 @@
         "form": {
             "note": "Note",
             "notePlaceholder": "E.g. holo stickers",
-            "moment": "Restock deadline",
-            "day": "Date",
             "leadTime": "Order lead time (days)",
             "leadTimeHint": "Pre-filled with the supplier's lead time.",
-            "submit": "Prepare"
+            "submit": "Prepare",
+            "event": "Event"
         },
         "item": {
             "title": "Order from {supplier}",
@@ -94,5 +87,45 @@
             "revised": "Restock from {supplier} updated.",
             "cancelled": "Restock from {supplier} deleted."
         }
+    },
+    "readiness": {
+        "ready": "Ready",
+        "days": "Days of margin before the event",
+        "unit": "day before the event | days before the event"
+    },
+    "preparation": {
+        "title": "Preparation",
+        "readyBy": "Ready on {day}",
+        "margin": "{n} day before | {n} days before",
+        "sameDay": "the same day",
+        "releases": "Releases",
+        "restocks": "Restocks",
+        "empty": "Nothing to prepare for this event yet."
+    },
+    "summary": {
+        "label": "Planning summary",
+        "late": "Late · {n}",
+        "thisWeek": "This week · {n}",
+        "next": "Next deadline: {what} · {day} · {when}",
+        "step": "{label} ({owner})",
+        "when": "today | tomorrow | in {n} days"
+    },
+    "overview": {
+        "title": "Overview",
+        "label": "Weeks from {from} to {to}",
+        "today": "Today",
+        "empty": "No upcoming event or release."
+    },
+    "agenda": {
+        "title": "To do",
+        "for": "For {name}",
+        "duration": "{n} day | {n} days",
+        "dayOf": "Day {day}/{days}"
+    },
+    "relative": {
+        "today": "Today",
+        "tomorrow": "Tomorrow",
+        "in": "in {n} d",
+        "ago": "{n} d ago"
     }
 }

@@ -74,4 +74,14 @@ final readonly class DoctrineEventRepository implements EventRepository
             ->getQuery()
             ->getResult();
     }
+
+    public function notOverOn(\DateTimeImmutable $today): array
+    {
+        return $this->scope->restrict($this->entityManager->createQueryBuilder()->select('e')->from(Event::class, 'e'), 'e')
+            ->andWhere('e.period.end >= :today')
+            ->setParameter('today', BusinessTime::day($today))
+            ->orderBy('e.period.start', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
 }

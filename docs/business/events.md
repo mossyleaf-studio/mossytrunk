@@ -6,6 +6,7 @@ An **event** is a real-world occasion where products are sold: convention, marke
 |---|---|
 | `name`, `location` | Required free text (the location is a plain string) |
 | `period` | Inclusive range of **whole days** in Europe/Paris (`DateRange`) — a one-day event has start = end |
+| `readyDaysBefore` | Optional « Prêt … jours avant » (integer ≥ 0): the event's own ready-by margin; empty = the workspace default of Paramètres (3 unless changed). Ready-by day = first day − margin, see [planning.md](planning.md) R12 |
 | `donations` | Money received at the event **without a sale** (donation box, support): optional `label` + strictly positive `amount` |
 | `expenses` | Money spent for the event: `label` + strictly positive `amount`, optionally **shared** over a number of events (`sharedOverEvents` ≥ 2) and/or until a day (`sharedUntil`) |
 
@@ -32,8 +33,8 @@ The profitability of an event is described in [event-report.md](event-report.md)
 
 | Use case | Endpoint |
 |---|---|
-| `ScheduleEvent` | `POST /api/events` `{name, location, startDate, endDate}` (dates `YYYY-MM-DD`) |
-| `UpdateEvent` | `PUT /api/events/{id}` (same body) |
+| `ScheduleEvent` | `POST /api/events` `{name, location, startDate, endDate, readyDaysBefore?}` (dates `YYYY-MM-DD`; negative margin is a 422) |
+| `UpdateEvent` | `PUT /api/events/{id}` (same body; omitting `readyDaysBefore` clears the override) |
 | `ListEvents` | `GET /api/events` (most recent first, with expenses total, order count, **turnover and result** computed like the [event report](event-report.md), and `timing`: `upcoming` / `ongoing` / `past`) |
 | `GetEvent` | `GET /api/events/{id}` (with `donations` and `donationsTotal`, and its expense shares: its own expenses and those shared from earlier events, each with `amount` = this event's share, `fullAmount`, `sharedBy`, `own`, origin event) |
 | `AddExpense` | `POST /api/events/{id}/expenses` `{label, amount, sharedOverEvents?, sharedUntil?}` |
@@ -43,6 +44,6 @@ The profitability of an event is described in [event-report.md](event-report.md)
 | `RemoveDonation` | `DELETE /api/events/{id}/donations/{donationId}` |
 | `GetSalesTarget` | `GET /api/events/{id}/target` (sales needed to break even, see [event-report.md](event-report.md#sales-target-objectif-de-ventes)) |
 
-`ListEvents` also gives each event its number of `days`, `costOfGoods` and `urssaf`; `GetEvent` gives its `timing`.
+`ListEvents` also gives each event its number of `days`, `costOfGoods` and `urssaf`; `GetEvent` gives its `timing`, its own `readyDaysBefore` (or null) and the effective `readyBy` day. `GET /api/events/{id}/preparation` feeds the page's « Préparation » section (see [planning.md](planning.md) R14).
 
-UI: `/events` — **À venir** (ongoing ones included, « En cours », otherwise « dans N jours »; soonest first) with the **committed expenses** (and the result once it has orders), then **Passés**: bars of each event's result, best first, and a comparison table sortable on every column (days, orders, CA, dépenses, résultat, marge = résultat / CA, résultat par jour); creation modal, `/events/{id}` (details, edit, expenses — « Répartir sur plusieurs événements » in the expense form with « Nombre d'événements » / « Jusqu'au »; shared expenses show their share, the number of events sharing them and the full amount, and those coming from an earlier event link to it and cannot be edited there — report, « Ajouter un don » (amount, optional label; a « Dons » table below the expenses once there is one), « Vérifier les commandes » → order check, see [orders](orders.md) O22, « Faire l'inventaire »).
+UI: `/events` — **À venir** (ongoing ones included, « En cours », otherwise « dans N jours »; soonest first) with the **committed expenses** (and the result once it has orders), then **Passés**: bars of each event's result, best first, and a comparison table sortable on every column (days, orders, CA, dépenses, résultat, marge = résultat / CA, résultat par jour); creation modal, `/events/{id}` (details, edit, expenses — « Répartir sur plusieurs événements » in the expense form with « Nombre d'événements » / « Jusqu'au »; shared expenses show their share, the number of events sharing them and the full amount, and those coming from an earlier event link to it and cannot be edited there — report, « Ajouter un don » (amount, optional label; a « Dons » table below the expenses once there is one), « Vérifier les commandes » → order check, see [orders](orders.md) O22, « Faire l'inventaire »), « Préparation »: ready-by day, releases and restocks of the event and « Préparer un réassort » ([planning.md](planning.md) R15). The event form has the optional « Prêt … jours avant ».

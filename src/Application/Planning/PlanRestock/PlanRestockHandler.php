@@ -7,6 +7,7 @@ namespace App\Application\Planning\PlanRestock;
 use App\Application\Planning\TargetEvent;
 use App\Application\Transaction;
 use App\Domain\Planning\Exception\PastRestockTarget;
+use App\Domain\Planning\Exception\RestockWithoutEvent;
 use App\Domain\Planning\Restock;
 use App\Domain\Planning\RestockRepository;
 use App\Domain\Purchasing\SupplierRepository;
@@ -29,8 +30,7 @@ final readonly class PlanRestockHandler
         $restock = Restock::plan(
             $this->suppliers->get(Ulid::fromString($command->supplierId)),
             $command->note,
-            $command->day,
-            $this->targetEvent->of($command->eventId),
+            $this->targetEvent->of($command->eventId) ?? throw new RestockWithoutEvent(),
             $command->leadDays,
         );
         if ($restock->isPastOn($this->clock->now())) {

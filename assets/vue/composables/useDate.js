@@ -67,3 +67,9 @@ export function nowForInput() {
 export function localDay(date = new Date()) {
     return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
 }
+
+const dayMonthFormatter = perLocale((locale) => new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' }));
+
+export function formatDayMonth(iso) {
+    return dayMonthFormatter().format(new Date(iso));
+}

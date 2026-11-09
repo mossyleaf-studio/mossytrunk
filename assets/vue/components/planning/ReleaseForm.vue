@@ -9,7 +9,7 @@ import StepListEditor from './StepListEditor.vue';
 import TargetPicker from './TargetPicker.vue';
 import { useFormSubmit } from '../../composables/useFormSubmit.js';
 import { usePlanning, useTarget } from '../../composables/usePlanning.js';
-import { useReleaseTemplate } from '../../composables/useReleaseTemplate.js';
+import { usePlanningSettings } from '../../composables/usePlanningSettings.js';
 
 const props = defineProps({
     owner: { type: Object, required: true },
@@ -19,15 +19,15 @@ const emit = defineEmits(['saved', 'cancel']);
 const { t } = useI18n();
 
 const { plan, replan } = usePlanning();
-const { load: loadTemplate } = useReleaseTemplate();
+const { load: loadSettings } = usePlanningSettings();
 const { saving, errors, run } = useFormSubmit('form', { byField: false });
 
 const { moment, day, eventId, payload: target } = useTarget(props.release);
 const steps = ref(props.release?.steps.map(({ label, days, done }) => ({ label, days, done })) ?? []);
 
 onMounted(async () => {
-    const template = props.release ? null : await loadTemplate();
-    if (template) steps.value = template.steps.map((step) => ({ ...step }));
+    const settings = props.release ? null : await loadSettings();
+    if (settings) steps.value = settings.steps.map((step) => ({ ...step }));
 });
 
 const onSubmit = () => run(async () => {

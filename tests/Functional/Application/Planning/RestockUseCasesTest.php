@@ -29,15 +29,17 @@ use App\Application\Purchasing\PlaceSupplierOrder\PlaceSupplierOrderHandler;
 use App\Application\Purchasing\PurchaseLine;
 use App\Application\Purchasing\ReviseSupplierOrder\ReviseSupplierOrderHandler;
 use App\Application\Purchasing\SupplierOrderDraft;
-use App\Domain\Planning\Exception\DayAndEvent;
 use App\Domain\Planning\Exception\PastRestockTarget;
 use App\Domain\Planning\Exception\RestockFromAnotherSupplier;
+use App\Domain\Planning\Exception\RestockWithoutEvent;
 use App\Domain\Purchasing\Exception\NonPositiveLeadTime;
 use App\Domain\Shared\Exception\NotFound;
 use App\Tests\Support\ActsAsUser;
 use App\Tests\Support\CreatesProducts;
+use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\Test\ClockSensitiveTrait;
+use Symfony\Component\Uid\Ulid;
 
 final class RestockUseCasesTest extends KernelTestCase
 {
@@ -54,19 +56,19 @@ final class RestockUseCasesTest extends KernelTestCase
         $this->supplierId = $this->supplier('Imprimerie du Lac');
     }
 
-    public function testARestockIsPlannedOnADay(): void
+    public function testARestockIsPlannedForAnEventAndReadyOnItsReadyByDay(): void
     {
-        $restockId = $this->plan(new PlanRestock($this->supplierId, ' stickers holo ', new \DateTimeImmutable('2026-11-20'), null, 5));
+        $eventId = $this->event();
+        $restockId = $this->plan(new PlanRestock($this->supplierId, ' stickers holo ', $eventId, 5));
         $this->clear();
 
         $restock = $this->restocks()[0];
         self::assertSame($restockId, $restock->id);
         self::assertSame(['id' => $this->supplierId, 'name' => 'Imprimerie du Lac'], $restock->supplier);
         self::assertSame('stickers holo', $restock->note);
-        self::assertSame('2026-11-20', $restock->day);
-        self::assertNull($restock->event);
+        self::assertSame(['id' => $eventId, 'name' => 'Marché de Noël'], $restock->event);
+        self::assertSame(['2026-12-05', '2026-12-02', '2026-11-27'], [$restock->day, $restock->readyBy, $restock->orderBy]);
         self::assertSame(5, $restock->leadDays);
-        self::assertSame('2026-11-15', $restock->orderBy);
         self::assertFalse($restock->ordered);
         self::assertNull($restock->orderedOn);
         self::assertNull($restock->supplierOrder);
@@ -74,27 +76,30 @@ final class RestockUseCasesTest extends KernelTestCase
         self::assertFalse($restock->past);
     }
 
-    public function testARestockOnAnEventFollowsItsReschedule(): void
+    public function testARestockFollowsItsEventRescheduleAndMargin(): void
     {
         $eventId = $this->event();
-        $this->plan(new PlanRestock($this->supplierId, null, null, $eventId, 10));
+        $this->plan(new PlanRestock($this->supplierId, null, $eventId, 10));
         $this->clear();
 
         $restock = $this->restocks()[0];
-        self::assertSame(['id' => $eventId, 'name' => 'Marché de Noël'], $restock->event);
-        self::assertSame(['2026-12-05', '2026-11-25'], [$restock->day, $restock->orderBy]);
+        self::assertSame(['2026-12-05', '2026-12-02', '2026-11-22'], [$restock->day, $restock->readyBy, $restock->orderBy]);
 
         self::getContainer()->get(UpdateEventHandler::class)(new UpdateEvent($eventId, 'Marché de Noël', 'Lyon', new \DateTimeImmutable('2026-12-12'), new \DateTimeImmutable('2026-12-13')));
         $this->clear();
-
         $restock = $this->restocks()[0];
-        self::assertSame(['2026-12-12', '2026-12-02'], [$restock->day, $restock->orderBy]);
+        self::assertSame(['2026-12-12', '2026-12-09', '2026-11-29'], [$restock->day, $restock->readyBy, $restock->orderBy]);
+
+        self::getContainer()->get(UpdateEventHandler::class)(new UpdateEvent($eventId, 'Marché de Noël', 'Lyon', new \DateTimeImmutable('2026-12-12'), new \DateTimeImmutable('2026-12-13'), 0));
+        $this->clear();
+        $restock = $this->restocks()[0];
+        self::assertSame(['2026-12-12', '2026-12-12', '2026-12-02'], [$restock->day, $restock->readyBy, $restock->orderBy]);
     }
 
     public function testALeadTimeUnderOneDayIsRefused(): void
     {
         try {
-            $this->plan(new PlanRestock($this->supplierId, null, new \DateTimeImmutable('2026-11-20'), null, 0));
+            $this->plan(new PlanRestock($this->supplierId, null, $this->event(), 0));
             self::fail('A lead time of 0 days was accepted.');
         } catch (NonPositiveLeadTime) {
         }
@@ -103,31 +108,57 @@ final class RestockUseCasesTest extends KernelTestCase
         self::assertSame([], $this->restocks());
     }
 
-    public function testARestockCannotBeOnADayAndAnEvent(): void
+    public function testARestockNeedsAnEvent(): void
     {
-        $this->expectException(DayAndEvent::class);
-        $this->plan(new PlanRestock($this->supplierId, null, new \DateTimeImmutable('2026-11-20'), $this->event(), 5));
+        try {
+            $this->plan(new PlanRestock($this->supplierId, null, null, 5));
+            self::fail('A restock without event was planned.');
+        } catch (RestockWithoutEvent) {
+        }
+        $restockId = $this->plan(new PlanRestock($this->supplierId, null, $this->event(), 5));
+
+        $this->expectException(RestockWithoutEvent::class);
+        $this->revise(new ReviseRestock($restockId, $this->supplierId, null, null, 5));
     }
 
     public function testARestockIsRevised(): void
     {
-        $restockId = $this->plan(new PlanRestock($this->supplierId, 'stickers holo', new \DateTimeImmutable('2026-11-20'), null, 5));
+        $restockId = $this->plan(new PlanRestock($this->supplierId, 'stickers holo', $this->event(), 5));
         $otherSupplier = $this->supplier('Cartonnerie');
-        $eventId = $this->event();
+        $eventId = $this->event('Salon d\'hiver', '2027-01-09');
 
-        self::getContainer()->get(ReviseRestockHandler::class)(new ReviseRestock($restockId, $otherSupplier, null, null, $eventId, 3));
+        $this->revise(new ReviseRestock($restockId, $otherSupplier, null, $eventId, 3));
         $this->clear();
 
         $restock = $this->restocks()[0];
         self::assertSame(['id' => $otherSupplier, 'name' => 'Cartonnerie'], $restock->supplier);
         self::assertNull($restock->note);
-        self::assertSame(['id' => $eventId, 'name' => 'Marché de Noël'], $restock->event);
-        self::assertSame([3, '2026-12-05', '2026-12-02'], [$restock->leadDays, $restock->day, $restock->orderBy]);
+        self::assertSame(['id' => $eventId, 'name' => 'Salon d\'hiver'], $restock->event);
+        self::assertSame([3, '2027-01-09', '2027-01-06', '2027-01-03'], [$restock->leadDays, $restock->day, $restock->readyBy, $restock->orderBy]);
+    }
+
+    public function testARestockPlannedOnADayBeforeEventsStillShowsUntilItIsMovedOntoAnEvent(): void
+    {
+        $restockId = $this->plan(new PlanRestock($this->supplierId, 'ancien', $this->event(), 5));
+        $this->onPlainDay($restockId, '2026-11-20');
+        $this->clear();
+
+        $restock = $this->restocks()[0];
+        self::assertNull($restock->event);
+        self::assertSame(['2026-11-20', '2026-11-20', '2026-11-15'], [$restock->day, $restock->readyBy, $restock->orderBy]);
+
+        $eventId = $this->event('Salon d\'hiver', '2027-01-09');
+        $this->revise(new ReviseRestock($restockId, $this->supplierId, 'ancien', $eventId, 5));
+        $this->clear();
+
+        $restock = $this->restocks()[0];
+        self::assertSame(['id' => $eventId, 'name' => 'Salon d\'hiver'], $restock->event);
+        self::assertSame(['2027-01-09', '2027-01-06'], [$restock->day, $restock->readyBy]);
     }
 
     public function testARestockIsCancelled(): void
     {
-        $restockId = $this->plan(new PlanRestock($this->supplierId, null, new \DateTimeImmutable('2026-11-20'), null, 5));
+        $restockId = $this->plan(new PlanRestock($this->supplierId, null, $this->event(), 5));
 
         self::getContainer()->get(CancelRestockHandler::class)($restockId);
         $this->clear();
@@ -137,7 +168,7 @@ final class RestockUseCasesTest extends KernelTestCase
 
     public function testARestockIsTickedOrderedTodayThenUnticked(): void
     {
-        $restockId = $this->plan(new PlanRestock($this->supplierId, null, new \DateTimeImmutable('2026-11-20'), null, 5));
+        $restockId = $this->plan(new PlanRestock($this->supplierId, null, $this->event(), 5));
         $tick = self::getContainer()->get(TickRestockHandler::class);
 
         $tick($restockId, true);
@@ -153,7 +184,7 @@ final class RestockUseCasesTest extends KernelTestCase
 
     public function testUntickingARestockOrderedThroughASupplierOrderDropsTheLink(): void
     {
-        $restockId = $this->plan(new PlanRestock($this->supplierId, null, new \DateTimeImmutable('2026-11-20'), null, 5));
+        $restockId = $this->plan(new PlanRestock($this->supplierId, null, $this->event(), 5));
         self::getContainer()->get(OrderRestockHandler::class)($restockId, $this->supplierOrder($this->supplierId));
 
         self::getContainer()->get(TickRestockHandler::class)($restockId, false);
@@ -164,7 +195,7 @@ final class RestockUseCasesTest extends KernelTestCase
 
     public function testARestockIsOrderedThroughAnOrderOfItsSupplier(): void
     {
-        $restockId = $this->plan(new PlanRestock($this->supplierId, null, new \DateTimeImmutable('2026-11-20'), null, 5));
+        $restockId = $this->plan(new PlanRestock($this->supplierId, null, $this->event(), 5));
         $orderId = $this->supplierOrder($this->supplierId);
 
         self::getContainer()->get(OrderRestockHandler::class)($restockId, $orderId);
@@ -179,7 +210,7 @@ final class RestockUseCasesTest extends KernelTestCase
 
     public function testAnOrderOfAnotherSupplierIsRefused(): void
     {
-        $restockId = $this->plan(new PlanRestock($this->supplierId, null, new \DateTimeImmutable('2026-11-20'), null, 5));
+        $restockId = $this->plan(new PlanRestock($this->supplierId, null, $this->event(), 5));
         $orderId = $this->supplierOrder($this->supplier('Cartonnerie'));
 
         $this->expectExceptionObject(new RestockFromAnotherSupplier('Imprimerie du Lac'));
@@ -188,7 +219,7 @@ final class RestockUseCasesTest extends KernelTestCase
 
     public function testDeletingTheSupplierOrderKeepsTheRestockOrderedWithoutLink(): void
     {
-        $restockId = $this->plan(new PlanRestock($this->supplierId, null, new \DateTimeImmutable('2026-11-20'), null, 5));
+        $restockId = $this->plan(new PlanRestock($this->supplierId, null, $this->event(), 5));
         $orderId = $this->supplierOrder($this->supplierId);
         self::getContainer()->get(OrderRestockHandler::class)($restockId, $orderId);
         $this->clear();
@@ -200,24 +231,25 @@ final class RestockUseCasesTest extends KernelTestCase
         self::assertSame([true, '2026-11-05', null], [$restock->ordered, $restock->orderedOn, $restock->supplierOrder]);
     }
 
-    public function testATargetDayAlreadyPastIsRefused(): void
+    public function testAnEventAlreadyPastIsRefused(): void
     {
+        $past = $this->event('Salon passé', '2026-11-07', '2026-11-08');
         try {
-            $this->plan(new PlanRestock($this->supplierId, null, new \DateTimeImmutable('2026-11-08'), null, 5));
-            self::fail('A restock for yesterday was accepted.');
+            $this->plan(new PlanRestock($this->supplierId, null, $past, 5));
+            self::fail('A restock for a past event was accepted.');
         } catch (PastRestockTarget) {
         }
         $this->clear();
         self::assertSame([], $this->restocks());
 
-        $restockId = $this->plan(new PlanRestock($this->supplierId, null, new \DateTimeImmutable('2026-11-09'), null, 5));
+        $restockId = $this->plan(new PlanRestock($this->supplierId, null, $this->event('Salon du jour', '2026-11-09'), 5));
         $this->expectException(PastRestockTarget::class);
-        self::getContainer()->get(ReviseRestockHandler::class)(new ReviseRestock($restockId, $this->supplierId, null, new \DateTimeImmutable('2026-11-08'), null, 5));
+        $this->revise(new ReviseRestock($restockId, $this->supplierId, null, $past, 5));
     }
 
     public function testRedatingTheLinkedOrderMovesTheOrderedDay(): void
     {
-        $restockId = $this->plan(new PlanRestock($this->supplierId, null, new \DateTimeImmutable('2026-11-20'), null, 5));
+        $restockId = $this->plan(new PlanRestock($this->supplierId, null, $this->event(), 5));
         $orderId = $this->supplierOrder($this->supplierId);
         self::getContainer()->get(OrderRestockHandler::class)($restockId, $orderId);
         $this->clear();
@@ -231,7 +263,7 @@ final class RestockUseCasesTest extends KernelTestCase
 
     public function testMovingTheLinkedOrderToAnotherSupplierDropsTheLinkAndKeepsItOrdered(): void
     {
-        $restockId = $this->plan(new PlanRestock($this->supplierId, null, new \DateTimeImmutable('2026-11-20'), null, 5));
+        $restockId = $this->plan(new PlanRestock($this->supplierId, null, $this->event(), 5));
         $orderId = $this->supplierOrder($this->supplierId);
         self::getContainer()->get(OrderRestockHandler::class)($restockId, $orderId);
         $this->clear();
@@ -245,7 +277,7 @@ final class RestockUseCasesTest extends KernelTestCase
 
     public function testMergingTheLinkedOrderLinksTheRestockToTheOrderThatAbsorbsIt(): void
     {
-        $restockId = $this->plan(new PlanRestock($this->supplierId, null, new \DateTimeImmutable('2026-11-20'), null, 5));
+        $restockId = $this->plan(new PlanRestock($this->supplierId, null, $this->event(), 5));
         $absorbedId = $this->supplierOrder($this->supplierId);
         $orderId = $this->supplierOrder($this->supplierId);
         self::getContainer()->get(OrderRestockHandler::class)($restockId, $absorbedId);
@@ -258,33 +290,38 @@ final class RestockUseCasesTest extends KernelTestCase
         self::assertSame([true, $orderId], [$restock->ordered, $restock->supplierOrder['id'] ?? null]);
     }
 
-    public function testThePlanningGroupsThePendingRestocksWithTheSteps(): void
+    public function testThePlanningGroupsTheRestocksWithTheStepsAndKeepsTheOrderedOnesUntilTheirOrderByDay(): void
     {
-        $this->plan(new PlanRestock($this->supplierId, 'late', new \DateTimeImmutable('2026-11-12'), null, 5));
-        $this->plan(new PlanRestock($this->supplierId, 'this week', new \DateTimeImmutable('2026-11-20'), null, 7));
-        $this->plan(new PlanRestock($this->supplierId, 'later', new \DateTimeImmutable('2026-11-30'), null, 5));
+        $this->plan(new PlanRestock($this->supplierId, 'late', $this->event('Salon du 12', '2026-11-12'), 5));
+        $twentieth = $this->event('Salon du 20', '2026-11-20');
+        $this->plan(new PlanRestock($this->supplierId, 'this week', $twentieth, 4));
+        $this->plan(new PlanRestock($this->supplierId, 'later', $this->event('Salon du 30', '2026-11-30'), 5));
         self::mockTime('2026-11-07 10:00');
-        $this->plan(new PlanRestock($this->supplierId, 'past', new \DateTimeImmutable('2026-11-08'), null, 5));
+        $this->plan(new PlanRestock($this->supplierId, 'past', $this->event('Salon du 8', '2026-11-08'), 5));
         self::mockTime('2026-11-09 10:00');
-        $ordered = $this->plan(new PlanRestock($this->supplierId, 'ordered', new \DateTimeImmutable('2026-11-18'), null, 3));
+        $ordered = $this->plan(new PlanRestock($this->supplierId, 'ordered', $twentieth, 3));
         self::getContainer()->get(TickRestockHandler::class)($ordered, true);
+        $orderedLate = $this->plan(new PlanRestock($this->supplierId, 'ordered late', $this->event('Salon du 11', '2026-11-11'), 6));
+        self::getContainer()->get(TickRestockHandler::class)($orderedLate, true);
         $collectionId = (string) self::getContainer()->get(CreateCollectionHandler::class)('Sous-bois', null);
         self::getContainer()->get(PlanCollectionReleaseHandler::class)(new PlanCollectionRelease($collectionId, new \DateTimeImmutable('2026-11-14'), null, [['label' => 'Impression', 'days' => 3]]));
         $this->clear();
 
         $planning = $this->planning();
 
-        self::assertSame([['restock', 'late', 'late', '2026-11-07']], array_map(static fn (array $item): array => [$item['kind'], $item['note'] ?? null, $item['state'], $item['orderBy'] ?? null], $planning->late));
-        self::assertSame(['step', 'restock'], array_column($planning->thisWeek, 'kind'));
-        self::assertSame(['Impression', 'this week'], [$planning->thisWeek[0]['label'] ?? null, $planning->thisWeek[1]['note'] ?? null]);
+        self::assertSame([['restock', 'late', 'late', '2026-11-04']], array_map(static fn (array $item): array => [$item['kind'], $item['note'] ?? null, $item['state'], $item['orderBy'] ?? null], $planning->late));
+        self::assertSame(
+            [['step', 'Impression', 'upcoming'], ['restock', 'this week', 'upcoming'], ['restock', 'ordered', 'done']],
+            array_map(static fn (array $item): array => [$item['kind'], 'step' === $item['kind'] ? $item['label'] : $item['note'], $item['state']], $planning->thisWeek),
+        );
         self::assertSame(['later'], array_column($planning->later, 'note'));
-        self::assertSame(['late', 'this week', 'ordered', 'later'], array_map(static fn (RestockView $restock): ?string => $restock->note, $planning->restocks));
+        self::assertSame(['ordered late', 'late', 'this week', 'ordered', 'later'], array_map(static fn (RestockView $restock): ?string => $restock->note, $planning->restocks));
         self::assertSame(['Imprimerie du Lac'], array_unique(array_map(static fn (RestockView $restock): string => $restock->supplier['name'], $planning->restocks)));
     }
 
     public function testRestocksOfAnotherWorkspaceAreHidden(): void
     {
-        $restockId = $this->plan(new PlanRestock($this->supplierId, null, new \DateTimeImmutable('2026-11-20'), null, 5));
+        $restockId = $this->plan(new PlanRestock($this->supplierId, null, $this->event(), 5));
 
         self::actAsMemberOf('Autre atelier');
 
@@ -296,13 +333,13 @@ final class RestockUseCasesTest extends KernelTestCase
 
     public function testARestockOfAnotherWorkspaceCannotBeRevisedNorCancelled(): void
     {
-        $restockId = $this->plan(new PlanRestock($this->supplierId, null, new \DateTimeImmutable('2026-11-20'), null, 5));
+        $restockId = $this->plan(new PlanRestock($this->supplierId, null, $this->event(), 5));
 
         self::actAsMemberOf('Autre atelier');
         $supplierId = $this->supplier('Cartonnerie');
 
         try {
-            self::getContainer()->get(ReviseRestockHandler::class)(new ReviseRestock($restockId, $supplierId, null, new \DateTimeImmutable('2026-11-25'), null, 5));
+            self::getContainer()->get(ReviseRestockHandler::class)(new ReviseRestock($restockId, $supplierId, null, $this->event('Salon', '2026-12-20'), 5));
             self::fail('A restock of another workspace was revised.');
         } catch (NotFound) {
         }
@@ -315,7 +352,7 @@ final class RestockUseCasesTest extends KernelTestCase
         self::actAsMemberOf('Autre atelier');
 
         $this->expectException(NotFound::class);
-        $this->plan(new PlanRestock($this->supplierId, null, new \DateTimeImmutable('2026-11-20'), null, 5));
+        $this->plan(new PlanRestock($this->supplierId, null, $this->event(), 5));
     }
 
     public function testAnEventOfAnotherWorkspaceCannotBeUsed(): void
@@ -326,7 +363,7 @@ final class RestockUseCasesTest extends KernelTestCase
         $supplierId = $this->supplier('Cartonnerie');
 
         $this->expectException(NotFound::class);
-        $this->plan(new PlanRestock($supplierId, null, null, $eventId, 5));
+        $this->plan(new PlanRestock($supplierId, null, $eventId, 5));
     }
 
     public function testASupplierOrderOfAnotherWorkspaceCannotBeLinked(): void
@@ -334,7 +371,7 @@ final class RestockUseCasesTest extends KernelTestCase
         $orderId = $this->supplierOrder($this->supplierId);
 
         self::actAsMemberOf('Autre atelier');
-        $restockId = $this->plan(new PlanRestock($this->supplier('Cartonnerie'), null, new \DateTimeImmutable('2026-11-20'), null, 5));
+        $restockId = $this->plan(new PlanRestock($this->supplier('Cartonnerie'), null, $this->event(), 5));
 
         $this->expectException(NotFound::class);
         self::getContainer()->get(OrderRestockHandler::class)($restockId, $orderId);
@@ -358,9 +395,19 @@ final class RestockUseCasesTest extends KernelTestCase
         self::getContainer()->get(ReviseSupplierOrderHandler::class)($orderId, new SupplierOrderDraft($supplierId, new \DateTimeImmutable($orderedOn), [new PurchaseLine($product, null, 50, 1_000)]));
     }
 
-    private function event(): string
+    private function event(string $name = 'Marché de Noël', string $start = '2026-12-05', ?string $end = null): string
     {
-        return (string) self::getContainer()->get(ScheduleEventHandler::class)(new ScheduleEvent('Marché de Noël', 'Lyon', new \DateTimeImmutable('2026-12-05'), new \DateTimeImmutable('2026-12-06')));
+        return (string) self::getContainer()->get(ScheduleEventHandler::class)(new ScheduleEvent($name, 'Lyon', new \DateTimeImmutable($start), new \DateTimeImmutable($end ?? $start)));
+    }
+
+    private function onPlainDay(string $restockId, string $day): void
+    {
+        self::getContainer()->get(Connection::class)->executeStatement('UPDATE restock SET day = ?, event_id = NULL WHERE id = ?', [$day, Ulid::fromString($restockId)->toRfc4122()]);
+    }
+
+    private function revise(ReviseRestock $command): void
+    {
+        self::getContainer()->get(ReviseRestockHandler::class)($command);
     }
 
     private function plan(PlanRestock $command): string

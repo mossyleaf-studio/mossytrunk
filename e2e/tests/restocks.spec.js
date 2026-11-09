@@ -1,6 +1,5 @@
 import { test, expect } from './support/test.js';
 import { choose } from './support/select.js';
-import { fillDate } from './support/date.js';
 import { unique } from './support/unique.js';
 import { createEvent, createProduct } from './support/api.js';
 
@@ -36,8 +35,9 @@ test('a supplier keeps its lead time', async ({ page, request }) => {
     await expect(dialog.getByRole('spinbutton', { name: 'Délai de commande (jours)' })).toHaveValue('12');
 });
 
-test('prepare a restock by a date, move its order-by day, tick it ordered, then delete it', async ({ page, request }) => {
+test('prepare a restock for an event, move its order-by day, tick it ordered, then delete it', async ({ page, request }) => {
     const supplier = await createSupplier(request, { leadDays: 10 });
+    const event = await createEvent(request, { startDate: inDays(23) });
 
     await page.goto('/planning');
     await page.getByRole('button', { name: 'Préparer un réassort' }).click();
@@ -45,47 +45,55 @@ test('prepare a restock by a date, move its order-by day, tick it ordered, then 
     await choose(page, dialog.getByRole('combobox', { name: 'Fournisseur' }), supplier.name);
     await expect(dialog.getByRole('spinbutton', { name: 'Délai de commande (jours)' })).toHaveValue('10');
     await dialog.getByRole('textbox', { name: 'Note' }).fill('stickers holo');
-    await dialog.getByRole('radio', { name: 'Une date' }).click();
-    await fillDate(dialog.getByRole('group', { name: 'Date' }), inDays(20));
+    await expect(dialog.getByRole('radio', { name: 'Une date' })).toHaveCount(0);
+    await choose(page, dialog.getByRole('combobox', { name: 'Événement' }), event.name);
     await dialog.getByRole('button', { name: 'Préparer', exact: true }).click();
     await expect(page.getByTestId('toast').last()).toContainText(`Réassort chez ${supplier.name} préparé.`);
 
     const later = page.getByRole('region', { name: 'Plus tard' });
     const thisWeek = page.getByRole('region', { name: 'Cette semaine' });
-    const restocks = page.getByRole('region', { name: 'Réassorts à venir' });
+    const lane = page.getByRole('region', { name: "Vue d'ensemble" }).getByRole('group', { name: event.name });
+    await expect(lane.getByRole('img', { name: `Commander chez ${supplier.name} · ${dayIn(10)} · À commander` })).toBeVisible();
+    await later.getByRole('button', { name: /^Plus tard/ }).click();
     const item = later.getByRole('listitem').filter({ hasText: supplier.name });
     await expect(item).toContainText(`Commander chez ${supplier.name}`);
     await expect(item).toContainText('stickers holo');
-    await expect(item).toContainText(`À commander avant le ${dayIn(10)}`);
-    await expect(item).toContainText(`Pour le ${dayIn(20)}`);
+    await expect(item).toContainText('dans 10 j');
+    await expect(item).toContainText(dayIn(10));
+    await expect(item).toContainText(event.name);
+    await expect(item).toContainText('À commander');
     await expect(item.getByRole('link', { name: 'Passer la commande' })).toHaveAttribute('href', new RegExp(`^/supplier-orders\\?restock=\\w+&supplier=${supplier.id}$`));
-    const planned = restocks.getByRole('listitem').filter({ hasText: supplier.name });
-    await expect(planned).toContainText('À commander');
 
     await item.getByRole('button', { name: 'Modifier le réassort' }).click();
     const edit = page.getByRole('dialog', { name: 'Modifier le réassort' });
     await expect(edit.getByRole('combobox', { name: 'Fournisseur' })).toHaveText(supplier.name);
     await expect(edit.getByRole('textbox', { name: 'Note' })).toHaveValue('stickers holo');
+    await expect(edit.getByRole('combobox', { name: 'Événement' })).toHaveText(event.name);
     const leadTime = edit.getByRole('spinbutton', { name: 'Délai de commande (jours)' });
     await leadTime.fill('16');
     await leadTime.press('Tab');
     await edit.getByRole('button', { name: 'Enregistrer', exact: true }).click();
     await expect(page.getByTestId('toast').last()).toContainText(`Réassort chez ${supplier.name} modifié.`);
 
-    await expect(later.getByRole('listitem').filter({ hasText: supplier.name })).toHaveCount(0);
+    await expect(later).toHaveCount(0);
     const moved = thisWeek.getByRole('listitem').filter({ hasText: supplier.name });
-    await expect(moved).toContainText(`À commander avant le ${dayIn(4)}`);
+    await expect(moved).toContainText('dans 4 j');
+    await expect(moved).toContainText(dayIn(4));
 
     await moved.getByRole('checkbox', { name: 'Commandé' }).click();
-    await expect(thisWeek.getByRole('listitem').filter({ hasText: supplier.name })).toHaveCount(0);
-    await expect(planned).toContainText(`Commandé le ${dayIn(0)}`);
-    await expect(planned.getByRole('checkbox', { name: 'Commandé' })).toBeChecked();
-    await expect(planned.getByRole('link', { name: 'Passer la commande' })).toHaveCount(0);
+    await expect(moved).toContainText(`Commandé le ${dayIn(0)}`);
+    await expect(moved.getByRole('checkbox', { name: 'Commandé' })).toBeChecked();
+    await expect(lane.getByRole('img', { name: `Commander chez ${supplier.name} · ${dayIn(4)} · Commandé le ${dayIn(0)}` })).toBeVisible();
 
+    await page.goto(`/events/${event.id}`);
+    const planned = page.getByRole('region', { name: 'Préparation' }).getByRole('listitem').filter({ hasText: supplier.name });
+    await expect(planned.getByRole('checkbox', { name: 'Commandé' })).toBeChecked();
     await planned.getByRole('button', { name: 'Supprimer le réassort' }).click();
     await page.getByRole('alertdialog').getByRole('button', { name: 'Supprimer le réassort' }).click();
     await expect(page.getByTestId('toast').last()).toContainText(`Réassort chez ${supplier.name} supprimé.`);
-    await expect(restocks.getByRole('listitem').filter({ hasText: supplier.name })).toHaveCount(0);
+
+    await page.goto('/planning');
+    await expect(lane.getByRole('img', { name: /^Commander chez/ })).toHaveCount(0);
 });
 
 test('prepare a restock from an event, and the dashboard shows it when it is late', async ({ page, request }) => {
@@ -95,7 +103,7 @@ test('prepare a restock from an event, and the dashboard shows it when it is lat
     await page.goto(`/events/${event.id}`);
     await page.getByRole('button', { name: 'Préparer un réassort' }).click();
     const dialog = page.getByRole('dialog', { name: 'Préparer un réassort' });
-    await expect(dialog.getByRole('combobox', { name: 'Événement' })).toHaveText(event.name);
+    await expect(dialog.getByRole('combobox', { name: 'Événement' })).toHaveCount(0);
     await choose(page, dialog.getByRole('combobox', { name: 'Fournisseur' }), supplier.name);
     await expect(dialog.getByRole('spinbutton', { name: 'Délai de commande (jours)' })).toHaveValue('7');
     await dialog.getByRole('button', { name: 'Préparer', exact: true }).click();
@@ -105,23 +113,27 @@ test('prepare a restock from an event, and the dashboard shows it when it is lat
     const card = page.getByRole('region', { name: 'Planning', exact: true });
     const item = card.getByRole('listitem').filter({ hasText: supplier.name });
     await expect(item).toContainText(`Commander chez ${supplier.name}`);
-    await expect(item).toContainText(`À commander avant le ${dayIn(-2)}`);
+    await expect(item).toContainText('il y a 5 j');
+    await expect(item).toContainText(dayIn(-5));
     await expect(item).toContainText(event.name);
     await expect(item).toContainText('En retard');
+    await expect(item.getByRole('link', { name: 'Passer la commande' })).toBeVisible();
 });
 
 test('place the order of a restock from the planning, and the restock is ordered through it', async ({ page, request }) => {
     const supplier = await createSupplier(request, { leadDays: 5 });
     const product = await createProduct(request, { name: unique('Sticker') });
-    const planned = await request.post('/api/restocks', { data: { supplierId: supplier.id, note: 'stickers holo', day: inDays(30), leadDays: 5 } });
+    const event = await createEvent(request, { startDate: inDays(30) });
+    const planned = await request.post('/api/restocks', { data: { supplierId: supplier.id, note: 'stickers holo', eventId: event.id, leadDays: 5 } });
     expect(planned.status()).toBe(201);
 
     const draft = { form: { supplierId: 'another-supplier', lines: [{ productId: product.id, variant: null, label: product.name, quantity: 3, totalPrice: 300 }] } };
 
     await page.goto('/planning');
     await page.evaluate((value) => window.localStorage.setItem('mossytrunk.supplier-order-draft', JSON.stringify(value)), draft);
-    const restocks = page.getByRole('region', { name: 'Réassorts à venir' });
-    await restocks.getByRole('listitem').filter({ hasText: supplier.name }).getByRole('link', { name: 'Passer la commande' }).click();
+    const later = page.getByRole('region', { name: 'Plus tard' });
+    await later.getByRole('button', { name: /^Plus tard/ }).click();
+    await later.getByRole('listitem').filter({ hasText: supplier.name }).getByRole('link', { name: 'Passer la commande' }).click();
 
     const form = page.getByRole('dialog', { name: 'Nouvelle commande fournisseur' }).locator('form').first();
     await expect(form.getByRole('combobox', { name: 'Fournisseur' })).toHaveText(supplier.name);
@@ -137,11 +149,18 @@ test('place the order of a restock from the planning, and the restock is ordered
     expect(await page.evaluate(() => JSON.parse(window.localStorage.getItem('mossytrunk.supplier-order-draft')))).toEqual(draft);
 
     await page.goto('/planning');
-    const ordered = restocks.getByRole('listitem').filter({ hasText: supplier.name });
+    await later.getByRole('button', { name: /^Plus tard/ }).click();
+    const done = later.getByRole('listitem').filter({ hasText: supplier.name });
+    await expect(done).toContainText(`Commandé le ${dayIn(0)}`);
+    await expect(done.getByRole('checkbox', { name: 'Commandé' })).toBeChecked();
+    const lane = page.getByRole('region', { name: "Vue d'ensemble" }).getByRole('group', { name: event.name });
+    await expect(lane.getByRole('img', { name: `Commander chez ${supplier.name} · ${dayIn(22)} · Commandé le ${dayIn(0)}` })).toBeVisible();
+
+    await page.goto(`/events/${event.id}`);
+    const ordered = page.getByRole('region', { name: 'Préparation' }).getByRole('listitem').filter({ hasText: supplier.name });
     await expect(ordered).toContainText(`Commandé le ${dayIn(0)}`);
     await expect(ordered.getByRole('link', { name: /^CMF-/ })).toBeVisible();
     await expect(ordered.getByRole('link', { name: 'Passer la commande' })).toHaveCount(0);
-    await expect(page.getByRole('region', { name: 'Plus tard' }).getByRole('listitem').filter({ hasText: supplier.name })).toHaveCount(0);
 });
 
 test('prepare a restock from an upcoming event page, it shows on the planning for that event, and a started event offers none', async ({ page, request }) => {
@@ -159,34 +178,58 @@ test('prepare a restock from an upcoming event page, it shows on the planning fo
     await page.goto(`/events/${event.id}`);
     await page.getByRole('button', { name: 'Préparer un réassort' }).click();
     const dialog = page.getByRole('dialog', { name: 'Préparer un réassort' });
-    await expect(dialog.getByRole('combobox', { name: 'Événement' })).toHaveText(event.name);
+    await expect(dialog.getByRole('combobox', { name: 'Événement' })).toHaveCount(0);
     await choose(page, dialog.getByRole('combobox', { name: 'Fournisseur' }), supplier.name);
     await dialog.getByRole('button', { name: 'Préparer', exact: true }).click();
     await expect(page.getByTestId('toast').last()).toContainText(`Réassort chez ${supplier.name} préparé.`);
 
     await page.goto('/planning');
-    const item = page.getByRole('region', { name: 'Réassorts à venir' }).getByRole('listitem').filter({ hasText: supplier.name });
+    const lane = page.getByRole('region', { name: "Vue d'ensemble" }).getByRole('group', { name: event.name });
+    await expect(lane.getByRole('img', { name: `Prêt le ${dayIn(37)}` })).toBeAttached();
+    await expect(lane.getByRole('img', { name: `Commander chez ${supplier.name} · ${dayIn(34)} · À commander` })).toBeAttached();
+    const later = page.getByRole('region', { name: 'Plus tard' });
+    await later.getByRole('button', { name: /^Plus tard/ }).click();
+    const item = later.getByRole('listitem').filter({ hasText: supplier.name });
     await expect(item).toContainText(event.name);
-    await expect(item).toContainText(`Pour le ${dayIn(40)}`);
-    await expect(item).toContainText(`À commander avant le ${dayIn(37)}`);
+    await expect(item).toContainText('dans 34 j');
+    await expect(item).toContainText(dayIn(34));
 });
 
-test('a restock needs a lead time and a target day not past', async ({ page, request }) => {
+test('a restock of an event already over can be ticked or deleted, not edited', async ({ page, request }) => {
+    const supplier = await createSupplier(request, { leadDays: 3 });
+    const event = await createEvent(request, { startDate: inDays(20) });
+    const planned = await request.post('/api/restocks', { data: { supplierId: supplier.id, note: null, eventId: event.id, leadDays: 3 } });
+    expect(planned.status()).toBe(201);
+    const moved = await request.put(`/api/events/${event.id}`, { data: { name: event.name, location: 'Lyon', startDate: inDays(-20), endDate: inDays(-20), readyDaysBefore: null } });
+    expect(moved.ok()).toBe(true);
+
+    await page.goto(`/events/${event.id}`);
+    const row = page.getByRole('region', { name: 'Préparation' }).getByRole('listitem').filter({ hasText: supplier.name });
+    await expect(row.getByRole('checkbox', { name: 'Commandé' })).toBeVisible();
+    await expect(row.getByRole('button', { name: 'Supprimer le réassort' })).toBeVisible();
+    await expect(row.getByRole('button', { name: 'Modifier le réassort' })).toHaveCount(0);
+});
+
+test('a restock needs an upcoming event and a lead time', async ({ page, request }) => {
     const supplier = await createSupplier(request);
+    const event = await createEvent(request, { startDate: inDays(20) });
+    const ongoing = await createEvent(request, { startDate: inDays(-1), endDate: inDays(1) });
 
     await page.goto('/planning');
     await page.getByRole('button', { name: 'Préparer un réassort' }).click();
     const dialog = page.getByRole('dialog', { name: 'Préparer un réassort' });
     await choose(page, dialog.getByRole('combobox', { name: 'Fournisseur' }), supplier.name);
-    await dialog.getByRole('radio', { name: 'Une date' }).click();
-    await fillDate(dialog.getByRole('group', { name: 'Date' }), inDays(20));
-    await dialog.getByRole('button', { name: 'Préparer', exact: true }).click();
-    await expect(dialog.getByRole('alert')).toContainText("Le délai de commande est d'au moins 1 jour.");
-
     const leadTime = dialog.getByRole('spinbutton', { name: 'Délai de commande (jours)' });
     await leadTime.fill('4');
     await leadTime.press('Tab');
-    await fillDate(dialog.getByRole('group', { name: 'Date' }), inDays(-1));
     await dialog.getByRole('button', { name: 'Préparer', exact: true }).click();
-    await expect(dialog.getByRole('alert')).toContainText("Un réassort se prépare pour aujourd'hui ou un jour à venir.");
+    await expect(dialog.getByRole('group', { name: 'Événement' })).toContainText('Événement invalide.');
+
+    await dialog.getByRole('combobox', { name: 'Événement' }).click();
+    await expect(page.getByRole('option', { name: ongoing.name, exact: true })).toHaveCount(0);
+    await page.getByRole('option', { name: event.name, exact: true }).click();
+    await leadTime.fill('');
+    await leadTime.press('Tab');
+    await dialog.getByRole('button', { name: 'Préparer', exact: true }).click();
+    await expect(dialog.getByRole('alert')).toContainText("Le délai de commande est d'au moins 1 jour.");
 });

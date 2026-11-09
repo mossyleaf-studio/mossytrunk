@@ -8,12 +8,13 @@ const { t } = useI18n();
 
 defineProps({
     label: { type: String, default: undefined },
+    placeholder: { type: String, default: undefined },
 });
 </script>
 
 <template>
     <NumberFieldRoot :locale="intlLocale()" class="control number-field">
-        <NumberFieldInput class="number-field__input" :aria-label="label" />
+        <NumberFieldInput class="number-field__input" :aria-label="label" :placeholder="placeholder" />
         <NumberFieldDecrement class="number-field__step number-field__step--decrement" :aria-label="t('ui.number.decrement')"><Minus size="0.875rem" aria-hidden="true" /></NumberFieldDecrement>
         <NumberFieldIncrement class="number-field__step" :aria-label="t('ui.number.increment')"><Plus size="0.875rem" aria-hidden="true" /></NumberFieldIncrement>
     </NumberFieldRoot>

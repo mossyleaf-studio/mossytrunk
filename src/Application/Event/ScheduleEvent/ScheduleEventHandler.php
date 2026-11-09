@@ -28,6 +28,7 @@ final readonly class ScheduleEventHandler
         $this->scheduler->ensureFree($period);
 
         $event = Event::schedule($this->workspace->current(), $command->name, $command->location, $period);
+        $event->planReadiness($command->readyDaysBefore);
         $this->events->add($event);
         $this->transaction->commit();
 

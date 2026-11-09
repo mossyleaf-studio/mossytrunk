@@ -9,7 +9,6 @@ final readonly class PlanRestock
     public function __construct(
         public string $supplierId,
         public ?string $note,
-        public ?\DateTimeImmutable $day,
         public ?string $eventId,
         public int $leadDays,
     ) {

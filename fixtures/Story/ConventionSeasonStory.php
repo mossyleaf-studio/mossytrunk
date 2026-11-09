@@ -23,8 +23,8 @@ use App\Domain\Integration\UnknownItems;
 use App\Domain\Order\Order;
 use App\Domain\Order\OrderedItem;
 use App\Domain\Order\PaymentMethod;
+use App\Domain\Planning\PlanningSettings;
 use App\Domain\Planning\Release;
-use App\Domain\Planning\ReleaseTemplate;
 use App\Domain\Planning\Restock;
 use App\Domain\Product\Product;
 use App\Domain\Product\ProductType;
@@ -291,8 +291,8 @@ final class ConventionSeasonStory extends Story
             ['label' => 'Contrôler et conditionner', 'days' => 2],
             ['label' => 'Photos et annonce', 'days' => 2],
         ];
-        $template = ReleaseTemplate::of($this->workspace);
-        $template->define($steps);
+        $template = PlanningSettings::of($this->workspace);
+        $template->define($steps, PlanningSettings::DEFAULT_READY_DAYS_BEFORE);
         $this->persisted($template);
         $steps[0]['done'] = true;
         $this->persisted(Release::ofCollection($undergrowth, null, $upcoming, $steps));
@@ -347,8 +347,8 @@ final class ConventionSeasonStory extends Story
         }
         $this->entityManager->persist($received);
 
-        $this->persisted(Restock::plan($printer, 'Tirages A3 Forêt', null, $upcoming, 10));
-        $ordered = Restock::plan($printer, 'Tirages A4 Rivière', new \DateTimeImmutable('+30 days'), null, 10);
+        $this->persisted(Restock::plan($printer, 'Tirages A3 Forêt', $upcoming, 10));
+        $ordered = Restock::plan($printer, 'Tirages A4 Rivière', $upcoming, 10);
         $ordered->orderedThrough($received);
         $this->persisted($ordered);
 

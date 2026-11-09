@@ -17,7 +17,7 @@ final class UpdateEventController extends AbstractController
 {
     public function __invoke(string $id, #[MapRequestPayload] EventPayload $payload, UpdateEventHandler $updateEvent): Response
     {
-        $updateEvent(new UpdateEvent($id, $payload->name, $payload->location, $payload->start(), $payload->end()));
+        $updateEvent(new UpdateEvent($id, $payload->name, $payload->location, $payload->start(), $payload->end(), $payload->readyDaysBefore));
 
         return new Response(status: Response::HTTP_NO_CONTENT);
     }

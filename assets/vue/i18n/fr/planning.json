@@ -19,7 +19,7 @@
         "event": "Événement",
         "noEvent": "Aucun événement à venir.",
         "steps": "Étapes",
-        "stepsHint": "Dans l'ordre : la dernière étape se termine la veille de la sortie.",
+        "stepsHint": "Dans l'ordre : la dernière étape se termine la veille de la date, ou le jour où tout doit être prêt pour un événement.",
         "plan": "Planifier"
     },
     "timeline": {
@@ -52,15 +52,9 @@
             "thisWeek": "Cette semaine",
             "later": "Plus tard"
         },
-        "releases": "Sorties à venir",
         "empty": {
-            "late": "Rien en retard.",
-            "thisWeek": "Rien à faire cette semaine.",
-            "later": "Rien de prévu plus tard.",
-            "releases": "Aucune sortie à venir.",
-            "restocks": "Aucun réassort à venir."
-        },
-        "restocks": "Réassorts à venir"
+            "thisWeek": "Rien à faire cette semaine."
+        }
     },
     "restock": {
         "prepare": "Préparer un réassort",
@@ -68,11 +62,10 @@
         "form": {
             "note": "Note",
             "notePlaceholder": "Ex. stickers holo",
-            "moment": "Échéance du réassort",
-            "day": "Date",
             "leadTime": "Délai de commande (jours)",
             "leadTimeHint": "Pré-rempli avec le délai du fournisseur.",
-            "submit": "Préparer"
+            "submit": "Préparer",
+            "event": "Événement"
         },
         "item": {
             "title": "Commander chez {supplier}",
@@ -94,5 +87,45 @@
             "revised": "Réassort chez {supplier} modifié.",
             "cancelled": "Réassort chez {supplier} supprimé."
         }
+    },
+    "readiness": {
+        "ready": "Prêt",
+        "days": "Jours de marge avant l'événement",
+        "unit": "jour avant l'événement | jours avant l'événement"
+    },
+    "preparation": {
+        "title": "Préparation",
+        "readyBy": "Prêt le {day}",
+        "margin": "{n} jour avant | {n} jours avant",
+        "sameDay": "le jour même",
+        "releases": "Sorties",
+        "restocks": "Réassorts",
+        "empty": "Rien à préparer pour cet événement pour l'instant."
+    },
+    "summary": {
+        "label": "Résumé du planning",
+        "late": "En retard · {n}",
+        "thisWeek": "Cette semaine · {n}",
+        "next": "Prochaine échéance : {what} · {day} · {when}",
+        "step": "{label} ({owner})",
+        "when": "aujourd'hui | demain | dans {n} jours"
+    },
+    "overview": {
+        "title": "Vue d'ensemble",
+        "label": "Semaines du {from} au {to}",
+        "today": "Aujourd'hui",
+        "empty": "Aucun événement ni sortie à venir."
+    },
+    "agenda": {
+        "title": "À faire",
+        "for": "Pour {name}",
+        "duration": "{n} jour | {n} jours",
+        "dayOf": "J {day}/{days}"
+    },
+    "relative": {
+        "today": "Aujourd'hui",
+        "tomorrow": "Demain",
+        "in": "dans {n} j",
+        "ago": "il y a {n} j"
     }
 }

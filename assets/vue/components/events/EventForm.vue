@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive } from 'vue';
+import { computed, onMounted, reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
 import BaseButton from '../ui/BaseButton.vue';
 import BaseDateRangePicker from '../ui/BaseDateRangePicker.vue';
@@ -7,7 +7,9 @@ import FormActions from '../ui/FormActions.vue';
 import FormError from '../ui/FormError.vue';
 import FormField from '../ui/FormField.vue';
 import FormSection from '../ui/FormSection.vue';
+import ReadyMarginField from '../planning/ReadyMarginField.vue';
 import { useFormSubmit } from '../../composables/useFormSubmit.js';
+import { usePlanningSettings } from '../../composables/usePlanningSettings.js';
 
 const props = defineProps({
     event: { type: Object, default: null },
@@ -16,15 +18,19 @@ const props = defineProps({
 const emit = defineEmits(['saved', 'cancel']);
 const { t } = useI18n();
 
-const emptyForm = () => ({ name: '', location: '', startDate: '', endDate: '' });
-const fromEvent = (event) => ({ name: event.name, location: event.location, startDate: event.startDate, endDate: event.endDate });
+const emptyForm = () => ({ name: '', location: '', startDate: '', endDate: '', readyDaysBefore: null });
+const fromEvent = (event) => ({ name: event.name, location: event.location, startDate: event.startDate, endDate: event.endDate, readyDaysBefore: event.readyDaysBefore ?? null });
 const form = reactive(props.event ? fromEvent(props.event) : emptyForm());
 const { saving, errors, run } = useFormSubmit();
 const isEditing = computed(() => props.event !== null);
+const { settings, load: loadSettings } = usePlanningSettings();
+const workspaceMargin = computed(() => settings.value?.readyDaysBefore ?? null);
+
+onMounted(loadSettings);
 
 async function onSubmit() {
     await run(async () => {
-        await props.submit({ ...form });
+        await props.submit({ ...form, readyDaysBefore: form.readyDaysBefore ?? null });
         emit('saved', form.name);
         if (!isEditing.value) {
             Object.assign(form, emptyForm());
@@ -47,6 +53,15 @@ async function onSubmit() {
                 </FormField>
                 <FormField as="group" :label="t('events.form.dates')" :error="errors.startDate ?? errors.endDate">
                     <BaseDateRangePicker v-model:start="form.startDate" v-model:end="form.endDate" :invalid="Boolean(errors.startDate ?? errors.endDate)" />
+                </FormField>
+                <FormField
+                    as="group"
+                    :label="t('events.form.readiness')"
+                    :error="errors.readyDaysBefore"
+                    :hint="workspaceMargin === null ? null : t('events.form.readinessHint', workspaceMargin)"
+                    optional
+                >
+                    <ReadyMarginField v-model="form.readyDaysBefore" :placeholder="workspaceMargin" />
                 </FormField>
             </FormSection>
 

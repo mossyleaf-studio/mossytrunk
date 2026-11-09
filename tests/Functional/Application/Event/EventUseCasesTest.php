@@ -16,8 +16,11 @@ use App\Application\Event\ScheduleEvent\ScheduleEvent;
 use App\Application\Event\ScheduleEvent\ScheduleEventHandler;
 use App\Application\Event\UpdateEvent\UpdateEvent;
 use App\Application\Event\UpdateEvent\UpdateEventHandler;
+use App\Application\Planning\DefinePlanningSettings\DefinePlanningSettings;
+use App\Application\Planning\DefinePlanningSettings\DefinePlanningSettingsHandler;
 use App\Domain\Event\EventRepository;
 use App\Domain\Event\Exception\InvalidEvent;
+use App\Domain\Event\Exception\NegativeReadyMargin;
 use App\Domain\Event\Exception\OverlappingEvent;
 use App\Tests\Support\ActsAsUser;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -53,6 +56,41 @@ final class EventUseCasesTest extends KernelTestCase
         self::assertSame('upcoming', $getEvent($id)->timing);
         self::mockTime('2026-07-13 10:00');
         self::assertSame('past', $getEvent($id)->timing);
+    }
+
+    public function testAnEventIsReadyItsOwnMarginOrTheWorkspaceOneBeforeItStarts(): void
+    {
+        $id = (string) $this->schedule('Japan Expo', '2026-07-09', '2026-07-12');
+        $getEvent = self::getContainer()->get(GetEventHandler::class);
+        $update = self::getContainer()->get(UpdateEventHandler::class);
+
+        self::assertSame([null, '2026-07-06'], [$getEvent($id)->readyDaysBefore, $getEvent($id)->readyBy]);
+
+        self::getContainer()->get(DefinePlanningSettingsHandler::class)(new DefinePlanningSettings([], 5));
+        self::assertSame([null, '2026-07-04'], [$getEvent($id)->readyDaysBefore, $getEvent($id)->readyBy]);
+
+        $update(new UpdateEvent($id, 'Japan Expo', 'Paris', new \DateTimeImmutable('2026-07-09'), new \DateTimeImmutable('2026-07-12'), 1));
+        self::getContainer()->get('doctrine')->getManager()->clear();
+        self::assertSame([1, '2026-07-08'], [$getEvent($id)->readyDaysBefore, $getEvent($id)->readyBy]);
+
+        $update(new UpdateEvent($id, 'Japan Expo', 'Paris', new \DateTimeImmutable('2026-07-09'), new \DateTimeImmutable('2026-07-12')));
+        self::getContainer()->get('doctrine')->getManager()->clear();
+        self::assertSame([null, '2026-07-04'], [$getEvent($id)->readyDaysBefore, $getEvent($id)->readyBy]);
+    }
+
+    public function testAnEventIsScheduledWithItsOwnMargin(): void
+    {
+        $id = (string) $this->schedule('Japan Expo', '2026-07-09', '2026-07-12', 0);
+        self::getContainer()->get('doctrine')->getManager()->clear();
+
+        $event = self::getContainer()->get(GetEventHandler::class)($id);
+        self::assertSame([0, '2026-07-09'], [$event->readyDaysBefore, $event->readyBy]);
+    }
+
+    public function testANegativeMarginIsRefused(): void
+    {
+        $this->expectException(NegativeReadyMargin::class);
+        $this->schedule('Japan Expo', '2026-07-09', '2026-07-12', -1);
     }
 
     public function testEventsCannotOverlap(): void
@@ -107,10 +145,10 @@ final class EventUseCasesTest extends KernelTestCase
         self::assertSame(8_950, self::getContainer()->get(GetEventHandler::class)($id)->expensesTotal);
     }
 
-    private function schedule(string $name, string $start, string $end): \Symfony\Component\Uid\Ulid
+    private function schedule(string $name, string $start, string $end, ?int $readyDaysBefore = null): \Symfony\Component\Uid\Ulid
     {
         return self::getContainer()->get(ScheduleEventHandler::class)(
-            new ScheduleEvent($name, 'Paris', new \DateTimeImmutable($start), new \DateTimeImmutable($end)),
+            new ScheduleEvent($name, 'Paris', new \DateTimeImmutable($start), new \DateTimeImmutable($end), $readyDaysBefore),
         );
     }
 }

@@ -24,6 +24,7 @@ final readonly class RestockView
         public ?string $note,
         public string $day,
         public ?array $event,
+        public string $readyBy,
         public int $leadDays,
         public string $orderBy,
         public bool $ordered,
@@ -34,7 +35,7 @@ final readonly class RestockView
     ) {
     }
 
-    public static function of(Restock $restock, \DateTimeImmutable $today): self
+    public static function of(Restock $restock, PlanningDay $day): self
     {
         $event = $restock->event();
         $orderedOn = $restock->orderedOn();
@@ -46,13 +47,14 @@ final readonly class RestockView
             $restock->note(),
             BusinessTime::day($restock->targetDay()),
             null === $event ? null : ['id' => (string) $event->id(), 'name' => $event->name()],
+            BusinessTime::day($restock->readyBy($day->readyDaysBefore)),
             $restock->leadDays(),
-            BusinessTime::day($restock->orderBy()),
+            BusinessTime::day($restock->orderBy($day->readyDaysBefore)),
             $restock->isOrdered(),
             null === $orderedOn ? null : BusinessTime::day($orderedOn),
             null === $order ? null : ['id' => (string) $order->id(), 'reference' => $order->reference()],
-            $restock->stateOn($today)->value,
-            $restock->isPastOn($today),
+            $restock->stateOn($day->today, $day->readyDaysBefore)->value,
+            $restock->isPastOn($day->today),
         );
     }
 
@@ -68,6 +70,7 @@ final readonly class RestockView
             'note' => $this->note,
             'day' => $this->day,
             'event' => $this->event,
+            'readyBy' => $this->readyBy,
             'leadDays' => $this->leadDays,
             'orderBy' => $this->orderBy,
             'ordered' => $this->ordered,

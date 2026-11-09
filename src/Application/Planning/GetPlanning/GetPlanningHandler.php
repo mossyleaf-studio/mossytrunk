@@ -4,19 +4,23 @@ declare(strict_types=1);
 
 namespace App\Application\Planning\GetPlanning;
 
+use App\Application\Planning\PlanningCalendar;
+use App\Application\Planning\PlanningDay;
 use App\Application\Planning\ReleaseView;
 use App\Application\Planning\RestockView;
+use App\Domain\Event\Event;
+use App\Domain\Event\EventRepository;
 use App\Domain\Planning\Release;
 use App\Domain\Planning\ReleaseRepository;
 use App\Domain\Planning\Restock;
 use App\Domain\Planning\RestockRepository;
 use App\Domain\Planning\StepState;
 use App\Domain\Shared\BusinessTime;
-use Psr\Clock\ClockInterface;
 
 /**
  * @phpstan-import-type StepItem from PlanningView
  * @phpstan-import-type RestockItem from PlanningView
+ * @phpstan-import-type EventItem from PlanningView
  */
 final readonly class GetPlanningHandler
 {
@@ -25,20 +29,23 @@ final readonly class GetPlanningHandler
     public function __construct(
         private ReleaseRepository $releases,
         private RestockRepository $restocks,
-        private ClockInterface $clock,
+        private EventRepository $events,
+        private PlanningCalendar $calendar,
     ) {
     }
 
     public function __invoke(): PlanningView
     {
-        $today = $this->clock->now();
-        $releases = array_map(static fn (Release $release): ReleaseView => ReleaseView::of($release, $today), $this->releases->all());
+        $day = $this->calendar->today();
+        $today = $day->today;
+        $releases = array_map(static fn (Release $release): ReleaseView => ReleaseView::of($release, $day), $this->releases->all());
         usort($releases, static fn (ReleaseView $a, ReleaseView $b): int => $a->day <=> $b->day);
         $restocks = array_values(array_filter(
-            array_map(static fn (Restock $restock): RestockView => RestockView::of($restock, $today), $this->restocks->all()),
+            array_map(static fn (Restock $restock): RestockView => RestockView::of($restock, $day), $this->restocks->all()),
             static fn (RestockView $restock): bool => !$restock->past,
         ));
         usort($restocks, static fn (RestockView $a, RestockView $b): int => [$a->orderBy, $a->day] <=> [$b->orderBy, $b->day]);
+        $todayDay = BusinessTime::day($today);
         $weekEnd = BusinessTime::day(BusinessTime::local($today)->modify(self::WEEK_AHEAD));
 
         /** @var array{late: list<StepItem|RestockItem>, thisWeek: list<StepItem|RestockItem>, later: list<StepItem|RestockItem>} $groups */
@@ -55,7 +62,7 @@ final readonly class GetPlanningHandler
             }
         }
         foreach ($restocks as $restock) {
-            $group = self::groupOf(StepState::from($restock->state), $restock->orderBy, $weekEnd);
+            $group = self::restockGroupOf(StepState::from($restock->state), $restock->orderBy, $todayDay, $weekEnd);
             if (null !== $group) {
                 $groups[$group][] = $restock->item();
             }
@@ -65,7 +72,22 @@ final readonly class GetPlanningHandler
         }
         unset($items);
 
-        return new PlanningView($groups['late'], $groups['thisWeek'], $groups['later'], $releases, $restocks);
+        return new PlanningView($todayDay, $this->upcomingEvents($day), $groups['late'], $groups['thisWeek'], $groups['later'], $releases, $restocks);
+    }
+
+    /**
+     * @return list<EventItem>
+     */
+    private function upcomingEvents(PlanningDay $day): array
+    {
+        return array_map(static fn (Event $event): array => [
+            'id' => (string) $event->id(),
+            'name' => $event->name(),
+            'start' => $event->period()->start()->format('Y-m-d'),
+            'end' => $event->period()->end()->format('Y-m-d'),
+            'readyBy' => $day->readyByOf($event),
+            'readyDaysBefore' => $day->readyDaysBeforeOf($event),
+        ], $this->events->notOverOn($day->today));
     }
 
     /**
@@ -78,6 +100,18 @@ final readonly class GetPlanningHandler
             StepState::Late => 'late',
             StepState::Ongoing => 'thisWeek',
             StepState::Upcoming => $start <= $weekEnd ? 'thisWeek' : 'later',
+        };
+    }
+
+    /**
+     * @return 'late'|'thisWeek'|'later'|null
+     */
+    private static function restockGroupOf(StepState $state, string $orderBy, string $today, string $weekEnd): ?string
+    {
+        return match (true) {
+            StepState::Done !== $state => self::groupOf($state, $orderBy, $weekEnd),
+            $orderBy < $today => null,
+            default => self::groupOf(StepState::Upcoming, $orderBy, $weekEnd),
         };
     }
 

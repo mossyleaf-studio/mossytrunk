@@ -1,16 +1,17 @@
 <script setup>
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import BaseButton from '../ui/BaseButton.vue';
 import BaseNumberField from '../ui/BaseNumberField.vue';
+import BaseSelect from '../ui/BaseSelect.vue';
 import FormActions from '../ui/FormActions.vue';
 import FormError from '../ui/FormError.vue';
 import FormField from '../ui/FormField.vue';
 import FormSection from '../ui/FormSection.vue';
 import SupplierSelect from '../purchasing/SupplierSelect.vue';
-import TargetPicker from './TargetPicker.vue';
 import { useFormSubmit } from '../../composables/useFormSubmit.js';
-import { usePlanning, useTarget } from '../../composables/usePlanning.js';
+import { useEvents } from '../../composables/useEvents.js';
+import { usePlanning } from '../../composables/usePlanning.js';
 import { useSuppliers } from '../../composables/usePurchasing.js';
 
 const props = defineProps({
@@ -27,8 +28,13 @@ const { saving, errors, run } = useFormSubmit('form');
 const supplierId = ref(props.restock?.supplier.id ?? '');
 const note = ref(props.restock?.note ?? '');
 const leadDays = ref(props.restock?.leadDays ?? null);
-const { moment, day, eventId, payload: target } = useTarget(props.restock ?? (props.event && { event: props.event }));
-const currentEvent = props.restock?.event ?? props.event;
+const eventId = ref(props.event?.id ?? props.restock?.event?.id ?? '');
+const { events, load: loadEvents } = useEvents();
+const eventOptions = computed(() => {
+    const options = events.value.filter((event) => event.timing === 'upcoming').map((event) => ({ value: event.id, label: event.name }));
+    const current = props.restock?.event;
+    return current && !options.some((option) => option.value === current.id) ? [{ value: current.id, label: current.name }, ...options] : options;
+});
 const supplierOf = (id) => suppliers.value.find((supplier) => supplier.id === id);
 
 watch(supplierId, (id) => {
@@ -42,10 +48,10 @@ async function createSupplier(id, payload) {
     return supplier;
 }
 
-onMounted(loadSuppliers);
+onMounted(() => Promise.all([loadSuppliers(), props.event ? null : loadEvents()]));
 
 const onSubmit = () => run(async () => {
-    const payload = { supplierId: supplierId.value, note: note.value || null, ...target(), leadDays: leadDays.value || 0 };
+    const payload = { supplierId: supplierId.value, note: note.value || null, eventId: eventId.value || null, leadDays: leadDays.value || 0 };
     await (props.restock ? reviseRestock(props.restock.id, payload) : planRestock(payload));
     emit('saved', supplierOf(supplierId.value)?.name ?? '');
 });
@@ -62,7 +68,9 @@ const onSubmit = () => run(async () => {
                 <FormField :label="t('planning.restock.form.note')" :error="errors.note" optional>
                     <input v-model="note" type="text" maxlength="255" :placeholder="t('planning.restock.form.notePlaceholder')">
                 </FormField>
-                <TargetPicker v-model:moment="moment" v-model:day="day" v-model:event-id="eventId" :event="currentEvent" :label="t('planning.restock.form.moment')" :day-label="t('planning.restock.form.day')" />
+                <FormField v-if="!event" as="group" :label="t('planning.restock.form.event')" :error="errors.eventId" :hint="eventOptions.length ? null : t('planning.form.noEvent')">
+                    <BaseSelect v-model="eventId" :options="eventOptions" :aria-label="t('planning.restock.form.event')" />
+                </FormField>
                 <FormField as="group" :label="t('planning.restock.form.leadTime')" :error="errors.leadDays" :hint="t('planning.restock.form.leadTimeHint')">
                     <BaseNumberField v-model="leadDays" :min="1" :label="t('planning.restock.form.leadTime')" class="control--short" />
                 </FormField>

@@ -22,7 +22,7 @@ Module 1 = **Order Management**. This folder is the reference for business rules
 | [references.md](references.md) | Reference formats per kind (orders, supplier orders, products): tags, numbering, renumbering existing items |
 | [supplier-orders.md](supplier-orders.md) | Suppliers, supplier orders, reception into stock at the real unit cost |
 | [designs.md](designs.md) | Designs and collections declined onto gabarits, validated into products |
-| [planning.md](planning.md) | Release planning of collections and designs: backward chain of dated steps, template, Planning page |
+| [planning.md](planning.md) | Release planning of collections and designs: backward chain of dated steps, event ready-by margin, restocks, Planning page |
 | [accounting.md](accounting.md) | URSSAF declarations per month or quarter, CSV export of orders |
 | [imports.md](imports.md) | Connected services, the generic sales import (event or online, unknown items created or linked by hand) |
 | [etsy-import.md](etsy-import.md) | Etsy specifics: shop connection, paid receipts, listings |
@@ -58,7 +58,7 @@ Module 1 = **Order Management**. This folder is the reference for business rules
 | Gabarit | `Domain\Design\Gabarit` | Generic support (tirage 15×15, sticker brillant…) with default prices and adaptations |
 | Design / Collection | `Domain\Design\Design`, `DesignCollection` | Illustration being worked on (« sur l'établi »), alone or in a collection; « sorti de l'atelier » once validated |
 | Déclinaison | `Domain\Design\Declination` | A design on a gabarit; becomes a product on validation |
-| Sortie / étape de sortie | `Domain\Planning\Release`, `ReleaseTemplate`, `ScheduledStep` | Release date or event of a collection or design, with its dated steps; the workspace's template pre-fills the steps |
+| Sortie / étape de sortie | `Domain\Planning\Release`, `PlanningSettings`, `ScheduledStep` | Release date or event of a collection or design, with its dated steps; the workspace's planning settings pre-fill the steps and set the default ready-by margin |
 | Déclaration URSSAF | `Domain\Accounting\UrssafDeclaration` | A month or quarter marked declared, with the turnover declared |
 | Service connecté | `Domain\Integration\ServiceConnection` | An external service (SumUp, Etsy…) added to the workspace, with its access and import options |
 | Article à associer | `Domain\Integration\ExternalItem` | A service item not matched to a product, waiting to be linked |

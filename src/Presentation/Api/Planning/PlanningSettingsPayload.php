@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Presentation\Api\Planning;
 
+use App\Domain\Planning\PlanningSettings;
 use Symfony\Component\Validator\Constraints as Assert;
 
-final readonly class ReleaseTemplatePayload
+final readonly class PlanningSettingsPayload
 {
     /**
      * @param list<StepPayload> $steps
@@ -14,6 +15,7 @@ final readonly class ReleaseTemplatePayload
     public function __construct(
         #[Assert\Valid]
         public array $steps = [],
+        public int $readyDaysBefore = PlanningSettings::DEFAULT_READY_DAYS_BEFORE,
     ) {
     }
 

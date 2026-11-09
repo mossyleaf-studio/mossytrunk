@@ -42,6 +42,18 @@ final class PagePreloadTest extends WebTestCase
         self::assertArrayHasKey('/api/services/sumup/items', $this->preloadedOn($client, '/settings'));
     }
 
+    public function testTheEventPagesPreloadThePlanningSettingsOfTheEventFormAndTheEventPreparation(): void
+    {
+        $client = self::signedInClient();
+        $event = Json::string(Json::decode($this->post($client, '/api/events', ['name' => 'Japan Expo', 'location' => 'Villepinte', 'startDate' => '2026-07-09', 'endDate' => '2026-07-12'])), 'id');
+
+        self::assertArrayHasKey('/api/planning-settings', $this->preloadedOn($client, '/events'));
+        $preloaded = $this->preloadedOn($client, "/events/$event");
+        self::assertArrayHasKey('/api/planning-settings', $preloaded);
+        self::assertSame('2026-07-06', Json::string($preloaded, "/api/events/$event/preparation", 'readyBy'));
+        self::assertSame(3, Json::int($this->preloadedOn($client, '/settings'), '/api/planning-settings', 'readyDaysBefore'));
+    }
+
     public function testAMissingResourceIsLeftForThePageToFetch(): void
     {
         $client = self::signedInClient();

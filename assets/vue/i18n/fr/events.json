@@ -47,7 +47,9 @@
         "location": "Lieu",
         "locationPlaceholder": "Lyon",
         "dates": "Dates",
-        "create": "Créer l'événement"
+        "create": "Créer l'événement",
+        "readiness": "Préparation",
+        "readinessHint": "Vide : {n} jour, la marge de l'atelier. | Vide : {n} jours, la marge de l'atelier."
     },
     "list": {
         "empty": "Aucun événement.",

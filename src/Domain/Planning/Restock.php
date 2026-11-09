@@ -53,25 +53,25 @@ class Restock
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?SupplierOrder $supplierOrder = null;
 
-    private function __construct(Supplier $supplier, ?string $note, ?\DateTimeImmutable $day, ?Event $event, int $leadDays)
+    private function __construct(Supplier $supplier, ?string $note, Event $event, int $leadDays)
     {
         $this->id = new Ulid();
         $this->workspace = $supplier->workspace();
-        $this->revise($supplier, $note, $day, $event, $leadDays);
+        $this->revise($supplier, $note, $event, $leadDays);
     }
 
-    public static function plan(Supplier $supplier, ?string $note, ?\DateTimeImmutable $day, ?Event $event, int $leadDays): self
+    public static function plan(Supplier $supplier, ?string $note, Event $event, int $leadDays): self
     {
-        return new self($supplier, $note, $day, $event, $leadDays);
+        return new self($supplier, $note, $event, $leadDays);
     }
 
-    public function revise(Supplier $supplier, ?string $note, ?\DateTimeImmutable $day, ?Event $event, int $leadDays): void
+    public function revise(Supplier $supplier, ?string $note, Event $event, int $leadDays): void
     {
         if (null !== $this->supplierOrder && !self::sameSupplier($this->supplierOrder->supplier(), $supplier)) {
             throw new RestockFromAnotherSupplier($this->supplierOrder->supplier()->name());
         }
 
-        $this->day = TargetDay::chosen($day, $event);
+        $this->day = null;
         $this->event = $event;
         $this->leadDays = LeadTime::days($leadDays);
         $this->supplier = $supplier;
@@ -167,9 +167,14 @@ class Restock
         return TargetDay::of($this->day, $this->event);
     }
 
-    public function orderBy(): \DateTimeImmutable
+    public function readyBy(int $workspaceReadyDaysBefore): \DateTimeImmutable
     {
-        return $this->targetDay()->modify(\sprintf('-%d days', $this->leadDays));
+        return $this->event?->readyBy($workspaceReadyDaysBefore) ?? $this->targetDay();
+    }
+
+    public function orderBy(int $workspaceReadyDaysBefore): \DateTimeImmutable
+    {
+        return $this->readyBy($workspaceReadyDaysBefore)->modify(\sprintf('-%d days', $this->leadDays));
     }
 
     public function isPastOn(\DateTimeImmutable $today): bool
@@ -177,11 +182,11 @@ class Restock
         return BusinessTime::day($this->targetDay()) < BusinessTime::day($today);
     }
 
-    public function stateOn(\DateTimeImmutable $today): StepState
+    public function stateOn(\DateTimeImmutable $today, int $workspaceReadyDaysBefore): StepState
     {
         return match (true) {
             $this->isOrdered() => StepState::Done,
-            BusinessTime::day($this->orderBy()) < BusinessTime::day($today) => StepState::Late,
+            BusinessTime::day($this->orderBy($workspaceReadyDaysBefore)) < BusinessTime::day($today) => StepState::Late,
             default => StepState::Upcoming,
         };
     }

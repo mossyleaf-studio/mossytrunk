@@ -13,9 +13,9 @@ final class ReleaseSchedule
      *
      * @return list<ScheduledStep>
      */
-    public static function of(\DateTimeImmutable $releaseDay, array $steps): array
+    public static function endingOn(\DateTimeImmutable $lastDay, array $steps): array
     {
-        $end = BusinessTime::midnightOf($releaseDay)->modify('-1 day');
+        $end = BusinessTime::midnightOf($lastDay);
         $schedule = [];
         foreach (array_reverse($steps) as $step) {
             $start = $end->modify(\sprintf('-%d days', $step['days'] - 1));

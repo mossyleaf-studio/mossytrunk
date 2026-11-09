@@ -14,11 +14,12 @@ use App\Application\Event\ScheduleEvent\ScheduleEventHandler;
 use App\Application\Event\UpdateEvent\UpdateEvent;
 use App\Application\Event\UpdateEvent\UpdateEventHandler;
 use App\Application\Planning\CancelRelease\CancelReleaseHandler;
-use App\Application\Planning\DefineReleaseTemplate\DefineReleaseTemplateHandler;
+use App\Application\Planning\DefinePlanningSettings\DefinePlanningSettings;
+use App\Application\Planning\DefinePlanningSettings\DefinePlanningSettingsHandler;
 use App\Application\Planning\GetDesignRelease\GetDesignReleaseHandler;
 use App\Application\Planning\GetPlanning\GetPlanningHandler;
 use App\Application\Planning\GetPlanning\PlanningView;
-use App\Application\Planning\GetReleaseTemplate\GetReleaseTemplateHandler;
+use App\Application\Planning\GetPlanningSettings\GetPlanningSettingsHandler;
 use App\Application\Planning\PlanCollectionRelease\PlanCollectionRelease;
 use App\Application\Planning\PlanCollectionRelease\PlanCollectionReleaseHandler;
 use App\Application\Planning\PlanDesignRelease\PlanDesignRelease;
@@ -27,6 +28,7 @@ use App\Application\Planning\ReleaseView;
 use App\Application\Planning\ReplanRelease\ReplanRelease;
 use App\Application\Planning\ReplanRelease\ReplanReleaseHandler;
 use App\Application\Planning\TickReleaseStep\TickReleaseStepHandler;
+use App\Domain\Event\Exception\NegativeReadyMargin;
 use App\Domain\Planning\Exception\DayAndEvent;
 use App\Domain\Planning\Exception\ReleaseAlreadyPlanned;
 use App\Domain\Shared\Exception\NotFound;
@@ -45,20 +47,25 @@ final class PlanningUseCasesTest extends KernelTestCase
         self::mockTime('2026-11-09 10:00');
     }
 
-    public function testTheWorkspaceTemplateIsDefinedThenRedefined(): void
+    public function testThePlanningSettingsAreDefinedThenRedefined(): void
     {
-        $get = self::getContainer()->get(GetReleaseTemplateHandler::class);
-        $define = self::getContainer()->get(DefineReleaseTemplateHandler::class);
+        $get = self::getContainer()->get(GetPlanningSettingsHandler::class);
 
-        self::assertSame([], $get()->steps);
+        self::assertSame([[], 3], [$get()->steps, $get()->readyDaysBefore]);
 
-        $define([['label' => ' Dessins ', 'days' => 5], ['label' => 'Impression', 'days' => 3]]);
+        $this->defineSettings([['label' => ' Dessins ', 'days' => 5], ['label' => 'Impression', 'days' => 3]], 5);
         $this->clear();
-        self::assertSame([['label' => 'Dessins', 'days' => 5], ['label' => 'Impression', 'days' => 3]], $get()->steps);
+        self::assertSame([[['label' => 'Dessins', 'days' => 5], ['label' => 'Impression', 'days' => 3]], 5], [$get()->steps, $get()->readyDaysBefore]);
 
-        $define([['label' => 'Photos', 'days' => 2]]);
+        $this->defineSettings([['label' => 'Photos', 'days' => 2]], 0);
         $this->clear();
-        self::assertSame([['label' => 'Photos', 'days' => 2]], $get()->steps);
+        self::assertSame([[['label' => 'Photos', 'days' => 2]], 0], [$get()->steps, $get()->readyDaysBefore]);
+    }
+
+    public function testANegativeDefaultMarginIsRefused(): void
+    {
+        $this->expectException(NegativeReadyMargin::class);
+        $this->defineSettings([], -1);
     }
 
     public function testACollectionIsPlannedOnADay(): void
@@ -92,14 +99,58 @@ final class PlanningUseCasesTest extends KernelTestCase
         $release = $this->releases()[0];
         self::assertSame(['id' => $eventId, 'name' => 'Marché de Noël'], $release->event);
         self::assertSame('2026-12-05', $release->day);
-        self::assertSame('2026-12-02', $release->steps[0]['start']);
+        self::assertSame(['2026-11-30', '2026-12-02'], [$release->steps[0]['start'], $release->steps[0]['end']]);
 
         self::getContainer()->get(UpdateEventHandler::class)(new UpdateEvent($eventId, 'Marché de Noël', 'Lyon', new \DateTimeImmutable('2026-12-12'), new \DateTimeImmutable('2026-12-13')));
         $this->clear();
 
         $release = $this->releases()[0];
         self::assertSame('2026-12-12', $release->day);
-        self::assertSame(['label' => 'Impression', 'days' => 3, 'done' => false, 'start' => '2026-12-09', 'end' => '2026-12-11', 'state' => 'upcoming'], $release->steps[0]);
+        self::assertSame(['label' => 'Impression', 'days' => 3, 'done' => false, 'start' => '2026-12-07', 'end' => '2026-12-09', 'state' => 'upcoming'], $release->steps[0]);
+    }
+
+    public function testAReleaseOnAnEventEndsOnItsReadyByDayWhateverItsMargin(): void
+    {
+        $this->defineSettings([], 5);
+        $eventId = $this->event();
+        $this->planCollection(new PlanCollectionRelease($this->collection('Sous-bois'), null, $eventId, [['label' => 'Impression', 'days' => 3]]));
+        $this->clear();
+
+        self::assertSame(['2026-11-28', '2026-11-30'], [$this->releases()[0]->steps[0]['start'], $this->releases()[0]->steps[0]['end']]);
+
+        self::getContainer()->get(UpdateEventHandler::class)(new UpdateEvent($eventId, 'Marché de Noël', 'Lyon', new \DateTimeImmutable('2026-12-05'), new \DateTimeImmutable('2026-12-06'), 0));
+        $this->clear();
+
+        self::assertSame(['2026-12-03', '2026-12-05'], [$this->releases()[0]->steps[0]['start'], $this->releases()[0]->steps[0]['end']]);
+    }
+
+    public function testAReleaseOnADayIgnoresTheMargin(): void
+    {
+        $this->defineSettings([], 5);
+        $this->planCollection(new PlanCollectionRelease($this->collection('Sous-bois'), new \DateTimeImmutable('2026-11-20'), null, [['label' => 'Impression', 'days' => 3]]));
+        $this->clear();
+
+        self::assertSame(['2026-11-17', '2026-11-19'], [$this->releases()[0]->steps[0]['start'], $this->releases()[0]->steps[0]['end']]);
+    }
+
+    public function testThePlanningTellsTodayAndTheEventsNotOverYet(): void
+    {
+        $schedule = self::getContainer()->get(ScheduleEventHandler::class);
+        $schedule(new ScheduleEvent('Salon passé', 'Lyon', new \DateTimeImmutable('2026-11-01'), new \DateTimeImmutable('2026-11-02')));
+        $ongoing = (string) $schedule(new ScheduleEvent('Salon en cours', 'Lyon', new \DateTimeImmutable('2026-11-08'), new \DateTimeImmutable('2026-11-09')));
+        $christmas = (string) $schedule(new ScheduleEvent('Marché de Noël', 'Lyon', new \DateTimeImmutable('2026-12-05'), new \DateTimeImmutable('2026-12-06'), 1));
+        $this->clear();
+
+        $planning = $this->planning();
+
+        self::assertSame('2026-11-09', $planning->today);
+        self::assertSame([
+            ['id' => $ongoing, 'name' => 'Salon en cours', 'start' => '2026-11-08', 'end' => '2026-11-09', 'readyBy' => '2026-11-05', 'readyDaysBefore' => 3],
+            ['id' => $christmas, 'name' => 'Marché de Noël', 'start' => '2026-12-05', 'end' => '2026-12-06', 'readyBy' => '2026-12-04', 'readyDaysBefore' => 1],
+        ], $planning->events);
+
+        self::actAsMemberOf('Autre atelier');
+        self::assertSame([], $this->planning()->events);
     }
 
     public function testAnOwnerHasOneReleaseOnly(): void
@@ -126,8 +177,8 @@ final class PlanningUseCasesTest extends KernelTestCase
         self::assertSame('2026-12-05', $release->day);
         self::assertSame(['id' => $eventId, 'name' => 'Marché de Noël'], $release->event);
         self::assertSame([
-            ['label' => 'Photos', 'days' => 2, 'done' => true, 'start' => '2026-12-02', 'end' => '2026-12-03', 'state' => 'done'],
-            ['label' => 'Annonce', 'days' => 1, 'done' => false, 'start' => '2026-12-04', 'end' => '2026-12-04', 'state' => 'upcoming'],
+            ['label' => 'Photos', 'days' => 2, 'done' => true, 'start' => '2026-11-30', 'end' => '2026-12-01', 'state' => 'done'],
+            ['label' => 'Annonce', 'days' => 1, 'done' => false, 'start' => '2026-12-02', 'end' => '2026-12-02', 'state' => 'upcoming'],
         ], $release->steps);
     }
 
@@ -318,6 +369,14 @@ final class PlanningUseCasesTest extends KernelTestCase
     private function event(): string
     {
         return (string) self::getContainer()->get(ScheduleEventHandler::class)(new ScheduleEvent('Marché de Noël', 'Lyon', new \DateTimeImmutable('2026-12-05'), new \DateTimeImmutable('2026-12-06')));
+    }
+
+    /**
+     * @param list<array{label: string, days: int}> $steps
+     */
+    private function defineSettings(array $steps, int $readyDaysBefore): void
+    {
+        self::getContainer()->get(DefinePlanningSettingsHandler::class)(new DefinePlanningSettings($steps, $readyDaysBefore));
     }
 
     private function planning(): PlanningView

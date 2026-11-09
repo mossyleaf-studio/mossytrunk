@@ -150,8 +150,13 @@ class Release
     /**
      * @return list<ScheduledStep>
      */
-    public function scheduledSteps(): array
+    public function scheduledSteps(int $workspaceReadyDaysBefore): array
     {
-        return ReleaseSchedule::of($this->releaseDay(), $this->steps);
+        return ReleaseSchedule::endingOn($this->lastStepDay($workspaceReadyDaysBefore), $this->steps);
+    }
+
+    private function lastStepDay(int $workspaceReadyDaysBefore): \DateTimeImmutable
+    {
+        return $this->event?->readyBy($workspaceReadyDaysBefore) ?? $this->releaseDay()->modify('-1 day');
     }
 }

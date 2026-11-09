@@ -16,7 +16,7 @@ defineProps({
 const emit = defineEmits(['tick', 'edit', 'cancel']);
 const { t } = useI18n();
 
-const TONES = { late: 'danger', upcoming: 'warning', done: 'success' };
+const TONES = { late: 'danger', upcoming: 'neutral', done: 'success' };
 </script>
 
 <template>
@@ -25,9 +25,6 @@ const TONES = { late: 'danger', upcoming: 'warning', done: 'success' };
         <span class="restock-row__what">
             <span class="restock-row__label">{{ t('planning.restock.item.title', { supplier: restock.supplier.name }) }}</span>
             <span v-if="restock.note" class="restock-row__meta">{{ restock.note }}</span>
-            <span class="restock-row__meta">
-                {{ t('planning.restock.item.target', { day: formatDate(restock.day) }) }}<template v-if="restock.event"> · {{ restock.event.name }}</template>
-            </span>
         </span>
         <span class="restock-row__when">
             <span>{{ t('planning.restock.item.orderBy', { day: formatDate(restock.orderBy) }) }}</span>
@@ -36,16 +33,14 @@ const TONES = { late: 'danger', upcoming: 'warning', done: 'success' };
         <StatusBadge :tone="TONES[restock.state]">{{ t(`planning.restock.states.${restock.state}`, { day: formatDate(restock.orderedOn) }) }}</StatusBadge>
         <span class="restock-row__actions">
             <BaseButton v-if="!restock.ordered" variant="secondary" :href="orderRestockUrl(restock)">{{ t('planning.restock.item.order') }}</BaseButton>
-            <template v-if="editable">
-                <IconButton :icon="Pencil" :label="t('planning.restock.item.edit')" @click="emit('edit', restock)" />
-                <ConfirmButton
-                    :icon="Trash2"
-                    :label="t('planning.restock.item.cancel')"
-                    :confirm-label="t('planning.restock.item.cancel')"
-                    :message="t('planning.restock.item.cancelMessage')"
-                    @confirm="emit('cancel', restock)"
-                />
-            </template>
+            <IconButton v-if="editable" :icon="Pencil" :label="t('planning.restock.item.edit')" @click="emit('edit', restock)" />
+            <ConfirmButton
+                :icon="Trash2"
+                :label="t('planning.restock.item.cancel')"
+                :confirm-label="t('planning.restock.item.cancel')"
+                :message="t('planning.restock.item.cancelMessage')"
+                @confirm="emit('cancel', restock)"
+            />
         </span>
     </li>
 </template>

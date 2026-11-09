@@ -17,7 +17,7 @@ final class ScheduleEventController extends AbstractController
 {
     public function __invoke(#[MapRequestPayload] EventPayload $payload, ScheduleEventHandler $scheduleEvent): JsonResponse
     {
-        $id = $scheduleEvent(new ScheduleEvent($payload->name, $payload->location, $payload->start(), $payload->end()));
+        $id = $scheduleEvent(new ScheduleEvent($payload->name, $payload->location, $payload->start(), $payload->end(), $payload->readyDaysBefore));
 
         return $this->json(['id' => (string) $id], Response::HTTP_CREATED);
     }

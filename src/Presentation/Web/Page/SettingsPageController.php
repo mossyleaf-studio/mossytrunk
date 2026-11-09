@@ -23,6 +23,6 @@ final readonly class SettingsPageController
     {
         $items = array_map(static fn (ServiceConnection $connection): string => "/api/services/{$connection->service()}/items", $this->connections->all());
 
-        return $this->page->render('SettingsPage', 'settings', preload: ['/api/services', '/api/references/formats', '/api/products', '/api/release-template', ...$items]);
+        return $this->page->render('SettingsPage', 'settings', preload: ['/api/services', '/api/references/formats', '/api/products', '/api/planning-settings', ...$items]);
     }
 }

@@ -47,7 +47,9 @@
         "location": "Location",
         "locationPlaceholder": "Lyon",
         "dates": "Dates",
-        "create": "Create event"
+        "create": "Create event",
+        "readiness": "Preparation",
+        "readinessHint": "Empty: {n} day, the workspace margin. | Empty: {n} days, the workspace margin."
     },
     "list": {
         "empty": "No events.",

@@ -14,7 +14,7 @@ final readonly class RestockPayload
         public string $supplierId = '',
         #[Assert\Length(max: 255)]
         public ?string $note = null,
-        public ?\DateTimeImmutable $day = null,
+        #[Assert\NotBlank(message: 'event.invalid')]
         #[Assert\Ulid(message: 'event.invalid')]
         public ?string $eventId = null,
         public int $leadDays = 0,

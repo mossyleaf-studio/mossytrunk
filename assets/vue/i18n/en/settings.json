@@ -35,11 +35,16 @@
             "unavailable": "Complete the access details for {label} first."
         }
     },
-    "releaseSteps": {
-        "title": "Release steps",
-        "intro": "The steps of your work before a release, in order, with their duration. They pre-fill each new release, which you can then adjust.",
-        "save": "Save the steps",
-        "saved": "Release steps saved."
+    "planning": {
+        "title": "Planning",
+        "intro": "Your release steps and the margin you keep before each event.",
+        "margin": "Margin",
+        "marginHint": "An event's releases and restocks are ready on that day. Each event can have its own margin.",
+        "marginRequired": "Enter the margin in days, 0 for the same day.",
+        "steps": "Release steps",
+        "stepsHint": "The steps of your work before a release, in order, with their duration. They pre-fill each new release, which you can then adjust.",
+        "save": "Save",
+        "saved": "Planning settings saved."
     },
     "references": {
         "title": "References",

@@ -17,7 +17,7 @@ final class PlanRestockController extends AbstractController
 {
     public function __invoke(#[MapRequestPayload] RestockPayload $payload, PlanRestockHandler $plan): JsonResponse
     {
-        $restockId = $plan(new PlanRestock($payload->supplierId, $payload->note, $payload->day, $payload->eventId, $payload->leadDays));
+        $restockId = $plan(new PlanRestock($payload->supplierId, $payload->note, $payload->eventId, $payload->leadDays));
 
         return $this->json(['id' => (string) $restockId], Response::HTTP_CREATED);
     }

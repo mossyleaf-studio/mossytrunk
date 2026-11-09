@@ -3,6 +3,25 @@ import { useApi } from './useApi.js';
 
 export const releaseOf = (planning, kind, id) => planning?.releases.find((release) => release.owner.kind === kind && release.owner.id === id) ?? null;
 
+export function dueOf(item) {
+    if (item.kind === 'restock') return item.orderBy;
+    return item.state === 'upcoming' ? item.start : item.end;
+}
+
+export const pending = (items) => items.filter((item) => item.state !== 'done');
+
+export const itemKey = (item) => (item.kind === 'restock' ? item.id : `${item.release.id}-${item.label}`);
+
+export function agendaOf(planning, group) {
+    const events = new Map(planning.releases.map((release) => [release.id, release.event]));
+    return planning[group].map((item) => (item.kind === 'step' ? { ...item, event: events.get(item.release.id) ?? null } : item));
+}
+
+export function nextDeadline(planning) {
+    const upcoming = pending([...agendaOf(planning, 'thisWeek'), ...agendaOf(planning, 'later')]).filter((item) => dueOf(item) >= planning.today);
+    return upcoming.reduce((next, item) => (next === null || dueOf(item) < dueOf(next) ? item : next), null);
+}
+
 export function usePlanning() {
     const api = useApi();
     const planning = ref(null);

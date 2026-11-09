@@ -25,8 +25,9 @@ final readonly class ReleaseView
     ) {
     }
 
-    public static function of(Release $release, \DateTimeImmutable $today): self
+    public static function of(Release $release, PlanningDay $day): self
     {
+        $today = $day->today;
         $event = $release->event();
 
         return new self(
@@ -42,7 +43,7 @@ final readonly class ReleaseView
                 'start' => BusinessTime::day($step->start),
                 'end' => BusinessTime::day($step->end),
                 'state' => $step->stateOn($today)->value,
-            ], $release->scheduledSteps()),
+            ], $release->scheduledSteps($day->readyDaysBefore)),
         );
     }
 

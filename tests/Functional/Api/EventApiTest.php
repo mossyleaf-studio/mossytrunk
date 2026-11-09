@@ -30,6 +30,25 @@ final class EventApiTest extends WebTestCase
         self::assertSame(30_000, $event['expensesTotal']);
     }
 
+    public function testAnEventKeepsItsOwnReadyMargin(): void
+    {
+        $client = self::signedInClient();
+        $client->jsonRequest('POST', '/api/events', ['name' => 'Salon', 'location' => 'Lyon', 'startDate' => '2099-06-10', 'endDate' => '2099-06-11', 'readyDaysBefore' => 1]);
+        $id = Json::string(Json::decode((string) $client->getResponse()->getContent()), 'id');
+
+        $client->jsonRequest('GET', "/api/events/$id");
+        $event = Json::decode((string) $client->getResponse()->getContent());
+        self::assertSame([1, '2099-06-09'], [$event['readyDaysBefore'], $event['readyBy']]);
+
+        $client->jsonRequest('PUT', "/api/events/$id", ['name' => 'Salon', 'location' => 'Lyon', 'startDate' => '2099-06-10', 'endDate' => '2099-06-11']);
+        $client->jsonRequest('GET', "/api/events/$id");
+        $event = Json::decode((string) $client->getResponse()->getContent());
+        self::assertSame([null, '2099-06-07'], [$event['readyDaysBefore'], $event['readyBy']]);
+
+        $client->jsonRequest('PUT', "/api/events/$id", ['name' => 'Salon', 'location' => 'Lyon', 'startDate' => '2099-06-10', 'endDate' => '2099-06-11', 'readyDaysBefore' => -2]);
+        self::assertResponseStatusCodeSame(422);
+    }
+
     public function testDonationsRaiseTheResultWithoutCountingAsTurnover(): void
     {
         $client = self::signedInClient();

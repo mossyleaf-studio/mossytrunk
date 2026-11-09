@@ -42,6 +42,7 @@ event:
     unknown_donation: 'Don introuvable ({id}).'
     sharing_ends_before_event: 'La répartition ne peut pas se terminer avant le début de l''événement.'
     too_few_sharing_events: 'Une dépense répartie compte pour au moins 2 événements.'
+    negative_ready_margin: 'Le nombre de jours de préparation avant l''événement ne peut pas être négatif.'
 identity:
     email_already_used: 'Un utilisateur existe déjà avec l''adresse « {email} ».'
     empty_secret: 'La clé ne peut pas être vide.'
@@ -94,6 +95,7 @@ planning:
     non_positive_step_duration: 'L''étape « {step} » dure au moins 1 jour.'
     release_already_planned: 'La sortie de « {name} » est déjà planifiée.'
     restock_from_another_supplier: 'Ce réassort doit être commandé chez {supplier}.'
+    restock_without_event: 'Un réassort se prépare pour un événement.'
     past_restock_target: 'Un réassort se prépare pour aujourd''hui ou un jour à venir.'
     unknown_step: 'Étape inconnue « {step} ».'
 product:

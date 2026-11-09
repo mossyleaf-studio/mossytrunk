@@ -61,7 +61,27 @@ final class ReleaseTest extends TestCase
         $event->reschedule(DateRange::fromDates(BusinessTime::at('2026-08-01'), BusinessTime::at('2026-08-02')));
 
         self::assertSame('2026-08-01', $release->releaseDay()->format('Y-m-d'));
-        self::assertSame(['2026-07-27', '2026-07-30'], array_map(static fn (ScheduledStep $step): string => $step->start->format('Y-m-d'), $release->scheduledSteps()));
+        self::assertSame(['2026-07-25', '2026-07-28'], array_map(static fn (ScheduledStep $step): string => $step->start->format('Y-m-d'), $release->scheduledSteps(3)));
+    }
+
+    public function testOnAnEventTheLastStepEndsOnItsReadyByDay(): void
+    {
+        $event = self::event('2026-12-13', '2026-12-14');
+        $release = Release::ofCollection(DesignCollection::start(TestWorkspace::get(), 'Forêt'), null, $event, self::STEPS);
+
+        self::assertSame([['2026-12-06', '2026-12-08'], ['2026-12-09', '2026-12-10']], self::datesOf($release->scheduledSteps(3)));
+
+        $event->planReadiness(0);
+
+        self::assertSame([['2026-12-09', '2026-12-11'], ['2026-12-12', '2026-12-13']], self::datesOf($release->scheduledSteps(3)));
+    }
+
+    public function testOnADayTheLastStepEndsTheDayBeforeWhateverTheMargin(): void
+    {
+        $release = Release::ofCollection(DesignCollection::start(TestWorkspace::get(), 'Forêt'), BusinessTime::at('2026-12-13'), null, self::STEPS);
+
+        self::assertSame([['2026-12-08', '2026-12-10'], ['2026-12-11', '2026-12-12']], self::datesOf($release->scheduledSteps(3)));
+        self::assertSame(self::datesOf($release->scheduledSteps(3)), self::datesOf($release->scheduledSteps(10)));
     }
 
     public function testADesignReleasesOnADay(): void
@@ -186,6 +206,16 @@ final class ReleaseTest extends TestCase
         self::assertFalse($release->isPastOn(BusinessTime::at('2026-07-08 23:00')));
         self::assertFalse($release->isPastOn(BusinessTime::at('2026-07-09 22:00')));
         self::assertTrue($release->isPastOn(BusinessTime::at('2026-07-10 00:30')));
+    }
+
+    /**
+     * @param list<ScheduledStep> $steps
+     *
+     * @return list<array{string, string}>
+     */
+    private static function datesOf(array $steps): array
+    {
+        return array_map(static fn (ScheduledStep $step): array => [BusinessTime::day($step->start), BusinessTime::day($step->end)], $steps);
     }
 
     private static function event(string $start, string $end): Event

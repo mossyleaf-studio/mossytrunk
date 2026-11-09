@@ -21,4 +21,9 @@ interface EventRepository
      * @return list<Event>
      */
     public function all(): array;
+
+    /**
+     * @return list<Event>
+     */
+    public function notOverOn(\DateTimeImmutable $today): array;
 }

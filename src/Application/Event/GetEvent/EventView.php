@@ -28,10 +28,12 @@ final readonly class EventView
         public string $timing,
         public array $donations,
         public int $donationsTotal,
+        public ?int $readyDaysBefore,
+        public string $readyBy,
     ) {
     }
 
-    public static function fromEvent(Event $event, EventTiming $timing, ExpenseShares $shares): self
+    public static function fromEvent(Event $event, EventTiming $timing, ExpenseShares $shares, string $readyBy): self
     {
         return new self(
             (string) $event->id(),
@@ -44,6 +46,8 @@ final readonly class EventView
             $timing->value,
             array_map(static fn (Donation $donation): array => ['id' => (string) $donation->id(), 'label' => $donation->label(), 'amount' => $donation->amount()->amount()], $event->donations()),
             $event->donationsTotal()->amount(),
+            $event->readyDaysBefore(),
+            $readyBy,
         );
     }
 }

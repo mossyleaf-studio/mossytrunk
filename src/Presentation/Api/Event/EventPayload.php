@@ -21,6 +21,7 @@ final readonly class EventPayload
         #[Assert\NotBlank(message: 'date.end.required')]
         #[Assert\Date(message: 'date.invalid')]
         public string $endDate = '',
+        public ?int $readyDaysBefore = null,
     ) {
     }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Planning;
 
+use App\Domain\Event\Event;
 use App\Domain\Purchasing\SupplierOrder;
 use Symfony\Component\Uid\Ulid;
 
@@ -19,6 +20,11 @@ interface RestockRepository
      * @return list<Restock>
      */
     public function all(): array;
+
+    /**
+     * @return list<Restock>
+     */
+    public function ofEvent(Event $event): array;
 
     /**
      * @return list<Restock>
