@@ -45,6 +45,47 @@ final class SumUpApiGatewayTest extends TestCase
         self::assertSame('Authorization: Bearer sup_sk_test', $requests[0][1]);
     }
 
+    public function testAnOnlinePaymentIsSkippedBeforeItsDetailIsRead(): void
+    {
+        $requested = [];
+        $client = new MockHttpClient(static function (string $method, string $url) use (&$requested): MockResponse {
+            $requested[] = $url;
+            if (str_contains($url, '/transactions/history?')) {
+                return new JsonMockResponse(['items' => [
+                    ['id' => 'web', 'transaction_code' => 'T-WEB', 'timestamp' => '2030-03-14T09:00:00Z', 'amount' => 12.0, 'payment_type' => 'ECOM'],
+                    ['id' => 'stand', 'transaction_code' => 'T-STAND', 'timestamp' => '2030-03-14T10:00:00Z', 'amount' => 4.0, 'payment_type' => 'POS'],
+                ], 'links' => []]);
+            }
+
+            return new JsonMockResponse(['products' => [['name' => 'Sticker', 'price_with_vat' => 4.0, 'quantity' => 1]]]);
+        }, 'https://api.sumup.com');
+
+        $transactions = iterator_to_array((new SumUpApiGateway($client, new SumUpPayloadMapper()))->successfulPayments(new SumUpCredentials('sup_sk_test', 'MCODE')), false);
+
+        self::assertSame(['T-STAND'], array_column($transactions, 'id'));
+        self::assertCount(2, $requested);
+        self::assertSame('https://api.sumup.com/v2.1/merchants/MCODE/transactions?id=stand', $requested[1]);
+        self::assertStringNotContainsString('payment_types', $requested[0], 'an include-list would drop the types SumUp adds later');
+    }
+
+    public function testAnOnlinePaymentOnlyItsDetailTellsApartIsSkippedToo(): void
+    {
+        $client = new MockHttpClient(static function (string $method, string $url): MockResponse {
+            if (str_contains($url, '/transactions/history?')) {
+                return new JsonMockResponse(['items' => [
+                    ['id' => 'web', 'transaction_code' => 'T-WEB', 'timestamp' => '2030-03-14T09:00:00Z', 'amount' => 12.0],
+                    ['id' => 'stand', 'transaction_code' => 'T-STAND', 'timestamp' => '2030-03-14T10:00:00Z', 'amount' => 4.0],
+                ], 'links' => []]);
+            }
+
+            return new JsonMockResponse(['payment_type' => str_ends_with($url, '?id=web') ? 'ECOM' : 'POS', 'products' => [['name' => 'Sticker', 'price_with_vat' => 4.0, 'quantity' => 1]]]);
+        }, 'https://api.sumup.com');
+
+        $transactions = iterator_to_array((new SumUpApiGateway($client, new SumUpPayloadMapper()))->successfulPayments(new SumUpCredentials('sup_sk_test', 'MCODE')), false);
+
+        self::assertSame(['T-STAND'], array_column($transactions, 'id'));
+    }
+
     public function testHttpErrorsAreReported(): void
     {
         $client = new MockHttpClient(new MockResponse('{"message":"invalid token"}', ['http_code' => 401]), 'https://api.sumup.com');

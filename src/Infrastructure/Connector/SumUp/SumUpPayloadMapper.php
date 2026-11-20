@@ -14,6 +14,7 @@ final class SumUpPayloadMapper
 {
     private const string KEYPAD_AMOUNT = 'custom amount';
     private const string PAYOUT = 'PAYOUT';
+    private const string ONLINE = 'ECOM';
 
     /**
      * @param array<string, mixed> $transaction
@@ -34,6 +35,16 @@ final class SumUpPayloadMapper
             $paymentMethod,
             self::fee($transaction, $paymentMethod),
         );
+    }
+
+    /**
+     * @param array<string, mixed> $transaction
+     */
+    public function paidOnline(array $transaction): bool
+    {
+        $paymentType = $transaction['payment_type'] ?? null;
+
+        return \is_string($paymentType) && self::ONLINE === strtoupper(trim($paymentType));
     }
 
     /**

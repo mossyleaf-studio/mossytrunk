@@ -13,6 +13,7 @@ use App\Application\Integration\ExternalSale;
 use App\Application\Integration\ImportSales\ImportReport;
 use App\Application\Integration\ImportSales\ImportSalesHandler;
 use App\Application\Order\GetOrder\GetOrderHandler;
+use App\Application\Order\GetOrder\OrderView;
 use App\Application\Order\IdentifyOrderLine\IdentifyOrderLine;
 use App\Application\Order\IdentifyOrderLine\IdentifyOrderLineHandler;
 use App\Application\Order\ListOrders\ListOrdersHandler;
@@ -103,6 +104,42 @@ final class ImportSumUpSalesTest extends KernelTestCase
         self::assertSame(2, $report->ordersWithoutEvent);
         self::assertSame(['2030-03-21', '2030-03-23'], $report->datesWithoutEvent);
         self::assertCount(2, self::getContainer()->get(ListOrdersHandler::class)());
+    }
+
+    public function testOnlinePaymentsAreNeitherImportedNorReported(): void
+    {
+        $withoutEvent = $this->import();
+
+        self::assertSame([0, 4, 0], [$withoutEvent->ordersImported, $withoutEvent->ordersWithoutEvent, $withoutEvent->salesWithoutItems]);
+
+        $this->scheduleEvent('Salon de printemps', '2030-03-14', '2030-03-15');
+        $report = $this->import();
+
+        self::assertSame([2, 2, 0, 0], [$report->ordersImported, $report->ordersWithoutEvent, $report->salesWithoutItems, $report->ordersWaitingForItems]);
+        self::assertSame(['TFAKE0002', 'TFAKE0001'], array_keys(self::ordersBySale()));
+        self::assertNotContains('Carnet Lichen', array_column(self::getContainer()->get(ListProductsHandler::class)(), 'name'));
+    }
+
+    public function testAnOrderWhoseSaleSumUpNoLongerReturnsIsLeftAsItWas(): void
+    {
+        $this->scheduleEvent('Salon de printemps', '2030-03-14', '2030-03-15');
+        self::getContainer()->get(CreateChannelHandler::class)('Stand', ChannelKind::Market, 'sumup');
+        $carnet = (string) self::createProduct('Carnet', 1_200, 300);
+        self::getContainer()->get(RestockHandler::class)(new Restock($carnet, null, 5, 300));
+        $sale = static fn (string $code, ?int $fee): ExternalSale => ExternalSales::sumUp($code, new \DateTimeImmutable('2030-03-14T12:00:00Z'), Money::cents(1_200), [ExternalSales::line('Carnet', Money::cents(1_200), 1)], PaymentMethod::Card, null === $fee ? null : Money::cents($fee));
+        self::getContainer()->get(FakeSumUpGateway::class)->willReturn([$sale('TX-WEB-PAID', 23), $sale('TX-WEB-PENDING', null), $sale('TX-STAND', 21)]);
+        $this->import();
+        $orders = static fn (): array => array_map(static fn (OrderSummaryView $order): OrderView => self::getContainer()->get(GetOrderHandler::class)($order->id), self::ordersBySale());
+        $before = $orders();
+
+        self::getContainer()->get(FakeSumUpGateway::class)->willReturn([$sale('TX-STAND', 21)]);
+        $report = $this->import();
+
+        self::assertSame([0, 1, 0, 0], [$report->ordersImported, $report->ordersAlreadyImported, $report->ordersCancelled, $report->feesUpdated]);
+        self::assertEquals($before, $orders());
+        self::assertSame([false, false], [$before['TX-WEB-PAID']->cancelled, $before['TX-WEB-PENDING']->cancelled]);
+        self::assertSame([['label' => 'SumUp fees', 'amount' => 23]], $before['TX-WEB-PAID']->charges);
+        self::assertSame(2, array_column(self::getContainer()->get(ListProductsHandler::class)(), 'onHand', 'name')['Carnet']);
     }
 
     public function testReimportDoesNotDuplicateAndPicksUpNewlyCoveredOrders(): void

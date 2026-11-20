@@ -107,6 +107,27 @@
                     "total_with_vat": 15.0
                 }
             ]
+        },
+        {
+            "id": "4b1c5d1a-0001-4000-8000-000000000005",
+            "transaction_code": "TFAKE0005",
+            "payment_type": "ECOM",
+            "timestamp": "2030-03-14T18:30:00.000Z",
+            "status": "SUCCESSFUL",
+            "type": "PAYMENT",
+            "amount": 12.0,
+            "tip_amount": 0.0,
+            "currency": "EUR",
+            "products": [
+                {
+                    "name": "Carnet Lichen",
+                    "price": 12.0,
+                    "price_with_vat": 12.0,
+                    "quantity": 1,
+                    "total_price": 12.0,
+                    "total_with_vat": 12.0
+                }
+            ]
         }
     ]
 }

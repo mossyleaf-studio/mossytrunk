@@ -53,8 +53,20 @@ final class SumUpPayloadMapperTest extends TestCase
 
         self::assertSame(PaymentMethod::Cash, $payment('CASH'));
         self::assertSame(PaymentMethod::Card, $payment('POS'));
-        self::assertSame(PaymentMethod::Card, $payment('ECOM'));
         self::assertNull($payment(null));
+    }
+
+    public function testOnlinePaymentsAreToldApartFromTerminalOnes(): void
+    {
+        $mapper = new SumUpPayloadMapper();
+
+        self::assertTrue($mapper->paidOnline(['payment_type' => 'ECOM']));
+        self::assertTrue($mapper->paidOnline(['payment_type' => " ecom\n"]));
+        self::assertFalse($mapper->paidOnline(['payment_type' => 'POS']));
+        self::assertFalse($mapper->paidOnline(['payment_type' => 'CASH']));
+        self::assertFalse($mapper->paidOnline(['payment_type' => 'BOLETO']), 'an unknown type stays a terminal sale');
+        self::assertFalse($mapper->paidOnline(['payment_type' => null]));
+        self::assertFalse($mapper->paidOnline([]));
     }
 
     public function testKeepsTheFeeSumUpTookOnItsPayoutsAndKnowsCashCostsNothing(): void

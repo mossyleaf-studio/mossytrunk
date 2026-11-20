@@ -1,6 +1,6 @@
 # SumUp import
 
-SumUp is the card terminal used at events. Its sales go through the generic [import](imports.md); this page lists what is specific to SumUp.
+SumUp is the card terminal used at events. Its terminal sales go through the generic [import](imports.md); this page lists what is specific to SumUp. Payments taken online on the same SumUp account are not read here (S15).
 
 Configuration: « Paramètres › Services connectés › Ajouter un service › SumUp »: merchant code and API key (SumUp dashboard → API keys, `sup_sk_…`, stored encrypted).
 Defaults: sales **at the day's market**, unknown items **create the product**, line prices **may be discounted**.
@@ -11,14 +11,14 @@ Code: `src/Infrastructure/Connector/SumUp/` — `SumUpConnector`, `SumUpApiGatew
 ## What is read from SumUp
 
 - `GET /v2.1/merchants/{code}/transactions/history?statuses[]=SUCCESSFUL&types[]=PAYMENT` (all pages, `links[rel=next]`)
-- `GET /v2.1/merchants/{code}/transactions?id=…` for each payment → `events[]` (the `PAYOUT` events carry SumUp's `fee_amount`, see S14) and `products[]` (`name`, `description` = variant (trimmed), `price_with_vat`, `quantity`, and `category` / `category_name` **when present** — not documented by SumUp, read defensively)
+- `GET /v2.1/merchants/{code}/transactions?id=…` for each terminal payment (an online one is left out before this request, or after it when only the detail tells, see S15) → `events[]` (the `PAYOUT` events carry SumUp's `fee_amount`, see S14) and `products[]` (`name`, `description` = variant (trimmed), `price_with_vat`, `quantity`, and `category` / `category_name` **when present** — not documented by SumUp, read defensively)
 - Mapping: transaction code = external id and order reference; charged = `amount − tip_amount`; no shipping; line name = the item (lowercased as its external reference). Euros are converted to cents.
 
 ## Rules
 
 | # | Rule | Where | Tests |
 |---|---|---|---|
-| S1 | Only successful payments are imported (no refunds, failed or cancelled) | `SumUpApiGateway` query filters | `SumUpApiGatewayTest` |
+| S1 | Only successful payments **recorded on the terminal** (card or cash) are imported: no refunds, failed or cancelled payments (query filters), and no online payments (S15) | `SumUpApiGateway` query filters, `SumUpPayloadMapper::paidOnline()` | `SumUpApiGatewayTest` |
 | S2 | Idempotent on the transaction code (see [imports.md](imports.md) I3) | `ImportSalesHandler` | `ImportSumUpSalesTest`, e2e `sumup.spec.js` |
 | S5b | When SumUp gives a **category**, it becomes the created product's **type** (found case-insensitively or created), and a leading « {category} » is removed from the name: « Print Forêt » in category Print → type Print + name « Forêt » | `ImportedCatalogue::createFor()` | `ImportSumUpSalesTest`, `SumUpPayloadMapperTest` |
 | S7 | A line naming a product **with variants** but no recognisable variant is remembered « à associer »; its order waits until the item is linked (see I6) | `ExternalItemResolver` | `ImportSumUpSalesTest` |
@@ -26,8 +26,9 @@ Code: `src/Infrastructure/Connector/SumUp/` — `SumUpConnector`, `SumUpApiGatew
 | S10 | An **amount typed on the terminal** (a line without a name, or that SumUp names « Custom amount ») is imported as an order line **without product** (« Produit inconnu », flagged on the order), at the line's own SumUp price: it counts in the turnover but creates no product, takes no stock, has no cost and no discount condition matches it. Such a line can be linked to a product later from the order page, or split into several products when one typed amount paid for several items (see [orders.md](orders.md) O13, O13b). The « Montant libre » / « Custom amount » products earlier imports created were removed and their lines turned into such lines | `SumUpPayloadMapper::name()`, `ExternalItemResolver`, `SellableItem::unknown()` | `SumUpPayloadMapperTest`, `ImportSumUpSalesTest` |
 | S11 | SumUp spreads a basket discount over the lines: a line is sold at the **higher** of the product's price and SumUp's line price (see I9) | `LinePrices::MayBeDiscounted` | `ImportSumUpSalesTest` |
 | S12 | A product's `description` is its **variant**: a variant of the named product; a product **split per variant** (`<name> <variant>`, `<name> - <variant>`, `<name> (<variant>)` without variants of its own); otherwise, when creating products, a new variant learnt by the named product when it has variants or was created by this import. On another existing product without variants the description is ignored | `SumUpPayloadMapper::variant()`, `ExternalItemResolver` | `SumUpPayloadMapperTest`, `ImportSumUpSalesTest` |
-| S13 | The order keeps SumUp's **payment method**: `payment_type` `CASH` → « Espèces », any other value (`POS`, `ECOM`…) → « Carte »; unknown when SumUp sends none | `SumUpPayloadMapper::paymentMethod()` | `SumUpPayloadMapperTest`, `ImportSumUpSalesTest` |
+| S13 | The order keeps SumUp's **payment method**: `payment_type` `CASH` → « Espèces », any other terminal value (`POS`…) → « Carte »; unknown when SumUp sends none. `ECOM` never reaches this rule (S15) | `SumUpPayloadMapper::paymentMethod()` | `SumUpPayloadMapperTest`, `ImportSumUpSalesTest` |
 | S14 | The sale keeps the **fee SumUp took**: the sum of the `fee_amount` of its `PAYOUT` events (SumUp reports it once the payment is paid out, usually the next day); a cash payment costs no fee; a card payment not paid out yet keeps an unknown fee until a later import reads it (see I12). `app:sumup:transaction <code> --workspace=<name>` prints the `events` to check what SumUp returns | `SumUpPayloadMapper::fee()` | `SumUpPayloadMapperTest`, `ImportSumUpSalesTest` |
+| S15 | **Online payments are left to the website connector**: a payment whose `payment_type` is `ECOM` (trimmed, case-insensitive) was taken by the studio's website through SumUp's hosted checkout on the same merchant account. It is skipped on SumUp's history, before its detail is read, and again on its detail when only the detail carries the type: neither imported, nor counted as a payment without items or without event. Any other type, known or not, stays a terminal sale (the `payment_types[]` query filter is not used: an include-list would drop the types SumUp adds later). An order imported from an online payment before this rule is left as it was: a sale SumUp no longer returns is neither cancelled nor changed. `app:sumup:transaction` prints `payment_type` and `entry_mode` to check how a payment was taken | `SumUpPayloadMapper::paidOnline()`, `SumUpApiGateway`, `FakeSumUpGateway` | `SumUpPayloadMapperTest`, `SumUpApiGatewayTest`, `ImportSumUpSalesTest`, `ShowSumUpTransactionCommandTest`, e2e `sumup.spec.js` |
 
 ## Catalogue export
 

@@ -21,7 +21,7 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 #[AsCommand(name: 'app:sumup:transaction', description: 'Prints what SumUp returns for one transaction (amounts, fees and products), to check how the import reads it')]
 final readonly class ShowSumUpTransactionCommand
 {
-    private const array SHOWN_FIELDS = ['transaction_code', 'timestamp', 'amount', 'tip_amount', 'currency', 'status', 'products', 'events'];
+    private const array SHOWN_FIELDS = ['transaction_code', 'timestamp', 'amount', 'tip_amount', 'currency', 'status', 'payment_type', 'entry_mode', 'products', 'events'];
 
     public function __construct(
         private WorkspaceRepository $workspaces,

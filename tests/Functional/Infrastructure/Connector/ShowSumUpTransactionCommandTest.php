@@ -36,6 +36,8 @@ final class ShowSumUpTransactionCommandTest extends KernelTestCase
             return new JsonMockResponse([
                 'transaction_code' => 'TAAA6MPKY9S',
                 'amount' => 3.0,
+                'payment_type' => 'ECOM',
+                'entry_mode' => 'CUSTOMER_ENTRY',
                 'events' => [['type' => 'PAYOUT', 'fee_amount' => 0.05]],
                 'card' => ['last_4_digits' => '4242'],
                 'products' => [['name' => 'Eevee Aquali', 'price_label' => 'Sticker', 'price_with_vat' => 3.0, 'quantity' => 1]],
@@ -52,6 +54,9 @@ final class ShowSumUpTransactionCommandTest extends KernelTestCase
         $printed = $output->fetch();
         self::assertStringContainsString('"price_label": "Sticker"', $printed);
         self::assertStringContainsString('"fee_amount": 0.05', $printed);
+        self::assertStringContainsString('"payment_type": "ECOM"', $printed);
+        self::assertStringContainsString('"entry_mode": "CUSTOMER_ENTRY"', $printed);
+        self::assertStringNotContainsString('4242', $printed);
     }
 
     public function testRefusesAnUnknownWorkspace(): void

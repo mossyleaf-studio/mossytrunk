@@ -29,6 +29,7 @@ test('import SumUp orders: one error for uncovered dates, no duplicates on re-im
     await expect(page.getByRole('row').filter({ hasText: 'TFAKE0002' })).toContainText('SumUp');
     await expect(page.getByRole('row').filter({ hasText: 'TFAKE0002' })).toContainText('Espèces');
     await expect(page.getByRole('row').filter({ hasText: 'TFAKE0001' })).toContainText('Carte');
+    await expect(page.getByRole('row').filter({ hasText: 'TFAKE0005' })).toHaveCount(0);
 
     await page.getByRole('button', { name: 'Synchroniser' }).click();
     await expect(page.getByTestId('toast').last()).toContainText('0 commande importée, 2 déjà importées');

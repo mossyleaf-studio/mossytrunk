@@ -32,11 +32,17 @@ final readonly class SumUpApiGateway implements SumUpGateway
 
                 $details = [];
                 foreach (Json::objects($page['items'] ?? []) as $item) {
+                    if ($this->mapper->paidOnline($item)) {
+                        continue;
+                    }
                     $details[] = [$item, $this->request($credentials, \sprintf('/v2.1/merchants/%s/transactions?%s', rawurlencode($credentials->merchantCode), http_build_query(['id' => Json::string($item['id'] ?? '')])))];
                 }
 
                 foreach ($details as [$item, $response]) {
-                    yield $this->mapper->sale(Json::object($response->toArray()) + $item);
+                    $transaction = Json::object($response->toArray()) + $item;
+                    if (!$this->mapper->paidOnline($transaction)) {
+                        yield $this->mapper->sale($transaction);
+                    }
                 }
 
                 $query = self::nextPageQuery($page);
