@@ -7,6 +7,7 @@ namespace App\Tests\Functional\Api;
 use App\Tests\Support\Json;
 use App\Tests\Support\ProductTypesApi;
 use App\Tests\Support\SignsInClient;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
@@ -55,6 +56,107 @@ final class ServicesApiTest extends WebTestCase
         self::assertSame(['[merchant_code]', '[api_key]'], $paths);
     }
 
+    public function testTheWebsiteIsAddedWithItsAddressAndItsToken(): void
+    {
+        $client = self::signedInClient();
+
+        $client->jsonRequest('POST', '/api/services', ['service' => 'website', 'fields' => ['address' => ' https://Shop.Example-Studio.fr ', 'token' => 'integration-token-0123456789abcdef']]);
+        self::assertResponseStatusCodeSame(201);
+
+        $client->jsonRequest('GET', '/api/services');
+        $content = (string) $client->getResponse()->getContent();
+        self::assertStringNotContainsString('integration-token', $content);
+        $website = array_values(array_filter(Json::decode($content), static fn (mixed $service): bool => \is_array($service) && 'website' === ($service['key'] ?? null)))[0];
+        self::assertSame(['value' => 'https://Shop.Example-Studio.fr', 'configured' => true, 'hint' => null], Json::at($website, 'connection', 'values', 'address'));
+        self::assertSame(['value' => null, 'configured' => true, 'hint' => '••••cdef'], Json::at($website, 'connection', 'values', 'token'));
+        self::assertSame(['online', 'link_by_hand', true], [Json::at($website, 'connection', 'salesContext'), Json::at($website, 'connection', 'unknownItems'), Json::at($website, 'connection', 'configured')]);
+    }
+
+    #[DataProvider('addressesThatAreNotAPublicHttpsOrigin')]
+    public function testTheSiteAddressMustBeAPublicHttpsOrigin(string $address): void
+    {
+        $client = self::signedInClient();
+
+        $client->jsonRequest('POST', '/api/services', ['service' => 'website', 'fields' => ['address' => $address, 'token' => 'integration-token-0123456789abcdef']]);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame([['[address]', 'Type only the https address of the site, such as https://example.com.']], array_map(
+            static fn (mixed $violation): array => [Json::at($violation, 'propertyPath'), Json::at($violation, 'title')],
+            Json::array(Json::decode((string) $client->getResponse()->getContent()), 'violations'),
+        ));
+        $client->jsonRequest('GET', '/api/services');
+        self::assertStringNotContainsString('"configured":true', (string) $client->getResponse()->getContent());
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function addressesThatAreNotAPublicHttpsOrigin(): iterable
+    {
+        yield 'plain http' => ['http://shop.example'];
+        yield 'another scheme' => ['ftp://shop.example'];
+        yield 'no scheme' => ['shop.example'];
+        yield 'a port' => ['https://shop.example:8443'];
+        yield 'a path' => ['https://shop.example/integrations'];
+        yield 'a trailing slash' => ['https://shop.example/'];
+        yield 'a query' => ['https://shop.example?next=1'];
+        yield 'a fragment' => ['https://shop.example#top'];
+        yield 'a user' => ['https://admin@shop.example'];
+        yield 'a user and a password' => ['https://admin:secret@shop.example'];
+        yield 'a host hidden behind a user' => ['https://shop.example@127.0.0.1'];
+        yield 'an IPv4 address' => ['https://127.0.0.1'];
+        yield 'an IPv4 address written as one number' => ['https://2130706433'];
+        yield 'an IPv4 address written in hexadecimal' => ['https://0x7f.0.0.1'];
+        yield 'an IPv6 address' => ['https://[::1]'];
+        yield 'a name without domain' => ['https://localhost'];
+        yield 'a name ending with a dot' => ['https://localhost.'];
+        yield 'a backslash' => ['https://shop.example\\@evil.example'];
+        yield 'a space' => ['https://shop.example evil.example'];
+        yield 'a second line' => ["https://shop.example\nhttps://evil.example"];
+    }
+
+    public function testANewSiteAddressIsRefusedWithoutItsToken(): void
+    {
+        $client = self::signedInClient();
+        $client->jsonRequest('POST', '/api/services', ['service' => 'website', 'fields' => ['address' => 'https://shop.example', 'token' => 'integration-token-0123456789abcdef']]);
+
+        $client->jsonRequest('PUT', '/api/services/website', ['fields' => ['address' => 'https://collector.example', 'token' => '']]);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('“Token” must be typed again: the value kept belongs to the previous access.', Json::at(Json::decode((string) $client->getResponse()->getContent()), 'detail'));
+        $client->jsonRequest('GET', '/api/services');
+        $website = array_values(array_filter(Json::decode((string) $client->getResponse()->getContent()), static fn (mixed $service): bool => \is_array($service) && 'website' === ($service['key'] ?? null)))[0];
+        self::assertSame(['value' => 'https://shop.example', 'configured' => true, 'hint' => null], Json::at($website, 'connection', 'values', 'address'));
+        self::assertSame(['value' => null, 'configured' => true, 'hint' => '••••cdef'], Json::at($website, 'connection', 'values', 'token'));
+
+        $client->jsonRequest('PUT', '/api/services/website', ['fields' => ['address' => 'https://collector.example', 'token' => 'another-token-0123456789abcd9876']]);
+        self::assertResponseStatusCodeSame(204);
+    }
+
+    #[DataProvider('tokensThatCannotBeSentAsBearer')]
+    public function testATokenHoldsNoSpaceNorAccent(string $token): void
+    {
+        $client = self::signedInClient();
+
+        $client->jsonRequest('POST', '/api/services', ['service' => 'website', 'fields' => ['address' => 'https://shop.example', 'token' => $token]]);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame([['[token]', 'A token holds no space and no accented character.']], array_map(
+            static fn (mixed $violation): array => [Json::at($violation, 'propertyPath'), Json::at($violation, 'title')],
+            Json::array(Json::decode((string) $client->getResponse()->getContent()), 'violations'),
+        ));
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function tokensThatCannotBeSentAsBearer(): iterable
+    {
+        yield 'a space in the middle' => ['integration-token 0123456789abcdef'];
+        yield 'an accent' => ['jeton-d-intégration-0123456789abcdef'];
+        yield 'a second line' => ["integration-token\n0123456789abcdef"];
+    }
+
     public function testOptionsCanBeChangedWithoutRetypingTheSecret(): void
     {
         $client = self::signedInClient();
@@ -96,7 +198,7 @@ final class ServicesApiTest extends WebTestCase
 
         $client->jsonRequest('GET', '/api/services');
         $services = Json::decode((string) $client->getResponse()->getContent());
-        self::assertSame(['etsy' => false, 'sumup' => true], array_combine(array_map(static fn (mixed $service): string => Json::string($service, 'key'), array_values($services)), array_map(static fn (mixed $service): bool => true === Json::at($service, 'exportsCatalogue'), array_values($services))));
+        self::assertSame(['etsy' => false, 'sumup' => true, 'website' => false], array_combine(array_map(static fn (mixed $service): string => Json::string($service, 'key'), array_values($services)), array_map(static fn (mixed $service): bool => true === Json::at($service, 'exportsCatalogue'), array_values($services))));
     }
 
     public function testASumUpCatalogueIsUploaded(): void

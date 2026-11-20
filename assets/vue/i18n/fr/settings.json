@@ -22,7 +22,6 @@
         "add": "Ajouter un service",
         "intro": "Vos ventes arrivent dans Commandes quand vous lancez un import.",
         "empty": "Aucun service. Ajoutez {available} pour importer vos ventes.",
-        "or": " ou ",
         "someService": "Le service",
         "added": "{label} ajouté.",
         "updated": "{label} modifié.",

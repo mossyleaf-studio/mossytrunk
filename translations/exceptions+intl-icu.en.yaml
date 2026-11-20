@@ -52,7 +52,8 @@ identity:
     invalid_theme_color: 'Invalid colour “{color}”: use a hexadecimal code such as #5b7f3a.'
 integration:
     account_without_shop: 'Cannot reach {service}: this {service} account has no shop.'
-    missing_setting: 'Missing setting “{name, select, merchant_code {Merchant code} api_key {API key} keystring {Keystring} shared_secret {Shared secret} other {{name}}}”.'
+    missing_setting: 'Missing setting “{name, select, merchant_code {Merchant code} api_key {API key} keystring {Keystring} shared_secret {Shared secret} address {Site address} token {Token} other {{name}}}”.'
+    secret_needed_again: '“{name, select, api_key {API key} shared_secret {Shared secret} token {Token} other {{name}}}” must be typed again: the value kept belongs to the previous access.'
     service_not_added: '{service} is not added: add it in Settings › Connected services.'
     service_not_authorizing: '{service} does not connect through authorization.'
     service_not_exporting_catalogue: '{service} cannot export the catalogue.'
@@ -65,6 +66,8 @@ integration:
     service_not_connected: '{service} is not connected: connect it from Settings › Connected services.'
     service_not_registered: 'Unknown service “{service}”.'
     service_unreachable: 'Cannot reach {service}: {reason}'
+    access_refused: '{service} refused the access: check its token in Settings › Connected services.'
+    integration_disabled: '{service} does not answer at this address: its integration is switched off, or this is not the address of the site.'
     invalid_setting: 'Invalid setting “{name}”.'
     service_already_added: '{service} is already added.'
     unknown_service: 'Unknown service “{service}”.'

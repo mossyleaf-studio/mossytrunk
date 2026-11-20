@@ -23,6 +23,7 @@ import { isReady, useServices } from '../composables/useServices.js';
 import { useSession } from '../composables/useSession.js';
 import { useReferenceFormats } from '../composables/useReferenceFormats.js';
 import { usePlanningSettings } from '../composables/usePlanningSettings.js';
+import { intlLocale } from '../i18n/locale.js';
 
 const { t } = useI18n();
 
@@ -70,7 +71,7 @@ async function onItemLinked(importer, item) {
 const modalOpen = ref(false);
 const editing = ref(null);
 const allAdded = computed(() => services.services.value.every((service) => service.connection));
-const available = computed(() => services.services.value.map((service) => service.label).join(t('settings.services.or')));
+const available = computed(() => new Intl.ListFormat(intlLocale(), { type: 'disjunction' }).format(services.services.value.map((service) => service.label)));
 
 const CONNECTION_OUTCOMES = {
     connected: 'success',

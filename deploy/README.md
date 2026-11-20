@@ -50,6 +50,14 @@ There is no sign-up, password or invitation in MossyTrunk: people sign in with t
 
 Users created before mossyleaf accounts keep their workspace and all its data: the first time they sign in with an account that has **the same email**, MossyTrunk links it to them. So invite every existing user with the email they already use here (`docker compose exec -T database psql -U app app -c 'select email from app_user where account_id is null'` lists those not linked yet).
 
+## Shop of the studio's website
+
+MossyTrunk reads the orders of the website's shop itself (« Paramètres › Services connectés › Ajouter un service › Site web »): nothing to set in `.env`.
+
+- **Network**: the app container must reach the website's **public https address** (`https://mossyleaf.studio`, port 443, through public DNS). A private, loopback or internal address is refused on purpose, also when both applications run on the same server: type the public address, never an internal Docker name. Check from the server: `docker compose exec app curl -s -o /dev/null -w '%{http_code}\n' https://mossyleaf.studio/integrations/orders` prints `401` (or `404` while the website has no token), not a timeout.
+- **Token**: the value of `MOSSYTRUNK_TOKEN` in the website's `.env`, typed in the settings page (kept encrypted with `APP_ENCRYPTION_KEY`).
+- **Payment fee**: the website does not report the fee SumUp takes on online payments. In « Canaux de vente », create an « En ligne » channel linked to the service « Site web » and give it a cost per order of **2.5 %** (« Frais par commande »): it stands in for that fee on every imported order.
+
 ## Reverse proxy
 
 The app speaks plain HTTP. The proxy must forward `Host` and the `X-Forwarded-For`, `X-Forwarded-Proto` and `X-Forwarded-Host` headers, and its IP must match `TRUSTED_PROXIES`; otherwise the app thinks it is served over HTTP and rejects form and API submissions from the HTTPS origin.

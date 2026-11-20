@@ -33,6 +33,16 @@ final class ExternalSales
         return new ExternalSale($receiptId, 'ETSY-'.$receiptId, $placedAt, $lines, $listed->subtract(Money::cents($discount)), Money::cents($shipping), PaymentMethod::Card, cancelledAt: $cancelledAt);
     }
 
+    /**
+     * @param list<ExternalLine> $lines
+     */
+    public static function website(string $reference, \DateTimeImmutable $placedAt, array $lines, int $shipping = 0): ExternalSale
+    {
+        $goods = Money::sum(array_map(static fn (ExternalLine $line): Money => $line->unitPrice->multiply($line->quantity), $lines));
+
+        return new ExternalSale($reference, $reference, $placedAt, $lines, $goods, Money::cents($shipping), PaymentMethod::Card, Money::zero());
+    }
+
     public static function line(string $name, Money $unitPrice, int $quantity = 1, ?string $category = null, ?string $variant = null): ExternalLine
     {
         return new ExternalLine(mb_strtolower(trim($name)), $name, $unitPrice, $quantity, $variant, $category);

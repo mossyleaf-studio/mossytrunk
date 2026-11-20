@@ -22,7 +22,6 @@
         "add": "Add a service",
         "intro": "Your sales land in Orders when you run an import.",
         "empty": "No services. Add {available} to import your sales.",
-        "or": " or ",
         "someService": "The service",
         "added": "{label} added.",
         "updated": "{label} updated.",

@@ -17,5 +17,14 @@
             "keystring": "Keystring",
             "sharedSecret": "Shared secret"
         }
+    },
+    "website": {
+        "summary": "Orders from the shop of your own website",
+        "fields": {
+            "address": "Site address",
+            "addressHint": "The https address of the site, with nothing after its name: https://example.com",
+            "token": "Token",
+            "tokenHint": "The integration token set on the server of the site."
+        }
     }
 }

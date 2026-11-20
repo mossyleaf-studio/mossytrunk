@@ -16,6 +16,7 @@ final readonly class ServiceField
         public ?string $hint = null,
         public int $maxLength = 255,
         public bool $uppercase = false,
+        public bool $bindsSecrets = false,
     ) {
     }
 

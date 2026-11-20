@@ -8,8 +8,11 @@ use App\Application\Integration\CompleteAuthorization\CompleteAuthorizationHandl
 use App\Application\Integration\ConfigureConnection\AddConnectionHandler;
 use App\Application\Integration\ConfigureConnection\ConnectionSettings;
 use App\Application\Integration\ConfigureConnection\UpdateConnectionHandler;
+use App\Application\Integration\Connectors;
+use App\Application\Integration\Exception\SecretNeededAgain;
 use App\Application\Integration\Exception\ServiceNotRegistered;
 use App\Application\Integration\Exception\ServiceUnavailable;
+use App\Application\Integration\LinePrices;
 use App\Application\Integration\ListServices\ListServicesHandler;
 use App\Application\Integration\ListServices\ServiceView;
 use App\Application\Integration\RemoveConnection\RemoveConnectionHandler;
@@ -17,9 +20,11 @@ use App\Domain\Integration\Exception\ServiceAlreadyAdded;
 use App\Domain\Integration\SalesContext;
 use App\Domain\Integration\UnknownItems;
 use App\Tests\Support\ActsAsUser;
+use App\Tests\Support\DomainExceptions;
 use App\Tests\Support\ExternalSales;
 use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Translation\LocaleSwitcher;
 
 final class ServiceConnectionUseCasesTest extends KernelTestCase
 {
@@ -34,11 +39,30 @@ final class ServiceConnectionUseCasesTest extends KernelTestCase
     {
         $services = $this->services();
 
-        self::assertSame(['etsy', 'sumup'], array_keys($services));
+        self::assertSame(['etsy', 'sumup', 'website'], array_keys($services));
         self::assertSame(['merchant_code', 'api_key'], array_column($services['sumup']->fields, 'name'));
         self::assertSame([false, true], array_column($services['sumup']->fields, 'secret'));
-        self::assertSame([false, true], [$services['sumup']->authorizes, $services['etsy']->authorizes]);
+        self::assertSame([false, true, false], [$services['sumup']->authorizes, $services['etsy']->authorizes, $services['website']->authorizes]);
         self::assertNull($services['sumup']->connection);
+    }
+
+    public function testTheWebsiteIsReachedByItsAddressAndASecretTokenAndSellsOnlineAtItsListedPrices(): void
+    {
+        $website = $this->services()['website'];
+
+        self::assertSame(['address', 'token'], array_column($website->fields, 'name'));
+        self::assertSame([false, true], array_column($website->fields, 'secret'));
+        self::assertSame([255, 500], array_column($website->fields, 'maxLength'));
+        self::assertSame(['online', 'link_by_hand'], [$website->defaultSalesContext, $website->defaultUnknownItems]);
+        self::assertSame(LinePrices::Listed, self::getContainer()->get(Connectors::class)->get('website')->describe()->linePrices);
+        self::assertSame([false, false, false, false], [$website->exportsCatalogue, $website->importsCatalogue, $website->readsCatalogue, $website->publishesReferences]);
+    }
+
+    public function testTheWebsiteIsNamedInTheLanguageOfTheUser(): void
+    {
+        $label = fn (string $locale): string => self::getContainer()->get(LocaleSwitcher::class)->runWithLocale($locale, fn (): string => $this->services()['website']->label);
+
+        self::assertSame(['Website', 'Site web'], [$label('en'), $label('fr')]);
     }
 
     public function testAddingAServiceUsesItsDefaultOptionsAndKeepsTheSecretEncrypted(): void
@@ -104,6 +128,20 @@ final class ServiceConnectionUseCasesTest extends KernelTestCase
         self::assertFalse($this->services()['etsy']->connection?->authorized);
     }
 
+    public function testTheTokenOfTheWebsiteIsNeverKeptForAnotherAddress(): void
+    {
+        ExternalSales::connect(self::getContainer()->get(AddConnectionHandler::class), 'website', ['address' => 'https://shop.example', 'token' => 'integration-token-0123456789abcdef']);
+
+        DomainExceptions::assertThrown(new SecretNeededAgain('token'), fn () => $this->update('website', ['address' => 'https://collector.example', 'token' => '']));
+        self::assertSame(['https://shop.example', '••••cdef'], $this->websiteAccess(), 'a refused change leaves the access as it was');
+
+        $this->update('website', ['address' => 'https://shop.example', 'token' => ''], SalesContext::AtEvent);
+        self::assertSame(['https://shop.example', '••••cdef'], $this->websiteAccess(), 'the same address keeps its token');
+
+        $this->update('website', ['address' => 'https://collector.example', 'token' => 'another-token-0123456789abcd9876']);
+        self::assertSame(['https://collector.example', '••••9876'], $this->websiteAccess());
+    }
+
     public function testRemovingAServiceForgetsItsSecrets(): void
     {
         $this->addSumUp('MCODE', 'sup_sk_first0001');
@@ -136,6 +174,16 @@ final class ServiceConnectionUseCasesTest extends KernelTestCase
     private function update(string $service, array $fields, ?SalesContext $salesContext = null, ?UnknownItems $unknownItems = null): void
     {
         self::getContainer()->get(UpdateConnectionHandler::class)(new ConnectionSettings($service, $fields, $salesContext, $unknownItems));
+    }
+
+    /**
+     * @return array{?string, ?string}
+     */
+    private function websiteAccess(): array
+    {
+        $website = $this->services()['website']->connection;
+
+        return [$website?->values['address']->value, $website?->values['token']->hint];
     }
 
     /**

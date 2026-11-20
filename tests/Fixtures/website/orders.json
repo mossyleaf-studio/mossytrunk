@@ -1,0 +1,27 @@
+{
+    "orders": [
+        {
+            "id": "ML-7K2P-9QXA",
+            "reference": "ML-7K2P-9QXA",
+            "placedAt": "2030-02-03T10:15:00+01:00",
+            "lines": [
+                { "sku": "WEB-STICKER", "name": "Autocollant mousse (boutique)", "variant": null, "unitPrice": 400, "quantity": 2 },
+                { "sku": "WEB-PRINT-A4", "name": "Affiche forêt", "variant": "A4", "unitPrice": 1800, "quantity": 1 }
+            ],
+            "goods": 2600,
+            "shipping": 450,
+            "cancelledAt": null
+        },
+        {
+            "id": "ML-3D8H-4TNC",
+            "reference": "ML-3D8H-4TNC",
+            "placedAt": "2030-02-04T18:40:00+01:00",
+            "lines": [
+                { "sku": "WEB-STICKER", "name": "Autocollant mousse (boutique)", "variant": null, "unitPrice": 400, "quantity": 1 }
+            ],
+            "goods": 400,
+            "shipping": 250,
+            "cancelledAt": "2030-02-05T09:00:00+01:00"
+        }
+    ]
+}

@@ -17,5 +17,14 @@
             "keystring": "Keystring",
             "sharedSecret": "Shared secret"
         }
+    },
+    "website": {
+        "summary": "Commandes de la boutique de votre site",
+        "fields": {
+            "address": "Adresse du site",
+            "addressHint": "L'adresse https du site, sans rien après son nom : https://exemple.fr",
+            "token": "Jeton",
+            "tokenHint": "Le jeton d'intégration défini sur le serveur du site."
+        }
     }
 }

@@ -52,7 +52,8 @@ identity:
     invalid_theme_color: 'Couleur invalide « {color} » : utilisez un code hexadécimal comme #5b7f3a.'
 integration:
     account_without_shop: 'Impossible de joindre {service} : ce compte {service} n''a pas de boutique.'
-    missing_setting: 'Paramètre manquant « {name, select, merchant_code {Code marchand} api_key {Clé API} keystring {Keystring} shared_secret {Shared secret} other {{name}}} ».'
+    missing_setting: 'Paramètre manquant « {name, select, merchant_code {Code marchand} api_key {Clé API} keystring {Keystring} shared_secret {Shared secret} address {Adresse du site} token {Jeton} other {{name}}} ».'
+    secret_needed_again: '« {name, select, api_key {Clé API} shared_secret {Shared secret} token {Jeton} other {{name}}} » est à saisir à nouveau : la valeur enregistrée appartient à l''ancien accès.'
     service_not_added: '{service} n''est pas ajouté : ajoutez-le dans Paramètres › Services connectés.'
     service_not_authorizing: '{service} ne se connecte pas par autorisation.'
     service_not_exporting_catalogue: '{service} ne sait pas exporter le catalogue.'
@@ -65,6 +66,8 @@ integration:
     service_not_connected: '{service} n''est pas connecté : connectez-le depuis Paramètres › Services connectés.'
     service_not_registered: 'Service inconnu « {service} ».'
     service_unreachable: 'Impossible de joindre {service} : {reason}'
+    access_refused: '{service} a refusé l''accès : vérifiez son jeton dans Paramètres › Services connectés.'
+    integration_disabled: '{service} ne répond pas à cette adresse : l''intégration y est désactivée, ou ce n''est pas l''adresse du site.'
     invalid_setting: 'Paramètre invalide « {name} ».'
     service_already_added: '{service} est déjà ajouté.'
     unknown_service: 'Service inconnu « {service} ».'

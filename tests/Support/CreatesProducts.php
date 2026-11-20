@@ -16,9 +16,9 @@ trait CreatesProducts
     /**
      * @param list<string> $variants
      */
-    protected static function createProduct(string $name, int $sellingPrice, int $cost = 0, array $variants = [], ?string $typeId = null, int $lowStockThreshold = Product::DEFAULT_LOW_STOCK_THRESHOLD): string
+    protected static function createProduct(string $name, int $sellingPrice, int $cost = 0, array $variants = [], ?string $typeId = null, int $lowStockThreshold = Product::DEFAULT_LOW_STOCK_THRESHOLD, ?string $reference = null): string
     {
-        $id = self::getContainer()->get(CreateProductHandler::class)(new CreateProduct($name, $sellingPrice, $variants, $typeId, $lowStockThreshold));
+        $id = self::getContainer()->get(CreateProductHandler::class)(new CreateProduct($name, $sellingPrice, $variants, $typeId, $lowStockThreshold, $reference));
         if ($cost > 0) {
             self::getContainer()->get(ProductRepository::class)->get($id)->bought(Money::cents($cost));
             self::getContainer()->get(EntityManagerInterface::class)->flush();

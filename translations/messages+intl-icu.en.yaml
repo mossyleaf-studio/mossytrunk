@@ -48,5 +48,8 @@ export:
             mixed: 'Mixed'
 product_type:
     miscellaneous: 'Miscellaneous'
+services:
+    website:
+        label: 'Website'
 sales:
     main_channel: 'Markets'

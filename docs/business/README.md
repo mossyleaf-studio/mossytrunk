@@ -27,6 +27,7 @@ Module 1 = **Order Management**. This folder is the reference for business rules
 | [imports.md](imports.md) | Connected services, the generic sales import (event or online, unknown items created or linked by hand) |
 | [etsy-import.md](etsy-import.md) | Etsy specifics: shop connection, paid receipts, listings |
 | [sumup-import.md](sumup-import.md) | SumUp specifics: payments read, categories, free amounts, variants, payment method |
+| [website-import.md](website-import.md) | The studio's own website: orders of its shop read by address and token, SKU matching, no private network, neutral errors |
 
 ## Glossary (UI term → code)
 
@@ -60,7 +61,7 @@ Module 1 = **Order Management**. This folder is the reference for business rules
 | Déclinaison | `Domain\Design\Declination` | A design on a gabarit; becomes a product on validation |
 | Sortie / étape de sortie | `Domain\Planning\Release`, `PlanningSettings`, `ScheduledStep` | Release date or event of a collection or design, with its dated steps; the workspace's planning settings pre-fill the steps and set the default ready-by margin |
 | Déclaration URSSAF | `Domain\Accounting\UrssafDeclaration` | A month or quarter marked declared, with the turnover declared |
-| Service connecté | `Domain\Integration\ServiceConnection` | An external service (SumUp, Etsy…) added to the workspace, with its access and import options |
+| Service connecté | `Domain\Integration\ServiceConnection` | An external service (SumUp, Etsy, the studio's website…) added to the workspace, with its access and import options |
 | Article à associer | `Domain\Integration\ExternalItem` | A service item not matched to a product, waiting to be linked |
 | Inventaire | `Domain\Stock\StockCheck` | Count after an event; missing units flag a probable missing order |
 | Chiffre d'affaires | `SalesFigures::$turnover` | Σ order totals of an event |

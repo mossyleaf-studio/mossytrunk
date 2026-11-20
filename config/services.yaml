@@ -8,6 +8,8 @@
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
     env(ASSETS_DIR): build
+    app.website.address_pattern: '/^https:\/\/(?i:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+(?i:[a-z][a-z0-9-]{0,61}[a-z0-9])\z/'
+    app.website.allowed_private_subnets: []
 
 services:
     # default configuration for services in *this* file
@@ -40,11 +42,23 @@ services:
 
     App\Infrastructure\Connector\SumUp\SumUpGateway: '@App\Infrastructure\Connector\SumUp\SumUpApiGateway'
     App\Infrastructure\Connector\Etsy\EtsyGateway: '@App\Infrastructure\Connector\Etsy\EtsyApiGateway'
+    App\Infrastructure\Connector\Website\WebsiteGateway: '@App\Infrastructure\Connector\Website\WebsiteApiGateway'
+
+    app.website.client:
+        class: Symfony\Component\HttpClient\NoPrivateNetworkHttpClient
+        arguments:
+            $client: '@http_client'
+            $allowList: '%app.website.allowed_private_subnets%'
 
     Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler:
         arguments:
             - !service { class: PDO, factory: ['@doctrine.dbal.default_connection', 'getNativeConnection'] }
             - { lock_mode: !php/const Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler::LOCK_NONE }
+
+when@dev:
+    parameters:
+        app.website.address_pattern: '/^https?:\/\/[A-Za-z0-9.-]+(?::\d{1,5})?\z/'
+        app.website.allowed_private_subnets: ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16']
 
 when@test:
     services:
@@ -54,6 +68,13 @@ when@test:
             public: true
         App\Infrastructure\Connector\Etsy\EtsyGateway: '@App\Infrastructure\Connector\Etsy\FakeEtsyGateway'
         App\Infrastructure\Connector\Etsy\FakeEtsyGateway:
+            autowire: true
+            public: true
+        App\Infrastructure\Connector\Website\WebsiteGateway: '@App\Infrastructure\Connector\Website\FakeWebsiteGateway'
+        App\Infrastructure\Connector\Website\FakeWebsiteGateway:
+            autowire: true
+            public: true
+        App\Infrastructure\Connector\Website\WebsiteApiGateway:
             autowire: true
             public: true
         App\Tests\Support\EndToEndSessionStorageFactory:
