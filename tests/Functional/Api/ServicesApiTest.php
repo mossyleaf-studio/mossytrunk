@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Api;
 
+use App\Application\Integration\StockedItem;
+use App\Application\Integration\StockedProduct;
+use App\Infrastructure\Connector\Website\FakeWebsiteGateway;
 use App\Tests\Support\Json;
 use App\Tests\Support\ProductTypesApi;
 use App\Tests\Support\SignsInClient;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
@@ -239,5 +243,131 @@ final class ServicesApiTest extends WebTestCase
 
         $client->jsonRequest('GET', '/api/services/sumup/items');
         self::assertSame([['productId' => $candle, 'name' => 'Bougie', 'variant' => null, 'quantity' => 2]], Json::array(Json::decode((string) $client->getResponse()->getContent()), 0, 'components'));
+    }
+
+    public function testPublishingImportsTheSitesSalesFirstSoTheStockSentCountsThem(): void
+    {
+        $client = self::signedInClient();
+        $client->jsonRequest('POST', '/api/services', ['service' => 'website', 'fields' => ['address' => 'https://shop.example', 'token' => 'integration-token-0123456789abcdef']]);
+        $sticker = self::product($client, ['name' => 'Mousse', 'sellingPrice' => 400, 'typeId' => ProductTypesApi::create($client, 'Sticker'), 'reference' => 'WEB-STICKER']);
+        self::product($client, ['name' => 'Forêt', 'sellingPrice' => 1_800, 'variants' => ['A4', 'A3'], 'typeId' => ProductTypesApi::create($client, 'Print', ['A4', 'A3']), 'reference' => 'WEB-PRINT']);
+        $client->jsonRequest('POST', '/api/stock/restock', ['productId' => $sticker, 'variant' => null, 'quantity' => 10, 'totalPaid' => 1_000]);
+        self::assertResponseStatusCodeSame(204);
+
+        $client->jsonRequest('POST', '/api/services/website/catalogue/publish');
+
+        self::assertResponseIsSuccessful();
+        $report = Json::decode((string) $client->getResponse()->getContent());
+        self::assertSame(['website', 2, 0], [Json::at($report, 'sales', 'service'), Json::at($report, 'sales', 'ordersImported'), Json::at($report, 'sales', 'ordersWaitingForItems')]);
+        self::assertSame(['label' => 'Website', 'products' => 2, 'created' => 2, 'updated' => 0, 'retired' => 0], Json::at($report, 'catalogue'));
+        self::assertSame(
+            ['WEB-PRINT-A4' => 0, 'WEB-PRINT-A3' => 0, 'WEB-STICKER' => 8],
+            self::stockSent(),
+            'the two stickers the site sold are gone before the stock is sent',
+        );
+    }
+
+    public function testOrdersWaitingForAnItemAreReportedAndDoNotBlockThePublication(): void
+    {
+        $client = self::signedInClient();
+        $client->jsonRequest('POST', '/api/services', ['service' => 'website', 'fields' => ['address' => 'https://shop.example', 'token' => 'integration-token-0123456789abcdef']]);
+        self::product($client, ['name' => 'Mousse', 'sellingPrice' => 400, 'typeId' => ProductTypesApi::create($client, 'Sticker'), 'reference' => 'WEB-STICKER']);
+
+        $client->jsonRequest('POST', '/api/services/website/catalogue/publish');
+
+        self::assertResponseIsSuccessful();
+        $report = Json::decode((string) $client->getResponse()->getContent());
+        self::assertSame([1, 1], [Json::at($report, 'sales', 'ordersImported'), Json::at($report, 'sales', 'ordersWaitingForItems')]);
+        self::assertSame(1, Json::at($report, 'catalogue', 'products'));
+        self::assertSame(['WEB-STICKER' => 0], self::stockSent());
+    }
+
+    public function testAServiceThatPublishesNoCatalogueImportsNothingEither(): void
+    {
+        $client = self::signedInClient();
+        $client->jsonRequest('POST', '/api/services', ['service' => 'sumup', 'fields' => ['merchant_code' => 'MCODE', 'api_key' => 'sup_sk_test'], 'salesContext' => 'online']);
+        self::assertResponseStatusCodeSame(201);
+
+        $client->jsonRequest('POST', '/api/services/sumup/catalogue/publish');
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('SumUp does not take the catalogue.', Json::at(Json::decode((string) $client->getResponse()->getContent()), 'detail'));
+        $client->jsonRequest('GET', '/api/orders');
+        self::assertSame([], Json::decode((string) $client->getResponse()->getContent()));
+    }
+
+    public function testNothingIsPublishedWhenTheImportFails(): void
+    {
+        $client = self::signedInClient();
+        $client->jsonRequest('POST', '/api/services', ['service' => 'website', 'fields' => ['address' => 'https://'.FakeWebsiteGateway::UNREACHABLE_HOST, 'token' => 'integration-token-0123456789abcdef']]);
+        self::assertResponseStatusCodeSame(201);
+        self::product($client, ['name' => 'Mousse', 'sellingPrice' => 400, 'typeId' => ProductTypesApi::create($client, 'Sticker'), 'reference' => 'WEB-STICKER']);
+
+        $client->jsonRequest('POST', '/api/services/website/catalogue/publish');
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('Cannot reach Website: down.example', Json::at(Json::decode((string) $client->getResponse()->getContent()), 'detail'));
+        self::assertSame([], self::stockSent());
+    }
+
+    public function testACatalogueTheSiteRefusesLeavesItsSalesImported(): void
+    {
+        $client = self::signedInClient();
+        $client->jsonRequest('POST', '/api/services', ['service' => 'website', 'fields' => ['address' => 'https://'.FakeWebsiteGateway::REFUSING_HOST, 'token' => 'integration-token-0123456789abcdef']]);
+        self::assertResponseStatusCodeSame(201);
+        self::product($client, ['name' => 'Mousse', 'sellingPrice' => 400, 'typeId' => ProductTypesApi::create($client, 'Sticker'), 'reference' => 'WEB-STICKER']);
+
+        $client->jsonRequest('POST', '/api/services/website/catalogue/publish');
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('Website refused the catalogue: HTTP 422', Json::at(Json::decode((string) $client->getResponse()->getContent()), 'detail'));
+        self::assertSame([], self::stockSent());
+        $client->jsonRequest('GET', '/api/orders');
+        self::assertCount(1, Json::decode((string) $client->getResponse()->getContent()));
+    }
+
+    public function testProductsTheImportCreatesAreSentInTheSamePublication(): void
+    {
+        $client = self::signedInClient();
+        $client->jsonRequest('POST', '/api/services', ['service' => 'website', 'fields' => ['address' => 'https://shop.example', 'token' => 'integration-token-0123456789abcdef'], 'unknownItems' => 'create_product']);
+        self::assertResponseStatusCodeSame(201);
+
+        $client->jsonRequest('POST', '/api/services/website/catalogue/publish');
+
+        self::assertResponseIsSuccessful();
+        $report = Json::decode((string) $client->getResponse()->getContent());
+        self::assertSame([2, 2, 2], [Json::at($report, 'sales', 'productsCreated'), Json::at($report, 'catalogue', 'products'), Json::at($report, 'catalogue', 'created')]);
+        self::assertCount(2, self::stockSent());
+    }
+
+    public function testOnlyTheWebsitePublishesACatalogue(): void
+    {
+        $client = self::signedInClient();
+
+        $client->jsonRequest('GET', '/api/services');
+
+        $services = Json::decode((string) $client->getResponse()->getContent());
+        self::assertSame(['etsy' => false, 'sumup' => false, 'website' => true], array_combine(array_map(static fn (mixed $service): string => Json::string($service, 'key'), array_values($services)), array_map(static fn (mixed $service): bool => true === Json::at($service, 'publishesCatalogue'), array_values($services))));
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private static function product(KernelBrowser $client, array $payload): string
+    {
+        $client->jsonRequest('POST', '/api/products', $payload);
+        self::assertResponseStatusCodeSame(201);
+
+        return Json::string(Json::decode((string) $client->getResponse()->getContent()), 'id');
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    private static function stockSent(): array
+    {
+        $items = array_merge(...array_map(static fn (StockedProduct $product): array => $product->items, self::getContainer()->get(FakeWebsiteGateway::class)->published()));
+
+        return array_combine(array_map(static fn (StockedItem $item): string => $item->sku, $items), array_map(static fn (StockedItem $item): int => $item->available, $items));
     }
 }

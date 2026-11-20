@@ -14,8 +14,9 @@ defineProps({
     services: { type: Array, required: true },
     importing: { type: String, default: null },
     importingSales: { type: String, default: null },
+    publishing: { type: String, default: null },
 });
-const emit = defineEmits(['edit', 'remove', 'disconnect', 'import-sales', 'open-items', 'import-catalogue', 'read-catalogue', 'publish-references']);
+const emit = defineEmits(['edit', 'remove', 'disconnect', 'import-sales', 'open-items', 'import-catalogue', 'read-catalogue', 'publish-references', 'publish-catalogue']);
 
 const labelOf = (options, value) => {
     const label = options.find((option) => option.value === value)?.label;
@@ -55,7 +56,7 @@ function status(service) {
                 </p>
             </div>
             <div class="actions-row connected-services__actions">
-                <BaseButton v-if="isReady(service)" variant="secondary" :loading="importingSales === service.key" @click="emit('import-sales', service)">
+                <BaseButton v-if="isReady(service)" variant="secondary" :loading="importingSales === service.key" :disabled="publishing === service.key" @click="emit('import-sales', service)">
                     <RefreshCw size="1rem" aria-hidden="true" /> {{ t('settings.connected.importSales') }}
                 </BaseButton>
                 <BaseButton variant="secondary" @click="emit('open-items', service)">
@@ -81,6 +82,15 @@ function status(service) {
                     :confirm-label="t('settings.connected.publishReferencesConfirm')"
                     :message="t('settings.connected.publishReferencesMessage', { label: service.label })"
                     @confirm="emit('publish-references', service)"
+                />
+                <ConfirmButton
+                    v-if="service.publishesCatalogue && isReady(service)"
+                    :label="t('settings.connected.publishCatalogue')"
+                    :confirm-label="t('settings.connected.publishCatalogue')"
+                    :message="t('settings.connected.publishCatalogueMessage', { label: service.label })"
+                    :loading="publishing === service.key"
+                    :disabled="importingSales === service.key"
+                    @confirm="emit('publish-catalogue', service)"
                 />
                 <BaseButton
                     v-if="service.authorizes && service.connection.configured && !service.connection.authorized"

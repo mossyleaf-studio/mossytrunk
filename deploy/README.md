@@ -52,7 +52,7 @@ Users created before mossyleaf accounts keep their workspace and all its data: t
 
 ## Shop of the studio's website
 
-MossyTrunk reads the orders of the website's shop itself (« Paramètres › Services connectés › Ajouter un service › Site web »): nothing to set in `.env`.
+MossyTrunk reads the orders of the website's shop itself and publishes its catalogue to it (« Paramètres › Services connectés › Ajouter un service › Site web », then « Publier le catalogue » on its row): nothing to set in `.env`.
 
 - **Network**: the app container must reach the website's **public https address** (`https://mossyleaf.studio`, port 443, through public DNS). A private, loopback or internal address is refused on purpose, also when both applications run on the same server: type the public address, never an internal Docker name. Check from the server: `docker compose exec app curl -s -o /dev/null -w '%{http_code}\n' https://mossyleaf.studio/integrations/orders` prints `401` (or `404` while the website has no token), not a timeout.
 - **Token**: the value of `MOSSYTRUNK_TOKEN` in the website's `.env`, typed in the settings page (kept encrypted with `APP_ENCRYPTION_KEY`).

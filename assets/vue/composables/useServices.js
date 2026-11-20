@@ -40,6 +40,7 @@ export function useServices() {
 
     const readCatalogue = (service) => api.post(`/api/services/${service}/catalogue/read`);
     const publishReferences = (service) => api.post(`/api/services/${service}/references`);
+    const publishCatalogue = (service) => api.post(`/api/services/${service}/catalogue/publish`);
 
-    return { services, added, ready, load, add, update, remove, disconnect, importCatalogue, readCatalogue, publishReferences };
+    return { services, added, ready, load, add, update, remove, disconnect, importCatalogue, readCatalogue, publishReferences, publishCatalogue };
 }

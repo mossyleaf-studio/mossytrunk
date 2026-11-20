@@ -130,7 +130,17 @@
         "publishReferences": "Write references to {label}",
         "publishReferencesConfirm": "Write references",
         "publishReferencesMessage": "Each {label} listing linked to a product gets its reference as SKU (« reference-variant » per variation). Prices, titles, quantities and photos stay as they are.",
-        "referencesPublished": "{label}: {updated} listing updated ({linked} linked items). | {label}: {updated} listings updated ({linked} linked items)."
+        "referencesPublished": "{label}: {updated} listing updated ({linked} linked items). | {label}: {updated} listings updated ({linked} linked items).",
+        "publishCatalogue": "Publish the catalogue",
+        "publishCatalogueMessage": "The catalogue of {label} is replaced by MossyTrunk's: products, variants, prices and stock. Products that are no longer in MossyTrunk are withdrawn from the shop, new ones arrive hidden. The sales of the site are imported just before, so that the stock sent counts them.",
+        "cataloguePublished": "Catalogue published to {label}: {changes}.",
+        "catalogueNew": "{count} new product | {count} new products",
+        "catalogueUpdated": "{count} updated | {count} updated",
+        "catalogueRetired": "{count} withdrawn from the shop | {count} withdrawn from the shop",
+        "catalogueNewHidden": "New products are hidden: make them visible in the admin of {label}.",
+        "catalogueSalesImported": "{count} order of the site imported before sending. | {count} orders of the site imported before sending.",
+        "catalogueSalesProductsCreated": "{count} product was created from the orders of the site and sent with the catalogue. | {count} products were created from the orders of the site and sent with the catalogue.",
+        "catalogueSalesNotImported": "{count} order of the site could not be imported, its stock is not counted: run “Import sales” to see why. | {count} orders of the site could not be imported, their stock is not counted: run “Import sales” to see why."
     },
     "form": {
         "access": "Access",

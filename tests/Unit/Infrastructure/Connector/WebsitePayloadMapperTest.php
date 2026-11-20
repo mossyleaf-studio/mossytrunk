@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Infrastructure\Connector;
 
+use App\Application\Integration\StockedItem;
+use App\Application\Integration\StockedProduct;
 use App\Domain\Order\PaymentMethod;
+use App\Domain\Shared\Money;
 use App\Infrastructure\Connector\Website\WebsitePayloadMapper;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -116,5 +119,71 @@ final class WebsitePayloadMapperTest extends TestCase
         yield 'a line priced as text' => [['lines' => [['unitPrice' => '4.00'] + $line]]];
         yield 'a line without quantity' => [['lines' => [['quantity' => null] + $line]]];
         yield 'a line sold zero times' => [['lines' => [['quantity' => 0] + $line]]];
+    }
+
+    public function testTheCatalogueBodyCarriesEachProductWithItsIdItsPriceInCentsAndItsStockPerSku(): void
+    {
+        $body = (new WebsitePayloadMapper())->catalogue([
+            new StockedProduct('01JD3V5M8Q0000000000000001', 'PRT-002', 'Forêt', 'Print', 'Print Forêt', Money::cents(1_500), [new StockedItem('A4', 'PRT-002-A4', 12), new StockedItem('A3', 'PRT-002-A3', 0)]),
+            new StockedProduct('01JD3V5M8Q0000000000000002', 'STK-001', 'Mousse', 'Sticker', 'Sticker Mousse', Money::cents(400), [new StockedItem(null, 'STK-001', 3)]),
+        ]);
+
+        self::assertSame(
+            '{"products":['
+            .'{"id":"01JD3V5M8Q0000000000000001","reference":"PRT-002","name":"Forêt","category":"Print","displayName":"Print Forêt","price":1500,"variants":[{"name":"A4","sku":"PRT-002-A4","stock":12},{"name":"A3","sku":"PRT-002-A3","stock":0}]},'
+            .'{"id":"01JD3V5M8Q0000000000000002","reference":"STK-001","name":"Mousse","category":"Sticker","displayName":"Sticker Mousse","price":400,"variants":[{"name":null,"sku":"STK-001","stock":3}]}'
+            .']}',
+            json_encode($body, \JSON_THROW_ON_ERROR | \JSON_UNESCAPED_UNICODE),
+        );
+    }
+
+    public function testTheAnswerOfAPublicationGivesWhatChangedOnTheSite(): void
+    {
+        $changes = (new WebsitePayloadMapper())->changes(['created' => 3, 'updated' => 12, 'retired' => 0]);
+
+        self::assertSame([3, 12, 0], [$changes->created, $changes->updated, $changes->retired]);
+    }
+
+    /**
+     * @param array<string, mixed> $answer
+     */
+    #[DataProvider('unreadableChanges')]
+    public function testAnAnswerWithoutItsThreeCountsIsRefused(array $answer): void
+    {
+        $this->expectException(\UnexpectedValueException::class);
+
+        (new WebsitePayloadMapper())->changes($answer);
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>}>
+     */
+    public static function unreadableChanges(): iterable
+    {
+        yield 'nothing' => [[]];
+        yield 'a count missing' => [['created' => 1, 'updated' => 2]];
+        yield 'a count written as text' => [['created' => '1', 'updated' => 2, 'retired' => 0]];
+        yield 'a negative count' => [['created' => 1, 'updated' => 2, 'retired' => -1]];
+    }
+
+    #[DataProvider('refusals')]
+    public function testTheReasonOfARefusalIsThePlainTextOfItsDetail(string $answer, string $reason): void
+    {
+        self::assertSame($reason, (new WebsitePayloadMapper())->refusalReason($answer));
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function refusals(): iterable
+    {
+        yield 'the detail of the problem' => ['{"title":"Unprocessable","status":422,"detail":"The sku PRT-002-A4 is sent twice."}', 'The sku PRT-002-A4 is sent twice.'];
+        yield 'line breaks and control characters become spaces' => [json_encode(['detail' => " The catalogue\r\n\tis\u{0007} empty. "], \JSON_THROW_ON_ERROR), 'The catalogue is empty.'];
+        yield 'a long detail is cut' => [json_encode(['detail' => str_repeat('é', 1_000)], \JSON_THROW_ON_ERROR), str_repeat('é', 300)];
+        yield 'no detail' => ['{"title":"Unprocessable"}', 'HTTP 422'];
+        yield 'a blank detail' => ['{"detail":"  "}', 'HTTP 422'];
+        yield 'a detail that is not a text' => ['{"detail":{"sku":"twice"}}', 'HTTP 422'];
+        yield 'a page that is not JSON' => ['<html>Unprocessable</html>', 'HTTP 422'];
+        yield 'JSON that is not an object' => ['"refused"', 'HTTP 422'];
     }
 }

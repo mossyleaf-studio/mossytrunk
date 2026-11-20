@@ -19,6 +19,7 @@ final readonly class ServiceView
         public bool $importsCatalogue,
         public bool $readsCatalogue,
         public bool $publishesReferences,
+        public bool $publishesCatalogue,
         public array $fields,
         public string $defaultSalesContext,
         public string $defaultUnknownItems,

@@ -130,6 +130,30 @@ const onPublishReferences = (service) => toast.attempt(async () => {
     toast.success(t('settings.connected.referencesPublished', { label: service.label, linked: published.itemsLinked, updated: published.listingsUpdated }, published.listingsUpdated));
 });
 
+const publishingCatalogue = ref(null);
+
+async function onPublishCatalogue(service) {
+    publishingCatalogue.value = service.key;
+    await toast.attempt(async () => {
+        const { sales, catalogue } = await services.publishCatalogue(service.key);
+        const notImported = sales.ordersWaitingForItems + sales.ordersWithoutEvent;
+        const changes = [
+            t('settings.connected.catalogueNew', catalogue.created),
+            t('settings.connected.catalogueUpdated', catalogue.updated),
+            t('settings.connected.catalogueRetired', catalogue.retired),
+        ];
+        toast.success([
+            t('settings.connected.cataloguePublished', { label: catalogue.label, changes: changes.join(', ') }),
+            catalogue.created > 0 ? t('settings.connected.catalogueNewHidden', { label: catalogue.label }) : '',
+            sales.ordersImported > 0 ? t('settings.connected.catalogueSalesImported', sales.ordersImported) : '',
+            sales.productsCreated > 0 ? t('settings.connected.catalogueSalesProductsCreated', sales.productsCreated) : '',
+            notImported > 0 ? t('settings.connected.catalogueSalesNotImported', notImported) : '',
+        ].filter(Boolean).join(' '));
+    });
+    publishingCatalogue.value = null;
+    await Promise.all([importerOf(service)?.loadItems(), services.load(), loadProducts()]);
+}
+
 const editingFormat = ref(null);
 const formatModalOpen = ref(false);
 const formatKind = computed(() => (editingFormat.value ? t(`settings.references.kinds.${editingFormat.value.kind}`) : ''));
@@ -181,11 +205,13 @@ onMounted(async () => {
                     @disconnect="onDisconnect"
                     :importing="importingCatalogue"
                     :importing-sales="importingSales"
+                    :publishing="publishingCatalogue"
                     @import-sales="importSales"
                     @open-items="(service) => (linking = importerOf(service))"
                     @import-catalogue="(service, file) => onImportCatalogue(service, () => services.importCatalogue(service.key, file))"
                     @read-catalogue="(service) => onImportCatalogue(service, () => services.readCatalogue(service.key))"
                     @publish-references="onPublishReferences"
+                    @publish-catalogue="onPublishCatalogue"
                 />
                 <EmptyState v-else>{{ t('settings.services.empty', { available }) }}</EmptyState>
             </BaseCard>

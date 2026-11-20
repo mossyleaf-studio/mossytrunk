@@ -12,7 +12,7 @@ fields is service-specific. Service pages: [sumup-import.md](sumup-import.md), [
 | Unknown items | Option: **create the product** or **ask me** (the item waits to be linked by hand) |
 | External item | A service item (SumUp line name, Etsy listing + variation, website SKU) that could not be matched, remembered with the product/variant it sells once linked (`Domain\Integration\ExternalItem`) |
 
-Model: `src/Domain/Integration/`, `src/Application/Integration/` (ports `SalesConnector`, `AuthorizingConnector`, registry `Connectors`,
+Model: `src/Domain/Integration/`, `src/Application/Integration/` (ports `SalesConnector`, `AuthorizingConnector`, `CataloguePublishing`, registry `Connectors`,
 `ImportSales/ImportSalesHandler`, `ImportSales/ExternalItemResolver`), connectors in `src/Infrastructure/Connector/`.
 
 ## Rules
@@ -43,6 +43,7 @@ Model: `src/Domain/Integration/`, `src/Application/Integration/` (ports `SalesCo
 | `UpdateConnection` / `RemoveConnection` | `PUT` / `DELETE /api/services/{service}` |
 | `Authorize` | `GET /settings/{service}/connect` → service → `GET /settings/{service}/callback` → `/settings?service=…&connection=connected\|refused\|error\|unavailable`; `DELETE /api/services/{service}/authorization` disconnects |
 | `ImportSales` | `POST /api/services/{service}/import` → `{service, label, ordersImported, ordersAlreadyImported, productsCreated, typesCreated, ordersWithoutEvent, datesWithoutEvent, ordersWaitingForItems, itemsToLink, salesWithoutItems, feesUpdated, ordersCancelled}` |
+| `PublishCatalogue` | `POST /api/services/{service}/catalogue/publish` → imports the service's sales (`ImportSales`), then sends the catalogue with its stock: `{sales: <import report>, catalogue: {label, products, created, updated, retired}}` (the website, [website-import.md](website-import.md) W12–W17); 422 for a service that takes no catalogue, before anything is imported |
 | `ListExternalItems` / `LinkExternalItem` | `GET /api/services/{service}/items`, `PUT /api/services/{service}/items/{id}` `{lines: [{productId, variant, quantity}]}` |
 
 ## Adding a service
@@ -53,5 +54,5 @@ Model: `src/Domain/Integration/`, `src/Application/Integration/` (ports `SalesCo
 
 ## UI
 
-- **Paramètres › Services connectés**: one row per added service (status Prêt / Connecté / À connecter / Accès incomplets, options, articles à associer), « Importer les ventes » for a ready service (one error box per service listing the dates without event), « Articles » opens the service's items (each one « Associer » / « Modifier » to the product or products it sells, then « Relancer l'import {service} », available even while items remain to link — those coming from a catalogue import may never have been sold; orders holding an unlinked item keep waiting), « Connecter la boutique » / « Déconnecter », the catalogue actions the service offers (« Importer le catalogue » — a file for SumUp, read through the API for Etsy — and « Écrire les références sur Etsy »), Modifier, Retirer. « Ajouter un service » opens a picker (one tag per service, already added ones disabled), then the service's form: its access fields (and the return address to declare for services that connect through their consent page) and the two options.
+- **Paramètres › Services connectés**: one row per added service (status Prêt / Connecté / À connecter / Accès incomplets, options, articles à associer), « Importer les ventes » for a ready service (one error box per service listing the dates without event), « Articles » opens the service's items (each one « Associer » / « Modifier » to the product or products it sells, then « Relancer l'import {service} », available even while items remain to link — those coming from a catalogue import may never have been sold; orders holding an unlinked item keep waiting), « Connecter la boutique » / « Déconnecter », the catalogue actions the service offers (« Importer le catalogue » — a file for SumUp, read through the API for Etsy —, « Écrire les références sur Etsy » and « Publier le catalogue » for the website), Modifier, Retirer. « Ajouter un service » opens a picker (one tag per service, already added ones disabled), then the service's form: its access fields (and the return address to declare for services that connect through their consent page) and the two options.
 - **Commandes**: « Synchroniser » imports the sales of every ready service in turn; one error box per service listing the dates without event; « N articles {service} à associer » links to Paramètres. Imported orders show the service as a badge; online orders are grouped under « Boutique {service} ».

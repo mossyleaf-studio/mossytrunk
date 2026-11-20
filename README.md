@@ -19,7 +19,7 @@ The interface is in French; code, commits and documentation are in English.
 | **Supplier orders** | Ordered, then received into stock at the real unit cost |
 | **Reporting** | Profitability per event, results per month and per year |
 | **Accounting** | URSSAF declarations per month or quarter, CSV export of orders |
-| **Imports** | SumUp card payments and paid Etsy receipts turned into orders |
+| **Imports** | SumUp card payments, paid Etsy receipts and the orders of the studio's website shop turned into orders; catalogue and stock published to the website |
 | **Workspaces** | Sign-in with mossyleaf accounts, each business sees only its own data, API keys encrypted at rest |
 
 Business rules, with where they are modelled and which tests cover them: [`docs/business/`](docs/business/README.md).

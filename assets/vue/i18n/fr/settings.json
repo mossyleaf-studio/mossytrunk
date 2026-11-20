@@ -130,7 +130,17 @@
         "publishReferences": "Écrire les références sur {label}",
         "publishReferencesConfirm": "Écrire les références",
         "publishReferencesMessage": "Chaque annonce {label} associée à un produit reçoit sa référence comme SKU (« référence-variante » par variation). Prix, titres, quantités et photos ne changent pas.",
-        "referencesPublished": "{label} : {updated} annonce mise à jour ({linked} articles associés). | {label} : {updated} annonces mises à jour ({linked} articles associés)."
+        "referencesPublished": "{label} : {updated} annonce mise à jour ({linked} articles associés). | {label} : {updated} annonces mises à jour ({linked} articles associés).",
+        "publishCatalogue": "Publier le catalogue",
+        "publishCatalogueMessage": "Le catalogue de {label} est remplacé par celui de MossyTrunk : produits, variantes, prix et stocks. Les produits qui ne sont plus dans MossyTrunk sont retirés de la boutique, les nouveaux arrivent masqués. Les ventes du site sont importées juste avant, pour que le stock envoyé en tienne compte.",
+        "cataloguePublished": "Catalogue publié sur {label} : {changes}.",
+        "catalogueNew": "{count} nouveau produit | {count} nouveaux produits",
+        "catalogueUpdated": "{count} mis à jour | {count} mis à jour",
+        "catalogueRetired": "{count} retiré de la boutique | {count} retirés de la boutique",
+        "catalogueNewHidden": "Les nouveaux produits sont masqués : rendez-les visibles dans l'administration de {label}.",
+        "catalogueSalesImported": "{count} commande du site importée avant l'envoi. | {count} commandes du site importées avant l'envoi.",
+        "catalogueSalesProductsCreated": "{count} produit a été créé à partir des commandes du site et envoyé avec le catalogue. | {count} produits ont été créés à partir des commandes du site et envoyés avec le catalogue.",
+        "catalogueSalesNotImported": "{count} commande du site n'a pas pu être importée, son stock n'est pas décompté : lancez « Importer les ventes » pour voir pourquoi. | {count} commandes du site n'ont pas pu être importées, leur stock n'est pas décompté : lancez « Importer les ventes » pour voir pourquoi."
     },
     "form": {
         "access": "Accès",

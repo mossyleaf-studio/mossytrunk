@@ -4,14 +4,20 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Connector\Website;
 
+use App\Application\Integration\CatalogueChanges;
 use App\Application\Integration\ExternalLine;
 use App\Application\Integration\ExternalSale;
+use App\Application\Integration\StockedItem;
+use App\Application\Integration\StockedProduct;
 use App\Domain\Order\PaymentMethod;
 use App\Domain\Shared\Money;
 use App\Infrastructure\Http\Json;
 
 final class WebsitePayloadMapper
 {
+    private const int MAX_REASON = 300;
+    private const string NO_REASON = 'HTTP 422';
+
     /**
      * @return list<ExternalSale>
      */
@@ -43,6 +49,41 @@ final class WebsitePayloadMapper
             Money::zero(),
             self::instant($order['cancelledAt'] ?? null),
         );
+    }
+
+    /**
+     * @param list<StockedProduct> $products
+     *
+     * @return array{products: list<array{id: string, reference: string, name: string, category: string, displayName: string, price: int, variants: list<array{name: ?string, sku: string, stock: int}>}>}
+     */
+    public function catalogue(array $products): array
+    {
+        return ['products' => array_map(static fn (StockedProduct $product): array => [
+            'id' => $product->id,
+            'reference' => $product->reference,
+            'name' => $product->name,
+            'category' => $product->category,
+            'displayName' => $product->displayName,
+            'price' => $product->price->amount(),
+            'variants' => array_map(static fn (StockedItem $item): array => ['name' => $item->variant, 'sku' => $item->sku, 'stock' => $item->available], $product->items),
+        ], $products)];
+    }
+
+    /**
+     * @param array<mixed> $answer
+     */
+    public function changes(array $answer): CatalogueChanges
+    {
+        return new CatalogueChanges(self::whole($answer['created'] ?? null, 0), self::whole($answer['updated'] ?? null, 0), self::whole($answer['retired'] ?? null, 0));
+    }
+
+    public function refusalReason(string $answer): string
+    {
+        $problem = json_decode($answer, true);
+        $detail = \is_array($problem) && \is_string($problem['detail'] ?? null) ? $problem['detail'] : '';
+        $reason = trim((string) preg_replace('/[\p{C}\s]+/u', ' ', $detail));
+
+        return '' === $reason ? self::NO_REASON : mb_substr($reason, 0, self::MAX_REASON);
     }
 
     private static function instant(mixed $value): ?\DateTimeImmutable
@@ -88,6 +129,6 @@ final class WebsitePayloadMapper
 
     private static function whole(mixed $value, int $least): int
     {
-        return \is_int($value) && $value >= $least ? $value : throw new \UnexpectedValueException('A website order has an unreadable amount or quantity.');
+        return \is_int($value) && $value >= $least ? $value : throw new \UnexpectedValueException('The website answered an unreadable amount or quantity.');
     }
 }

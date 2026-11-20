@@ -1,12 +1,19 @@
 import { test, expect } from './support/test.js';
-import { createProduct, createType, forgetService } from './support/api.js';
+import { addService, createType, forgetService, restock } from './support/api.js';
 
-test('add the website in the connected services and import the orders of its shop', async ({ page, request }) => {
+async function createShopProducts(request) {
     const type = await createType(request, 'Papeterie du site', { prefixesNames: false });
+    const ids = [];
     for (const product of [{ name: 'Sticker Mousse du site', reference: 'WEB-STICKER', variants: [] }, { name: 'Print Forêt du site', reference: 'WEB-PRINT', variants: ['A4', 'A3'] }]) {
         const response = await request.post('/api/products', { data: { ...product, sellingPrice: 400, typeId: type.id } });
         expect(response.status()).toBe(201);
+        ids.push((await response.json()).id);
     }
+    return { sticker: { id: ids[0] }, print: { id: ids[1] } };
+}
+
+test('add the website in the connected services and import the orders of its shop', async ({ page, request }) => {
+    await createShopProducts(request);
 
     await forgetService(request, 'website');
     await page.goto('/settings');
@@ -42,4 +49,42 @@ test('add the website in the connected services and import the orders of its sho
     await expect(page.getByRole('row').filter({ hasText: 'Print Forêt du site — A4' })).toContainText('18,00');
     await expect(page.getByText('Frais de port')).toBeVisible();
     await expect(page.getByTestId('order-total')).toContainText('30,50');
+});
+
+test('publish the catalogue to the website after importing the sales of its shop', async ({ page, request }) => {
+    const { sticker } = await createShopProducts(request);
+    await restock(request, sticker, { quantity: 10, totalPaid: 1000 });
+    await addService(request, 'website', { address: 'https://boutique.exemple.fr', token: 'jeton-du-site-0123456789abcdef' });
+
+    await page.goto('/settings');
+    const services = page.getByRole('region', { name: 'Services connectés' });
+    await services.getByRole('button', { name: 'Publier le catalogue' }).click();
+    const confirmation = page.getByRole('alertdialog', { name: 'Publier le catalogue' });
+    await expect(confirmation).toContainText('Le catalogue de Site web est remplacé par celui de MossyTrunk');
+    await expect(confirmation).toContainText('retirés de la boutique');
+    await expect(confirmation).toContainText('arrivent masqués');
+    await expect(confirmation).toContainText('Les ventes du site sont importées juste avant');
+    await confirmation.getByRole('button', { name: 'Publier le catalogue' }).click();
+    await expect(page.getByTestId('toast').last()).toContainText('Catalogue publié sur Site web : 2 nouveaux produits');
+    await expect(page.getByTestId('toast').last()).toContainText('2 commandes du site importées avant l\'envoi');
+
+    await services.getByRole('button', { name: 'Publier le catalogue' }).click();
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Publier le catalogue' }).click();
+    await expect(page.getByTestId('toast').last()).toContainText('Catalogue publié sur Site web : 0 nouveau produit, 2 mis à jour, 0 retiré de la boutique.');
+
+    const stock = await (await request.get(`/api/products/${sticker.id}/stock`)).json();
+    expect(stock.map((item) => item.onHand)).toEqual([8]);
+});
+
+test('products created from the orders of the site are announced when the catalogue is published', async ({ page, request }) => {
+    await addService(request, 'website', { address: 'https://boutique.exemple.fr', token: 'jeton-du-site-0123456789abcdef' }, { unknownItems: 'create_product' });
+
+    await page.goto('/settings');
+    const services = page.getByRole('region', { name: 'Services connectés' });
+    await services.getByRole('button', { name: 'Publier le catalogue' }).click();
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Publier le catalogue' }).click();
+
+    await expect(page.getByTestId('toast').last()).toContainText('2 produits ont été créés à partir des commandes du site et envoyés avec le catalogue.');
+    await expect(services.getByRole('button', { name: 'Publier le catalogue' })).toBeEnabled();
+    await expect(services.getByRole('button', { name: 'Importer les ventes' })).toBeEnabled();
 });

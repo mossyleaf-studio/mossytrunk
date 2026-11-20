@@ -22,6 +22,8 @@ defineProps({
     message: { type: String, default: undefined },
     icon: { type: [Object, Function], default: null },
     variant: { type: String, default: 'ghost' },
+    loading: { type: Boolean, default: false },
+    disabled: { type: Boolean, default: false },
 });
 const emit = defineEmits(['confirm']);
 
@@ -43,7 +45,7 @@ function refocus(event) {
 
 <template>
     <IconButton v-if="icon" :icon="icon" :label="label" variant="danger" aria-haspopup="dialog" @click="ask" />
-    <BaseButton v-else :variant="variant" aria-haspopup="dialog" @click="ask">{{ label }}</BaseButton>
+    <BaseButton v-else :variant="variant" :loading="loading" :disabled="disabled" aria-haspopup="dialog" @click="ask">{{ label }}</BaseButton>
     <AlertDialogRoot v-if="used" v-model:open="open">
         <AlertDialogPortal>
             <AlertDialogOverlay class="modal modal--dialog modal--alert">

@@ -27,7 +27,7 @@ Module 1 = **Order Management**. This folder is the reference for business rules
 | [imports.md](imports.md) | Connected services, the generic sales import (event or online, unknown items created or linked by hand) |
 | [etsy-import.md](etsy-import.md) | Etsy specifics: shop connection, paid receipts, listings |
 | [sumup-import.md](sumup-import.md) | SumUp specifics: payments read, categories, free amounts, variants, payment method |
-| [website-import.md](website-import.md) | The studio's own website: orders of its shop read by address and token, SKU matching, no private network, neutral errors |
+| [website-import.md](website-import.md) | The studio's own website: orders of its shop read by address and token, SKU matching, no private network, neutral errors; catalogue and stock published to the shop (full replace, sales imported first) |
 
 ## Glossary (UI term → code)
 

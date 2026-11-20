@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Connector\Website;
 
+use App\Application\Integration\CatalogueChanges;
+use App\Application\Integration\CataloguePublishing;
 use App\Application\Integration\Credentials;
 use App\Application\Integration\LinePrices;
-use App\Application\Integration\SalesConnector;
 use App\Application\Integration\ServiceDescription;
 use App\Application\Integration\ServiceField;
 use App\Application\Translator;
@@ -14,7 +15,7 @@ use App\Domain\Integration\SalesContext;
 use App\Domain\Integration\UnknownItems;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
-final readonly class WebsiteConnector implements SalesConnector
+final readonly class WebsiteConnector implements CataloguePublishing
 {
     public const string KEY = 'website';
 
@@ -44,7 +45,17 @@ final readonly class WebsiteConnector implements SalesConnector
 
     public function sales(Credentials $credentials): iterable
     {
-        return $this->gateway->paidOrders(new WebsiteAccess($credentials->get('address'), $credentials->get('token'), $this->label()));
+        return $this->gateway->paidOrders($this->access($credentials));
+    }
+
+    public function publishCatalogue(Credentials $credentials, array $products): CatalogueChanges
+    {
+        return $this->gateway->replaceCatalogue($this->access($credentials), $products);
+    }
+
+    private function access(Credentials $credentials): WebsiteAccess
+    {
+        return new WebsiteAccess($credentials->get('address'), $credentials->get('token'), $this->label());
     }
 
     private function label(): string
