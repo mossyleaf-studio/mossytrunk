@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Fixtures\Story;
 
+use App\Application\Integration\ConnectionSecrets;
 use App\Domain\Design\Design;
 use App\Domain\Design\DesignCollection;
 use App\Domain\Design\Gabarit;
@@ -66,6 +67,7 @@ final class ConventionSeasonStory extends Story
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly DiscountCalculator $discountCalculator,
+        private readonly ConnectionSecrets $connectionSecrets,
     ) {
     }
 
@@ -184,6 +186,7 @@ final class ConventionSeasonStory extends Story
         $this->purchase($prints, $others[0], $events[3]);
         $this->designs($sticker, $print, $stickers[0], $events[3]);
         $this->etsy($stickers, $prints[0]);
+        $this->website($stickers, $prints[0]);
 
         $this->entityManager->flush();
     }
@@ -267,6 +270,59 @@ final class ConventionSeasonStory extends Story
         }
         $this->entityManager->persist(ServiceConnection::create($this->workspace, 'etsy', ['keystring' => 'mossydemo'], SalesContext::Online, UnknownItems::LinkByHand));
         $this->entityManager->persist(ExternalItem::seen($this->workspace, 'etsy', '1500000042', 'Tote bag brodé mousse forestière — coton bio', 'Noir', new \DateTimeImmutable('-6 days')));
+    }
+
+    /**
+     * @param list<Product> $stickers
+     */
+    private function website(array $stickers, Product $forest): void
+    {
+        $shop = $this->persisted(SalesChannel::open($this->workspace, 'Site web', service: 'website'));
+        $shop->addCost('Frais de paiement SumUp', ChannelCostKind::Percent, 250);
+        $shop->offerSupplies([$this->sleeve, $this->envelope]);
+        foreach ([...$stickers, $forest] as $product) {
+            $product->setPriceOn($shop, PriceAdjustment::byCents(50)->applyTo($product->sellingPrice()));
+        }
+        $sales = [
+            [-30, null, 'ML-4F7W-2KHD', $stickers[1], 4, 0, 250],
+            [-18, null, 'ML-9R3C-6TQM', $forest, 1, 200, 490],
+            [-9, -8, 'ML-5N8X-1BVJ', $stickers[2], 2, 0, 250],
+            [-2, null, 'ML-2G6Y-8PZE', $stickers[3], 3, 0, 250],
+        ];
+        foreach ($sales as [$daysAgo, $cancelledDaysAgo, $saleId, $product, $quantity, $discount, $shipping]) {
+            $variant = $product->hasVariants() ? 'A4' : null;
+            $item = $product->sellableOn($shop, $variant);
+            $stock = $this->stockOf($product, $variant);
+            $placedAt = new \DateTimeImmutable(\sprintf('%d days 19:30', $daysAgo));
+            $order = $this->persisted(Order::imported(
+                self::reference('CMD', $placedAt),
+                $this->workspace,
+                'website',
+                $saleId,
+                $saleId,
+                null,
+                $placedAt,
+                [(new OrderedItem($item, $quantity))->costing($stock->withdraw($quantity, $item->buyingPrice))],
+                $item->sellingPrice->multiply($quantity)->subtract(Money::cents($discount)),
+                Money::cents($shipping),
+                PaymentMethod::Card,
+                [],
+                'Remise Site web',
+                $shop,
+            ));
+            $order->settleSaleFee('website', $saleId, Money::zero());
+            if (null !== $cancelledDaysAgo) {
+                $cancelledAt = new \DateTimeImmutable(\sprintf('%d days 09:00', $cancelledDaysAgo));
+                $order->cancel($cancelledAt);
+                $stock->takeBack($quantity, $order->costOfGoods(), $cancelledAt, $order->id());
+
+                continue;
+            }
+            $this->packInto($order, $product->hasVariants() ? 'Grande' : 'Petite', true);
+            $order->stamp(Money::cents($product->hasVariants() ? 232 : 139));
+        }
+        $connection = $this->persisted(ServiceConnection::create($this->workspace, 'website', ['address' => 'http://host.docker.internal:8094'], SalesContext::Online, UnknownItems::LinkByHand));
+        $this->connectionSecrets->keep($connection, 'token', 'dev-mossytrunk-token-0123456789abcdef');
     }
 
     private function designs(ProductType $sticker, ProductType $print, Product $moss, Event $upcoming): void
