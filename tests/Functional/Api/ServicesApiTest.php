@@ -259,7 +259,7 @@ final class ServicesApiTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $report = Json::decode((string) $client->getResponse()->getContent());
         self::assertSame(['website', 2, 0], [Json::at($report, 'sales', 'service'), Json::at($report, 'sales', 'ordersImported'), Json::at($report, 'sales', 'ordersWaitingForItems')]);
-        self::assertSame(['label' => 'Website', 'products' => 2, 'created' => 2, 'updated' => 0, 'retired' => 0], Json::at($report, 'catalogue'));
+        self::assertSame(['label' => 'Website', 'products' => 2, 'created' => 2, 'updated' => 0, 'retired' => 0, 'descriptions' => []], Json::at($report, 'catalogue'));
         self::assertSame(
             ['WEB-PRINT-A4' => 0, 'WEB-PRINT-A3' => 0, 'WEB-STICKER' => 8],
             self::stockSent(),

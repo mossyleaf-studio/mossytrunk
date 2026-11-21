@@ -28,26 +28,22 @@ final readonly class ListingProducts
         $this->remembered = $byKey;
     }
 
-    public function productOf(DescribedListing $listing): ?string
+    /**
+     * @return list<list<string>>
+     */
+    public function linesOf(DescribedListing $listing): array
     {
-        $products = [];
-        foreach ($listing->lines as $line) {
-            foreach ($this->productsOf($line) as $product) {
-                $products[$product] = true;
-            }
-        }
-
-        return 1 === \count($products) ? (string) array_key_first($products) : null;
+        return array_map($this->unitsOf(...), $listing->lines);
     }
 
     /**
      * @return list<string>
      */
-    private function productsOf(ExternalLine $line): array
+    private function unitsOf(ExternalLine $line): array
     {
         $item = $this->remembered[ExternalItem::keyOf($line->externalRef, OptionalText::of($line->variant))] ?? null;
         if (null !== $item && $item->isLinked()) {
-            return array_map(static fn (ExternalItemComponent $component): string => (string) $component->productId(), $item->components());
+            return array_merge(...array_map(static fn (ExternalItemComponent $component): array => array_fill(0, max(1, $component->quantity()), (string) $component->productId()), $item->components()));
         }
         $product = null === $line->sku ? null : $this->catalogue->withReference($line->sku) ?? $this->catalogue->withVariantSku($line->sku)[0] ?? null;
 

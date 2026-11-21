@@ -41,10 +41,10 @@ final readonly class PublishCatalogueHandler
         if ([] === $products) {
             throw new EmptyCatalogue($label);
         }
-        $descriptions = $this->descriptions->known();
-        $changes = $connector->publishCatalogue($credentials, array_map(static fn (StockedProduct $product): StockedProduct => $product->describedIn($descriptions[$product->id] ?? []), $products));
+        $described = $this->descriptions->of($products);
+        $changes = $connector->publishCatalogue($credentials, $described->products);
 
-        return new PublishedCatalogue($label, \count($products), $changes->created, $changes->updated, $changes->retired);
+        return new PublishedCatalogue($label, \count($products), $changes->created, $changes->updated, $changes->retired, $described->reports);
     }
 
     /**

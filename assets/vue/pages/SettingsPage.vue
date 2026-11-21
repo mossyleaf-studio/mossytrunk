@@ -132,6 +132,27 @@ const onPublishReferences = (service) => toast.attempt(async () => {
 
 const publishingCatalogue = ref(null);
 
+function descriptionsMessage(report, total) {
+    if (!report.read) {
+        return t('settings.connected.descriptionsUnread', { label: report.label });
+    }
+    const read = t('settings.connected.descriptionsRead', {
+        label: report.label,
+        listings: t('settings.connected.descriptionsListings', report.listings),
+        products: t('settings.connected.descriptionsProducts', report.described),
+        total,
+    });
+    const reasons = [
+        ['descriptionsNotReached', report.notReached],
+        ['descriptionsWithoutText', report.withoutText],
+        ['descriptionsUnlinked', report.unlinked],
+        ['descriptionsBundles', report.bundles],
+    ].filter(([, count]) => count > 0).map(([key, count]) => t(`settings.connected.${key}`, count));
+    return report.described < total && reasons.length > 0
+        ? `${read} ${t('settings.connected.descriptionsGap', { reasons: reasons.join(', ') })}`
+        : read;
+}
+
 async function onPublishCatalogue(service) {
     publishingCatalogue.value = service.key;
     await toast.attempt(async () => {
@@ -148,6 +169,7 @@ async function onPublishCatalogue(service) {
             sales.ordersImported > 0 ? t('settings.connected.catalogueSalesImported', sales.ordersImported) : '',
             sales.productsCreated > 0 ? t('settings.connected.catalogueSalesProductsCreated', sales.productsCreated) : '',
             notImported > 0 ? t('settings.connected.catalogueSalesNotImported', notImported) : '',
+            ...catalogue.descriptions.map((report) => descriptionsMessage(report, catalogue.products)),
         ].filter(Boolean).join(' '));
     });
     publishingCatalogue.value = null;

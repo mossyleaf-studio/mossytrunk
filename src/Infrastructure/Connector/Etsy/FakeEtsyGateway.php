@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Infrastructure\Connector\Etsy;
 
 use App\Application\Integration\Exception\ServiceUnavailable;
+use App\Application\Integration\Exception\ServiceUnreachable;
 use App\Application\Integration\ExternalSale;
 use App\Application\Integration\Tokens;
 use App\Infrastructure\Http\Json;
@@ -13,6 +14,8 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 final class FakeEtsyGateway implements EtsyGateway
 {
+    public const string UNREADABLE_KEYSTRING = 'unreadable';
+
     /** @var list<ExternalSale>|null */
     private ?array $receipts = null;
 
@@ -108,6 +111,9 @@ final class FakeEtsyGateway implements EtsyGateway
 
     public function describedListings(EtsyApp $app, string $accessToken, string $shopId): iterable
     {
+        if (self::UNREADABLE_KEYSTRING === $app->keystring) {
+            throw new ServiceUnreachable('Etsy', 'api.etsy.com');
+        }
         if (null !== $this->describingFailure) {
             throw $this->describingFailure;
         }

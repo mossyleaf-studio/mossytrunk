@@ -140,7 +140,16 @@
         "catalogueNewHidden": "New products are hidden: make them visible in the admin of {label}.",
         "catalogueSalesImported": "{count} order of the site imported before sending. | {count} orders of the site imported before sending.",
         "catalogueSalesProductsCreated": "{count} product was created from the orders of the site and sent with the catalogue. | {count} products were created from the orders of the site and sent with the catalogue.",
-        "catalogueSalesNotImported": "{count} order of the site could not be imported, its stock is not counted: run “Import sales” to see why. | {count} orders of the site could not be imported, their stock is not counted: run “Import sales” to see why."
+        "catalogueSalesNotImported": "{count} order of the site could not be imported, its stock is not counted: run “Import sales” to see why. | {count} orders of the site could not be imported, their stock is not counted: run “Import sales” to see why.",
+        "descriptionsRead": "{label} descriptions: {listings}, {products} of {total}.",
+        "descriptionsUnread": "{label} could not be read: the catalogue left without descriptions.",
+        "descriptionsListings": "{count} listing read | {count} listings read",
+        "descriptionsProducts": "{count} product described | {count} products described",
+        "descriptionsGap": "For the others: {reasons}.",
+        "descriptionsNotReached": "{count} product no listing reaches | {count} products no listing reaches",
+        "descriptionsWithoutText": "{count} listing without a French or English text | {count} listings without a French or English text",
+        "descriptionsUnlinked": "{count} listing linked to no product | {count} listings linked to no product",
+        "descriptionsBundles": "{count} listing with a line for several products or units | {count} listings with a line for several products or units"
     },
     "form": {
         "access": "Access",

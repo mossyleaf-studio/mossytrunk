@@ -1,5 +1,5 @@
 import { test, expect } from './support/test.js';
-import { addService, createType, forgetService, restock } from './support/api.js';
+import { addService, createProduct, createType, forgetService, restock } from './support/api.js';
 
 async function createShopProducts(request) {
     const type = await createType(request, 'Papeterie du site', { prefixesNames: false });
@@ -67,6 +67,7 @@ test('publish the catalogue to the website after importing the sales of its shop
     await confirmation.getByRole('button', { name: 'Publier le catalogue' }).click();
     await expect(page.getByTestId('toast').last()).toContainText('Catalogue publié sur Site web : 2 nouveaux produits');
     await expect(page.getByTestId('toast').last()).toContainText('2 commandes du site importées avant l\'envoi');
+    await expect(page.getByTestId('toast').last()).not.toContainText('Descriptions');
 
     await services.getByRole('button', { name: 'Publier le catalogue' }).click();
     await page.getByRole('alertdialog').getByRole('button', { name: 'Publier le catalogue' }).click();
@@ -87,4 +88,36 @@ test('products created from the orders of the site are announced when the catalo
     await expect(page.getByTestId('toast').last()).toContainText('2 produits ont été créés à partir des commandes du site et envoyés avec le catalogue.');
     await expect(services.getByRole('button', { name: 'Publier le catalogue' })).toBeEnabled();
     await expect(services.getByRole('button', { name: 'Importer les ventes' })).toBeEnabled();
+});
+
+async function connectEtsy(request, keystring) {
+    await addService(request, 'etsy', { keystring, shared_secret: 'shared-secret' });
+    expect((await request.get('/settings/etsy/connect')).ok()).toBe(true);
+}
+
+async function publishCatalogue(page) {
+    await page.goto('/settings');
+    await page.getByRole('region', { name: 'Services connectés' }).getByRole('button', { name: 'Publier le catalogue' }).click();
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Publier le catalogue' }).click();
+    return page.getByTestId('toast').last();
+}
+
+test('the publication says what happened to the Etsy descriptions', async ({ page, request }) => {
+    await createProduct(request, { name: 'Sticker Mousse', sellingPrice: 400 });
+    await addService(request, 'website', { address: 'https://boutique.exemple.fr', token: 'jeton-du-site-0123456789abcdef' });
+
+    await connectEtsy(request, 'unreadable');
+    let toast = await publishCatalogue(page);
+    await expect(toast).toContainText('Catalogue publié sur Site web : 1 nouveau produit');
+    await expect(toast).toContainText("Etsy n'a pas pu être lu : le catalogue est parti sans description.");
+
+    await connectEtsy(request, 'keystring123');
+    toast = await publishCatalogue(page);
+    await expect(toast).toContainText("Descriptions Etsy : 2 annonces lues, 0 produit décrit sur 1. Pour les autres : 1 produit qu'aucune annonce n'atteint, 2 annonces associées à aucun produit.");
+
+    await page.getByRole('region', { name: 'Services connectés' }).getByRole('button', { name: 'Importer le catalogue' }).click();
+    await expect(page.getByTestId('toast').last()).toContainText('Catalogue Etsy importé');
+    toast = await publishCatalogue(page);
+    await expect(toast).toContainText('Descriptions Etsy : 2 annonces lues, 1 produit décrit sur 1.');
+    await expect(toast).not.toContainText('Pour les autres');
 });

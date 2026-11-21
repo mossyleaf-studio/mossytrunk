@@ -6,12 +6,16 @@ namespace App\Application\Integration\PublishCatalogue;
 
 use App\Application\Integration\ConnectionSession;
 use App\Application\Integration\Connectors;
-use App\Application\Integration\DescribedListing;
 use App\Application\Integration\DescriptionReading;
+use App\Application\Integration\Exception\ServiceNotConfigured;
+use App\Application\Integration\Exception\ServiceNotConnected;
 use App\Application\Integration\Exception\ServiceUnavailable;
 use App\Application\Integration\ImportSales\ExternalItemResolution;
+use App\Application\Integration\StockedProduct;
 use App\Domain\Integration\ExternalItemRepository;
+use App\Domain\Integration\ServiceConnection;
 use App\Domain\Integration\ServiceConnectionRepository;
+use Psr\Log\LoggerInterface;
 
 final readonly class ProductDescriptions
 {
@@ -21,48 +25,39 @@ final readonly class ProductDescriptions
         private ConnectionSession $session,
         private ExternalItemRepository $items,
         private ExternalItemResolution $resolution,
+        private LoggerInterface $logger,
     ) {
     }
 
     /**
-     * @return array<string, array<string, string>>
+     * @param list<StockedProduct> $products
      */
-    public function known(): array
+    public function of(array $products): DescribedCatalogue
     {
-        $known = [];
+        $catalogue = new DescribedCatalogue($products);
         foreach ($this->connectors->describing() as $connector) {
-            $known += $this->describedBy($connector);
-        }
-
-        return $known;
-    }
-
-    /**
-     * @return array<string, array<string, string>>
-     */
-    private function describedBy(DescriptionReading $connector): array
-    {
-        $service = $connector->describe()->key;
-        $connection = $this->connections->find($service);
-        if (null === $connection) {
-            return [];
-        }
-        try {
-            $listings = iterator_to_array($connector->describedListings($this->session->credentials($connection)), false);
-        } catch (ServiceUnavailable) {
-            return [];
-        }
-        usort($listings, static fn (DescribedListing $a, DescribedListing $b): int => strnatcmp($a->externalRef, $b->externalRef));
-
-        $products = new ListingProducts($this->items->ofService($service), $this->resolution->catalogue());
-        $known = [];
-        foreach ($listings as $listing) {
-            $product = [] === $listing->descriptions ? null : $products->productOf($listing);
-            if (null !== $product) {
-                $known[$product] ??= $listing->descriptions;
+            $connection = $this->connections->find($connector->describe()->key);
+            $texts = null === $connection ? null : $this->texts($connector, $connection);
+            if (null !== $texts) {
+                $catalogue = $catalogue->describedBy($connector->describe()->label, $texts);
             }
         }
 
-        return $known;
+        return $catalogue;
+    }
+
+    private function texts(DescriptionReading $connector, ServiceConnection $connection): ?ListingTexts
+    {
+        try {
+            $listings = iterator_to_array($connector->describedListings($this->session->credentials($connection)), false);
+        } catch (ServiceNotConnected|ServiceNotConfigured) {
+            return null;
+        } catch (ServiceUnavailable $failure) {
+            $this->logger->warning('The {service} listings could not be read for the descriptions.', ['service' => $connection->service(), 'failure' => $failure::class]);
+
+            return ListingTexts::unread();
+        }
+
+        return ListingTexts::read($listings, new ListingProducts($this->items->ofService($connection->service()), $this->resolution->catalogue()));
     }
 }

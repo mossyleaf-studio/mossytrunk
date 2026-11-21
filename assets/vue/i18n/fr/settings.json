@@ -140,7 +140,16 @@
         "catalogueNewHidden": "Les nouveaux produits sont masqués : rendez-les visibles dans l'administration de {label}.",
         "catalogueSalesImported": "{count} commande du site importée avant l'envoi. | {count} commandes du site importées avant l'envoi.",
         "catalogueSalesProductsCreated": "{count} produit a été créé à partir des commandes du site et envoyé avec le catalogue. | {count} produits ont été créés à partir des commandes du site et envoyés avec le catalogue.",
-        "catalogueSalesNotImported": "{count} commande du site n'a pas pu être importée, son stock n'est pas décompté : lancez « Importer les ventes » pour voir pourquoi. | {count} commandes du site n'ont pas pu être importées, leur stock n'est pas décompté : lancez « Importer les ventes » pour voir pourquoi."
+        "catalogueSalesNotImported": "{count} commande du site n'a pas pu être importée, son stock n'est pas décompté : lancez « Importer les ventes » pour voir pourquoi. | {count} commandes du site n'ont pas pu être importées, leur stock n'est pas décompté : lancez « Importer les ventes » pour voir pourquoi.",
+        "descriptionsRead": "Descriptions {label} : {listings}, {products} sur {total}.",
+        "descriptionsUnread": "{label} n'a pas pu être lu : le catalogue est parti sans description.",
+        "descriptionsListings": "{count} annonce lue | {count} annonces lues",
+        "descriptionsProducts": "{count} produit décrit | {count} produits décrits",
+        "descriptionsGap": "Pour les autres : {reasons}.",
+        "descriptionsNotReached": "{count} produit qu'aucune annonce n'atteint | {count} produits qu'aucune annonce n'atteint",
+        "descriptionsWithoutText": "{count} annonce sans texte en français ou en anglais | {count} annonces sans texte en français ou en anglais",
+        "descriptionsUnlinked": "{count} annonce associée à aucun produit | {count} annonces associées à aucun produit",
+        "descriptionsBundles": "{count} annonce dont une ligne va à plusieurs produits ou unités | {count} annonces dont une ligne va à plusieurs produits ou unités"
     },
     "form": {
         "access": "Accès",
