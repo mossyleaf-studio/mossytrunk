@@ -8,6 +8,8 @@ use App\Application\Integration\Authorization;
 use App\Application\Integration\AuthorizingConnector;
 use App\Application\Integration\CatalogueReading;
 use App\Application\Integration\Credentials;
+use App\Application\Integration\DescribedListing;
+use App\Application\Integration\DescriptionReading;
 use App\Application\Integration\Exception\ServiceNotConnected;
 use App\Application\Integration\LinePrices;
 use App\Application\Integration\ReferencePublishing;
@@ -16,8 +18,9 @@ use App\Application\Integration\ServiceField;
 use App\Application\Integration\Tokens;
 use App\Domain\Integration\SalesContext;
 use App\Domain\Integration\UnknownItems;
+use App\Infrastructure\Http\Json;
 
-final readonly class EtsyConnector implements AuthorizingConnector, CatalogueReading, ReferencePublishing
+final readonly class EtsyConnector implements AuthorizingConnector, CatalogueReading, ReferencePublishing, DescriptionReading
 {
     public const string KEY = 'etsy';
 
@@ -25,6 +28,7 @@ final readonly class EtsyConnector implements AuthorizingConnector, CatalogueRea
         private EtsyGateway $gateway,
         private EtsyCatalogueMapper $catalogue,
         private EtsyInventorySkus $inventorySkus,
+        private EtsyDescriptions $descriptions,
     ) {
     }
 
@@ -54,6 +58,13 @@ final readonly class EtsyConnector implements AuthorizingConnector, CatalogueRea
     {
         foreach ($this->gateway->activeListings(self::app($credentials), $this->accessToken($credentials), $this->shopId($credentials)) as $listing) {
             yield from $this->catalogue->lines($listing);
+        }
+    }
+
+    public function describedListings(Credentials $credentials): iterable
+    {
+        foreach ($this->gateway->describedListings(self::app($credentials), $this->accessToken($credentials), $this->shopId($credentials)) as $listing) {
+            yield new DescribedListing(Json::string($listing['listing_id'] ?? ''), $this->catalogue->lines($listing), $this->descriptions->of($listing));
         }
     }
 

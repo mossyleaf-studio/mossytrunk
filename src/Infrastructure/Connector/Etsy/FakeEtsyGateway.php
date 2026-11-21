@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Connector\Etsy;
 
+use App\Application\Integration\Exception\ServiceUnavailable;
 use App\Application\Integration\ExternalSale;
 use App\Application\Integration\Tokens;
 use App\Infrastructure\Http\Json;
@@ -20,6 +21,8 @@ final class FakeEtsyGateway implements EtsyGateway
 
     /** @var array<string, array<string, mixed>> */
     private array $updates = [];
+
+    private ?ServiceUnavailable $describingFailure = null;
 
     public function __construct(
         private readonly EtsyPayloadMapper $mapper,
@@ -42,6 +45,11 @@ final class FakeEtsyGateway implements EtsyGateway
         foreach ($listings as $listing) {
             $this->listings[Json::string($listing['listing_id'] ?? '')] = $listing;
         }
+    }
+
+    public function willFailDescribing(ServiceUnavailable $failure): void
+    {
+        $this->describingFailure = $failure;
     }
 
     /**
@@ -95,6 +103,15 @@ final class FakeEtsyGateway implements EtsyGateway
 
     public function activeListings(EtsyApp $app, string $accessToken, string $shopId): iterable
     {
+        return array_values($this->listed());
+    }
+
+    public function describedListings(EtsyApp $app, string $accessToken, string $shopId): iterable
+    {
+        if (null !== $this->describingFailure) {
+            throw $this->describingFailure;
+        }
+
         return array_values($this->listed());
     }
 

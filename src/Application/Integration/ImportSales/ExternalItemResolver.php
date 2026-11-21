@@ -14,7 +14,6 @@ use App\Domain\Order\OrderedItem;
 use App\Domain\Product\Exception\InvalidProduct;
 use App\Domain\Product\Product;
 use App\Domain\Product\SellableItem;
-use App\Domain\Product\Sku;
 use App\Domain\Sales\SalesChannel;
 use App\Domain\Shared\OptionalText;
 
@@ -138,15 +137,9 @@ final class ExternalItemResolver
             return $this->withVariant($byReference, $variant, $line);
         }
 
-        for ($dash = mb_strrpos($sku, Sku::SEPARATOR); false !== $dash && $dash > 0; $dash = mb_strrpos(mb_substr($sku, 0, $dash), Sku::SEPARATOR)) {
-            $product = $this->catalogue->withReference(mb_substr($sku, 0, $dash));
-            $known = $product?->variantNamed(mb_substr($sku, $dash + 1));
-            if (null !== $product && null !== $known) {
-                return $this->sold($product, $known, $line);
-            }
-        }
+        $byVariant = $this->catalogue->withVariantSku($sku);
 
-        return null;
+        return null === $byVariant ? null : $this->sold($byVariant[0], $byVariant[1], $line);
     }
 
     private function matchedWithVariant(?Product $product, string $name, string $variant, ExternalLine $line): ?SellableItem

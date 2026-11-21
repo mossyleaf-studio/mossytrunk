@@ -12,7 +12,7 @@ fields is service-specific. Service pages: [sumup-import.md](sumup-import.md), [
 | Unknown items | Option: **create the product** or **ask me** (the item waits to be linked by hand) |
 | External item | A service item (SumUp line name, Etsy listing + variation, website SKU) that could not be matched, remembered with the product/variant it sells once linked (`Domain\Integration\ExternalItem`) |
 
-Model: `src/Domain/Integration/`, `src/Application/Integration/` (ports `SalesConnector`, `AuthorizingConnector`, `CataloguePublishing`, registry `Connectors`,
+Model: `src/Domain/Integration/`, `src/Application/Integration/` (ports `SalesConnector`, `AuthorizingConnector`, `CataloguePublishing`, `DescriptionReading`, registry `Connectors`,
 `ImportSales/ImportSalesHandler`, `ImportSales/ExternalItemResolver`), connectors in `src/Infrastructure/Connector/`.
 
 ## Rules

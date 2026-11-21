@@ -9,7 +9,8 @@ use App\Domain\Shared\Money;
 final readonly class StockedProduct
 {
     /**
-     * @param list<StockedItem> $items
+     * @param list<StockedItem>     $items
+     * @param array<string, string> $descriptions
      */
     public function __construct(
         public string $id,
@@ -19,6 +20,15 @@ final readonly class StockedProduct
         public string $displayName,
         public Money $price,
         public array $items,
+        public array $descriptions = [],
     ) {
+    }
+
+    /**
+     * @param array<string, string> $descriptions
+     */
+    public function describedIn(array $descriptions): self
+    {
+        return new self($this->id, $this->reference, $this->name, $this->category, $this->displayName, $this->price, $this->items, $descriptions);
     }
 }

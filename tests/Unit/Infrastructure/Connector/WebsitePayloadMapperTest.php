@@ -137,6 +137,24 @@ final class WebsitePayloadMapperTest extends TestCase
         );
     }
 
+    public function testAProductWithDescriptionsCarriesThemPerLanguageAndAProductWithoutCarriesNoKey(): void
+    {
+        $body = (new WebsitePayloadMapper())->catalogue([
+            new StockedProduct('01JD3V5M8Q0000000000000002', 'STK-001', 'Mousse', 'Sticker', 'Sticker Mousse', Money::cents(400), [new StockedItem(null, 'STK-001', 3)], ['fr' => "Sticker mat.\nL'eau glisse.", 'en' => 'Matte sticker.']),
+            new StockedProduct('01JD3V5M8Q0000000000000003', 'STK-002', 'Fougère', 'Sticker', 'Sticker Fougère', Money::cents(400), [new StockedItem(null, 'STK-002', 1)], ['en' => 'Fern sticker.']),
+            new StockedProduct('01JD3V5M8Q0000000000000004', 'STK-003', 'Lichen', 'Sticker', 'Sticker Lichen', Money::cents(400), [new StockedItem(null, 'STK-003', 0)], []),
+        ]);
+
+        self::assertSame(
+            '{"products":['
+            .'{"id":"01JD3V5M8Q0000000000000002","reference":"STK-001","name":"Mousse","category":"Sticker","displayName":"Sticker Mousse","price":400,"variants":[{"name":null,"sku":"STK-001","stock":3}],"descriptions":{"fr":"Sticker mat.\nL\'eau glisse.","en":"Matte sticker."}},'
+            .'{"id":"01JD3V5M8Q0000000000000003","reference":"STK-002","name":"Fougère","category":"Sticker","displayName":"Sticker Fougère","price":400,"variants":[{"name":null,"sku":"STK-002","stock":1}],"descriptions":{"en":"Fern sticker."}},'
+            .'{"id":"01JD3V5M8Q0000000000000004","reference":"STK-003","name":"Lichen","category":"Sticker","displayName":"Sticker Lichen","price":400,"variants":[{"name":null,"sku":"STK-003","stock":0}]}'
+            .']}',
+            json_encode($body, \JSON_THROW_ON_ERROR | \JSON_UNESCAPED_UNICODE),
+        );
+    }
+
     public function testTheAnswerOfAPublicationGivesWhatChangedOnTheSite(): void
     {
         $changes = (new WebsitePayloadMapper())->changes(['created' => 3, 'updated' => 12, 'retired' => 0]);

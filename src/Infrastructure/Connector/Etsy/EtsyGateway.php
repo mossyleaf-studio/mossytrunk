@@ -28,6 +28,11 @@ interface EtsyGateway
     public function activeListings(EtsyApp $app, string $accessToken, string $shopId): iterable;
 
     /**
+     * @return iterable<array<string, mixed>>
+     */
+    public function describedListings(EtsyApp $app, string $accessToken, string $shopId): iterable;
+
+    /**
      * @return array<string, mixed>
      */
     public function inventory(EtsyApp $app, string $accessToken, string $listingId): array;

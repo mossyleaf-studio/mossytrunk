@@ -86,6 +86,11 @@ final readonly class EtsyApiGateway implements EtsyGateway
         return $this->pages($app, $accessToken, \sprintf('/v3/application/shops/%s/listings', rawurlencode($shopId)), ['state' => 'active', 'includes' => 'Inventory']);
     }
 
+    public function describedListings(EtsyApp $app, string $accessToken, string $shopId): iterable
+    {
+        return $this->pages($app, $accessToken, \sprintf('/v3/application/shops/%s/listings', rawurlencode($shopId)), ['state' => 'active', 'includes' => 'Inventory,Translations']);
+    }
+
     /**
      * @return array<string, mixed>
      */

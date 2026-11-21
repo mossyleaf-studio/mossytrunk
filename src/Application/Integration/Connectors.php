@@ -97,6 +97,21 @@ final readonly class Connectors
         return $connector;
     }
 
+    /**
+     * @return list<DescriptionReading>
+     */
+    public function describing(): array
+    {
+        $describing = [];
+        foreach ($this->connectors as $connector) {
+            if ($connector instanceof DescriptionReading) {
+                $describing[] = $connector;
+            }
+        }
+
+        return $describing;
+    }
+
     public function has(string $service): bool
     {
         return isset($this->connectors[$service]);

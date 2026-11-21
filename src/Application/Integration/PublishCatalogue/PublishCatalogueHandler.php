@@ -27,6 +27,7 @@ final readonly class PublishCatalogueHandler
         private ProductRepository $products,
         private SalesChannelRepository $channels,
         private StockRepository $stock,
+        private ProductDescriptions $descriptions,
     ) {
     }
 
@@ -40,7 +41,8 @@ final readonly class PublishCatalogueHandler
         if ([] === $products) {
             throw new EmptyCatalogue($label);
         }
-        $changes = $connector->publishCatalogue($credentials, $products);
+        $descriptions = $this->descriptions->known();
+        $changes = $connector->publishCatalogue($credentials, array_map(static fn (StockedProduct $product): StockedProduct => $product->describedIn($descriptions[$product->id] ?? []), $products));
 
         return new PublishedCatalogue($label, \count($products), $changes->created, $changes->updated, $changes->retired);
     }

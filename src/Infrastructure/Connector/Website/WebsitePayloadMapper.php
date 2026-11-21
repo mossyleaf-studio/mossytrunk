@@ -54,7 +54,7 @@ final class WebsitePayloadMapper
     /**
      * @param list<StockedProduct> $products
      *
-     * @return array{products: list<array{id: string, reference: string, name: string, category: string, displayName: string, price: int, variants: list<array{name: ?string, sku: string, stock: int}>}>}
+     * @return array{products: list<array{id: string, reference: string, name: string, category: string, displayName: string, price: int, variants: list<array{name: ?string, sku: string, stock: int}>, descriptions?: array<string, string>}>}
      */
     public function catalogue(array $products): array
     {
@@ -66,7 +66,7 @@ final class WebsitePayloadMapper
             'displayName' => $product->displayName,
             'price' => $product->price->amount(),
             'variants' => array_map(static fn (StockedItem $item): array => ['name' => $item->variant, 'sku' => $item->sku, 'stock' => $item->available], $product->items),
-        ], $products)];
+        ] + ([] === $product->descriptions ? [] : ['descriptions' => $product->descriptions]), $products)];
     }
 
     /**

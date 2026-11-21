@@ -11,6 +11,7 @@ use App\Domain\Product\Product;
 use App\Domain\Product\ProductRepository;
 use App\Domain\Product\ProductType;
 use App\Domain\Product\ProductTypeRepository;
+use App\Domain\Product\Sku;
 use App\Domain\Shared\Money;
 use Symfony\Component\Uid\Ulid;
 
@@ -79,6 +80,22 @@ final class ImportedCatalogue
         }
 
         return $this->byReference[$reference];
+    }
+
+    /**
+     * @return array{Product, string}|null
+     */
+    public function withVariantSku(string $sku): ?array
+    {
+        for ($dash = mb_strrpos($sku, Sku::SEPARATOR); false !== $dash && $dash > 0; $dash = mb_strrpos(mb_substr($sku, 0, $dash), Sku::SEPARATOR)) {
+            $product = $this->withReference(mb_substr($sku, 0, $dash));
+            $known = $product?->variantNamed(mb_substr($sku, $dash + 1));
+            if (null !== $product && null !== $known) {
+                return [$product, $known];
+            }
+        }
+
+        return null;
     }
 
     public function withId(Ulid $id): ?Product

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Infrastructure\Connector;
 
+use App\Application\Integration\Exception\ServiceUnreachable;
 use App\Infrastructure\Connector\Etsy\EtsyApiGateway;
 use App\Infrastructure\Connector\Etsy\EtsyApp;
 use App\Infrastructure\Connector\Etsy\EtsyPayloadMapper;
@@ -46,6 +47,32 @@ final class EtsyApiGatewayTest extends TestCase
         self::assertStringContainsString('/shops/42/payment-account/ledger-entries?min_created=1893456000&max_created=1896047999&limit=100', $requests[1]);
         self::assertStringContainsString('min_created=1896048000&max_created=1896912000', $requests[2]);
         self::assertStringContainsString('/shops/42/receipts/1/payments', $requests[3]);
+    }
+
+    public function testDescribedListingsAreTheActiveListingsWithTheirInventoryAndTheirTranslations(): void
+    {
+        $requests = [];
+        $client = new MockHttpClient(static function (string $method, string $url) use (&$requests): MockResponse {
+            $requests[] = $url;
+
+            return new JsonMockResponse(['count' => 1, 'results' => [['listing_id' => 7, 'language' => 'fr', 'description' => 'Sticker mat.']]]);
+        }, 'https://api.etsy.com');
+        $gateway = new EtsyApiGateway($client, new EtsyPayloadMapper(), new MockClock());
+
+        $listings = iterator_to_array($gateway->describedListings(new EtsyApp('key', 'secret'), 'token', '42'), false);
+
+        self::assertSame([['listing_id' => 7, 'language' => 'fr', 'description' => 'Sticker mat.']], $listings);
+        self::assertSame(['https://api.etsy.com/v3/application/shops/42/listings?state=active&includes=Inventory%2CTranslations&limit=100&offset=0'], $requests);
+    }
+
+    public function testDescribedListingsThatCannotBeReadMakeEtsyUnreachable(): void
+    {
+        $client = new MockHttpClient(new MockResponse('<html>maintenance</html>'), 'https://api.etsy.com');
+        $gateway = new EtsyApiGateway($client, new EtsyPayloadMapper(), new MockClock());
+
+        $this->expectException(ServiceUnreachable::class);
+
+        iterator_to_array($gateway->describedListings(new EtsyApp('key', 'secret'), 'token', '42'), false);
     }
 
     public function testAReceiptWithoutPaymentHasAnUnknownFee(): void
