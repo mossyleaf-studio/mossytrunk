@@ -215,7 +215,7 @@ onMounted(() => Promise.all([load(), loadProducts(), loadChannels(), loadDiscoun
             <MergeOrderForm v-if="mergeOpen && order" :order="order" :candidates="candidates" :submit="mergeWith" @merged="onMerged" @cancel="mergeOpen = false" />
         </BaseModal>
         <BaseModal v-model:open="splitOpen" :title="t('orders.split.title')">
-            <SplitLineForm v-if="splitting" :line="splitting" :products="products" :submit="(payload) => splitLine(splitting.id, payload)" @saved="onSplit" @cancel="splitting = null" />
+            <SplitLineForm v-if="splitting" :line="splitting" :others="order.lines.filter((line) => line.productId === null && line.id !== splitting.id)" :products="products" :submit="(payload) => splitLine(splitting.id, payload)" @saved="onSplit" @cancel="splitting = null" />
         </BaseModal>
         <BaseModal v-model:open="identifyOpen" :title="t('orders.identify.title')">
             <IdentifyLineForm v-if="identifying" :line="identifying" :products="products" :submit="(payload) => identifyLine(identifying.id, payload)" @saved="onIdentified" @cancel="identifying = null" />

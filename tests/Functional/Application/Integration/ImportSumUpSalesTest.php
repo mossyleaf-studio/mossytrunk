@@ -73,16 +73,16 @@ final class ImportSumUpSalesTest extends KernelTestCase
         $report = $this->import();
 
         self::assertSame(3, $report->productsCreated, 'Sticker Mousse, Tote bag, Print A4 (Fougère)');
-        self::assertSame(2, $report->ordersImported);
+        self::assertSame(3, $report->ordersImported);
         self::assertSame(0, $report->ordersAlreadyImported);
 
         $orders = self::getContainer()->get(ListOrdersHandler::class)();
-        self::assertSame([['TFAKE0002'], ['TFAKE0001']], array_column($orders, 'externalReferences'));
+        self::assertSame([['TFAKE0002'], ['TFAKE0006'], ['TFAKE0001']], array_column($orders, 'externalReferences'));
         self::assertStringStartsWith('CMD-20300315-', $orders[0]->reference);
-        self::assertSame(['sumup', 'sumup'], array_column($orders, 'source'));
-        self::assertSame(['cash', 'card'], array_column($orders, 'paymentMethod'));
-        self::assertSame(1_000, $orders[1]->total, 'amount charged by SumUp');
-        self::assertSame(200, $orders[1]->discountTotal, 'SumUp discount kept');
+        self::assertSame(['sumup', 'sumup', 'sumup'], array_column($orders, 'source'));
+        self::assertSame(['cash', 'card', 'card'], array_column($orders, 'paymentMethod'));
+        self::assertSame(1_000, $orders[2]->total, 'amount charged by SumUp');
+        self::assertSame(200, $orders[2]->discountTotal, 'SumUp discount kept');
 
         $products = self::getContainer()->get(ListProductsHandler::class)();
         $index = array_search('Sticker Mousse', array_column($products, 'name'), true);
@@ -103,20 +103,20 @@ final class ImportSumUpSalesTest extends KernelTestCase
 
         self::assertSame(2, $report->ordersWithoutEvent);
         self::assertSame(['2030-03-21', '2030-03-23'], $report->datesWithoutEvent);
-        self::assertCount(2, self::getContainer()->get(ListOrdersHandler::class)());
+        self::assertCount(3, self::getContainer()->get(ListOrdersHandler::class)());
     }
 
     public function testOnlinePaymentsAreNeitherImportedNorReported(): void
     {
         $withoutEvent = $this->import();
 
-        self::assertSame([0, 4, 0], [$withoutEvent->ordersImported, $withoutEvent->ordersWithoutEvent, $withoutEvent->salesWithoutItems]);
+        self::assertSame([0, 5, 0], [$withoutEvent->ordersImported, $withoutEvent->ordersWithoutEvent, $withoutEvent->salesWithoutItems]);
 
         $this->scheduleEvent('Salon de printemps', '2030-03-14', '2030-03-15');
         $report = $this->import();
 
-        self::assertSame([2, 2, 0, 0], [$report->ordersImported, $report->ordersWithoutEvent, $report->salesWithoutItems, $report->ordersWaitingForItems]);
-        self::assertSame(['TFAKE0002', 'TFAKE0001'], array_keys(self::ordersBySale()));
+        self::assertSame([3, 2, 0, 0], [$report->ordersImported, $report->ordersWithoutEvent, $report->salesWithoutItems, $report->ordersWaitingForItems]);
+        self::assertSame(['TFAKE0002', 'TFAKE0006', 'TFAKE0001'], array_keys(self::ordersBySale()));
         self::assertNotContains('Carnet Lichen', array_column(self::getContainer()->get(ListProductsHandler::class)(), 'name'));
     }
 
@@ -152,9 +152,9 @@ final class ImportSumUpSalesTest extends KernelTestCase
 
         self::assertSame(0, $report->productsCreated);
         self::assertSame(1, $report->ordersImported);
-        self::assertSame(2, $report->ordersAlreadyImported);
+        self::assertSame(3, $report->ordersAlreadyImported);
         self::assertSame(['2030-03-23'], $report->datesWithoutEvent);
-        self::assertCount(3, self::getContainer()->get(ListOrdersHandler::class)());
+        self::assertCount(4, self::getContainer()->get(ListOrdersHandler::class)());
     }
 
     public function testLinesAreMatchedToExistingProductVariants(): void
@@ -396,6 +396,26 @@ final class ImportSumUpSalesTest extends KernelTestCase
         self::assertSame([['Print et porte-clés pour 15 €', 300], ['SumUp discount', 200]], array_map(static fn (array $discount): array => [$discount['label'], $discount['amount']], $order->discounts));
         self::assertSame(2_500, $order->total);
         self::assertSame(3, array_column(self::getContainer()->get(ListProductsHandler::class)(), 'stock', 'name')['Keychain'][0]['onHand']);
+    }
+
+    public function testAmountsTypedForOneBasketAreSplitTogetherIntoTheirProducts(): void
+    {
+        $this->scheduleEvent('Salon de printemps', '2030-03-14', '2030-03-15');
+        $sticker = self::createProduct('Sticker', 300);
+        self::getContainer()->get(FakeSumUpGateway::class)->willReturn([
+            ExternalSales::sumUp('TX-SPLIT', new \DateTimeImmutable('2030-03-14T12:00:00Z'), Money::cents(800), [ExternalSales::line('', Money::cents(400), 1), ExternalSales::line('', Money::cents(400), 1)]),
+        ]);
+        $this->import();
+        $orderId = self::getContainer()->get(ListOrdersHandler::class)()[0]->id;
+        $lines = self::getContainer()->get(GetOrderHandler::class)($orderId)->lines;
+
+        self::getContainer()->get(SplitOrderLineHandler::class)(new SplitOrderLine($orderId, $lines[0]['id'], [new RequestedLine($sticker, null, 3)], [$lines[1]['id']]));
+        self::getContainer()->get('doctrine')->getManager()->clear();
+
+        $order = self::getContainer()->get(GetOrderHandler::class)($orderId);
+        self::assertSame([['Sticker', 3, 300]], array_map(static fn (array $line): array => [$line['label'], $line['quantity'], $line['unitPrice']], $order->lines));
+        self::assertSame([['SumUp discount', 100]], array_map(static fn (array $discount): array => [$discount['label'], $discount['amount']], $order->discounts));
+        self::assertSame(800, $order->total);
     }
 
     public function testTwoSalesMergedIntoOneOrderAreNotImportedAgain(): void

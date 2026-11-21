@@ -79,6 +79,28 @@ final class OrderSplitLineTest extends TestCase
         DomainExceptions::assertThrown(new RefundedOrderLocked('CMD-1'), fn () => $order->splitLine($lineId, [new OrderedItem($this->keychain->sellable(null), 1)], [], 'Remise SumUp'));
     }
 
+    public function testAmountsTypedForOneBasketAreSplitTogether(): void
+    {
+        $sticker = Product::create(TestWorkspace::get(), 'STK', 'Sticker', Money::cents(300), TestProductType::get());
+        $order = $this->typedAmount(400, [new OrderedItem(SellableItem::unknown('Unknown', Money::cents(400)), 1)], 800);
+        [$first, $second] = array_map(static fn (OrderLine $line): Ulid => $line->id(), $order->lines());
+
+        DomainExceptions::assertThrown(new SplitWorthLessThanLine('Unknown', Money::cents(600), Money::cents(800)), fn () => $order->splitLine($first, [new OrderedItem($sticker->sellable(null), 2)], [], 'Remise SumUp', [$second]));
+        $order->splitLine($first, [new OrderedItem($sticker->sellable(null), 3)], [], 'Remise SumUp', [$second, $first]);
+
+        self::assertSame([['Sticker', 3, 300]], array_map(static fn (OrderLine $line): array => [$line->label(), $line->quantity(), $line->unitPrice()->amount()], $order->lines()));
+        self::assertEquals([new AppliedDiscount('Remise SumUp', Money::cents(100))], $order->appliedDiscounts());
+        self::assertSame(800, $order->total()->amount());
+    }
+
+    public function testOnlyUnknownLinesAreSplitTogether(): void
+    {
+        $order = $this->typedAmount(1_000, [new OrderedItem($this->print->sellable(null), 1)], 1_400);
+        $known = $order->lines()[0];
+
+        DomainExceptions::assertThrown(new LineAlreadyIdentified('Print'), fn () => $order->splitLine($this->unknownLine($order)->id(), [new OrderedItem($this->keychain->sellable(null), 2)], [], 'Remise SumUp', [$known->id()]));
+    }
+
     /**
      * @param list<OrderedItem> $others
      */

@@ -11,11 +11,14 @@ final readonly class SplitOrderLinePayload
 {
     /**
      * @param list<OrderLinePayload> $lines
+     * @param list<string>           $alongWith
      */
     public function __construct(
         #[Assert\Count(min: 1, minMessage: 'products.atLeastOne')]
         #[Assert\Valid]
         public array $lines = [],
+        #[Assert\All([new Assert\Ulid()])]
+        public array $alongWith = [],
     ) {
     }
 

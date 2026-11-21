@@ -17,7 +17,7 @@ final class SplitOrderLineController extends AbstractController
 {
     public function __invoke(string $id, string $lineId, #[MapRequestPayload] SplitOrderLinePayload $payload, SplitOrderLineHandler $splitLine): Response
     {
-        $splitLine(new SplitOrderLine($id, $lineId, $payload->requestedLines()));
+        $splitLine(new SplitOrderLine($id, $lineId, $payload->requestedLines(), $payload->alongWith));
 
         return new Response(status: Response::HTTP_NO_CONTENT);
     }

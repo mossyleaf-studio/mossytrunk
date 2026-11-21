@@ -1,5 +1,5 @@
 {
-    "_comment": "SumUp transaction resources used by FakeSumUpGateway (test env). Dates in March 2030: e2e tests create a matching event for the 14th-15th only. TFAKE0002 has a categorised line (\"Print A4 (Fougère)\" in category Print). It also has an amount typed on the terminal (« Custom amount », 2 €).",
+    "_comment": "SumUp transaction resources used by FakeSumUpGateway (test env). Dates in March 2030: e2e tests create a matching event for the 14th-15th only. TFAKE0002 has a categorised line (\"Print A4 (Fougère)\" in category Print). It also has an amount typed on the terminal (« Custom amount », 2 €). TFAKE0006 is the second payment of TFAKE0002's basket: a nameless 4 € amount, like a sale SumUp splits over two cards.",
     "items": [
         {
             "id": "4b1c5d1a-0001-4000-8000-000000000001",
@@ -126,6 +126,24 @@
                     "quantity": 1,
                     "total_price": 12.0,
                     "total_with_vat": 12.0
+                }
+            ]
+        },
+        {
+            "id": "4b1c5d1a-0001-4000-8000-000000000006",
+            "transaction_code": "TFAKE0006",
+            "payment_type": "POS",
+            "timestamp": "2030-03-15T15:39:00.000Z",
+            "status": "SUCCESSFUL",
+            "type": "PAYMENT",
+            "amount": 4.0,
+            "tip_amount": 0.0,
+            "currency": "EUR",
+            "products": [
+                {
+                    "price": 4.0,
+                    "quantity": 1,
+                    "total_price": 4.0
                 }
             ]
         }

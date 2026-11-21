@@ -644,13 +644,11 @@ class Order implements Referenced
     /**
      * @param list<OrderedItem>     $items
      * @param list<AppliedDiscount> $ruleDiscounts
+     * @param list<Ulid>            $alongWith
      */
-    public function splitLine(Ulid $lineId, array $items, array $ruleDiscounts, string $discountLabel): void
+    public function splitLine(Ulid $lineId, array $items, array $ruleDiscounts, string $discountLabel, array $alongWith = []): void
     {
-        $line = $this->lineToIdentify($lineId);
-        if (!$line->sellsUnknownProduct()) {
-            throw new LineAlreadyIdentified($line->label());
-        }
+        $split = $this->linesToSplit($lineId, $alongWith);
         if ([] === $items) {
             throw new EmptyOrder();
         }
@@ -658,12 +656,15 @@ class Order implements Referenced
             throw new UnknownProductChosen();
         }
         $worth = Money::sum(array_map(static fn (OrderedItem $ordered): Money => $ordered->item->sellingPrice->multiply($ordered->quantity), $items));
-        $gap = $worth->subtract($line->total());
+        $paid = Money::sum(array_map(static fn (OrderLine $line): Money => $line->total(), $split));
+        $gap = $worth->subtract($paid);
         if ($gap->isNegative()) {
-            throw new SplitWorthLessThanLine($line->label(), $worth, $line->total());
+            throw new SplitWorthLessThanLine($split[0]->label(), $worth, $paid);
         }
 
-        $this->lines->removeElement($line);
+        foreach ($split as $line) {
+            $this->lines->removeElement($line);
+        }
         foreach ($items as $ordered) {
             $twin = $this->lines->findFirst(static fn (int $key, OrderLine $candidate): bool => $candidate->sells($ordered->item) && $candidate->unitPrice()->equals($ordered->item->sellingPrice));
             if (null === $twin) {
@@ -679,6 +680,26 @@ class Order implements Referenced
                 : array_map(static fn (AppliedDiscount $discount): array => $discount->toArray(), [...$this->appliedDiscounts(), ...$discounts]);
         }
         $this->recordSales();
+    }
+
+    /**
+     * @param list<Ulid> $alongWith
+     *
+     * @return non-empty-list<OrderLine>
+     */
+    private function linesToSplit(Ulid $lineId, array $alongWith): array
+    {
+        $lines = [(string) $lineId => $this->lineToIdentify($lineId)];
+        foreach ($alongWith as $otherId) {
+            $lines[(string) $otherId] ??= $this->line($otherId);
+        }
+        foreach ($lines as $line) {
+            if (!$line->sellsUnknownProduct()) {
+                throw new LineAlreadyIdentified($line->label());
+            }
+        }
+
+        return array_values($lines);
     }
 
     private function lineSelling(SellableItem $item, OrderLine $except): ?OrderLine

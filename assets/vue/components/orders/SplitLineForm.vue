@@ -1,7 +1,8 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import BaseButton from '../ui/BaseButton.vue';
+import BaseCheckbox from '../ui/BaseCheckbox.vue';
 import FormActions from '../ui/FormActions.vue';
 import FormError from '../ui/FormError.vue';
 import FormSection from '../ui/FormSection.vue';
@@ -10,9 +11,11 @@ import OrderDraftLines from './OrderDraftLines.vue';
 import OrderLinePicker from './OrderLinePicker.vue';
 import { useDraftLines } from '../../composables/useOrderDraft.js';
 import { useFormSubmit } from '../../composables/useFormSubmit.js';
+import { formatCents } from '../../composables/useMoney.js';
 
 const props = defineProps({
     line: { type: Object, required: true },
+    others: { type: Array, default: () => [] },
     products: { type: Array, required: true },
     submit: { type: Function, required: true },
 });
@@ -23,11 +26,17 @@ const { saving, errors, run } = useFormSubmit();
 
 const priceOf = (productId) => props.products.find((product) => product.id === productId)?.sellingPrice ?? 0;
 const worth = computed(() => draft.lines.reduce((sum, line) => sum + priceOf(line.productId) * line.quantity, 0));
-const gap = computed(() => worth.value - props.line.total);
+const alongWith = ref([]);
+const paid = computed(() => props.others.filter((other) => alongWith.value.includes(other.id)).reduce((sum, other) => sum + other.total, props.line.total));
+const gap = computed(() => worth.value - paid.value);
+
+function include(other, checked) {
+    alongWith.value = checked ? [...alongWith.value, other.id] : alongWith.value.filter((id) => id !== other.id);
+}
 
 async function onSubmit() {
     await run(async () => {
-        await props.submit({ lines: draft.requested() });
+        await props.submit({ lines: draft.requested(), alongWith: alongWith.value });
         emit('saved');
     });
 }
@@ -37,6 +46,12 @@ async function onSubmit() {
     <form class="split-line-form" novalidate @submit.prevent="onSubmit">
         <fieldset class="form-lock" :disabled="saving">
             <FormError v-if="errors.form || errors.lines">{{ errors.form ?? errors.lines }}</FormError>
+            <div v-if="others.length" class="split-line-form__along">
+                <label v-for="other in others" :key="other.id" class="split-line-form__other">
+                    <BaseCheckbox :model-value="alongWith.includes(other.id)" @update:model-value="include(other, $event)" />
+                    {{ t('orders.split.alongWith', { label: other.label, amount: formatCents(other.total) }) }}
+                </label>
+            </div>
             <FormSection :description="t('orders.split.intro')">
                 <OrderLinePicker :products="products" @add="draft.add" />
                 <OrderDraftLines :lines="draft.lines" :products="products" @quantity="draft.setQuantity" @remove="draft.remove" />
@@ -44,7 +59,7 @@ async function onSubmit() {
             <dl class="split-line-form__summary" data-test="split-summary">
                 <div class="split-line-form__row">
                     <dt>{{ t('orders.split.paid') }}</dt>
-                    <dd><MoneyAmount :cents="line.total" /></dd>
+                    <dd><MoneyAmount :cents="paid" /></dd>
                 </div>
                 <div class="split-line-form__row">
                     <dt>{{ t('orders.split.worth') }}</dt>
@@ -67,6 +82,8 @@ async function onSubmit() {
 
 <style scoped>
 .split-line-form { display: flex; flex-direction: column; gap: var(--space-5); }
+.split-line-form__along { display: flex; flex-direction: column; gap: var(--space-2); }
+.split-line-form__other { display: flex; align-items: center; gap: var(--space-2); cursor: pointer; }
 .split-line-form__summary { display: flex; flex-direction: column; gap: var(--space-1); margin: 0; }
 .split-line-form__row { display: flex; justify-content: space-between; gap: var(--space-3); }
 .split-line-form__row dd { margin: 0; }

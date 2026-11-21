@@ -30,7 +30,7 @@ final class ServicesApiTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         $report = Json::decode((string) $client->getResponse()->getContent());
-        self::assertSame(['sumup', 'SumUp', 2], [$report['service'], $report['label'], $report['ordersImported']]);
+        self::assertSame(['sumup', 'SumUp', 3], [$report['service'], $report['label'], $report['ordersImported']]);
         self::assertSame(['2030-03-21', '2030-03-23'], $report['datesWithoutEvent']);
     }
 

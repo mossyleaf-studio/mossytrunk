@@ -181,6 +181,7 @@
         "discount": "Added discount",
         "discountHint": "A catalogue discount when it explains the difference, otherwise the service's discount.",
         "worthLess": "The chosen products are worth less than the amount paid: add more or choose others.",
+        "alongWith": "Also split « {label} » ({amount}): one sale paid in several payments",
         "save": "Split",
         "saved": "Sale split between the chosen products."
     },

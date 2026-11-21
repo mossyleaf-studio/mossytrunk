@@ -17,7 +17,7 @@ test('import SumUp orders: one error for uncovered dates, no duplicates on re-im
     await page.goto('/orders');
     await page.getByRole('button', { name: 'Synchroniser' }).click();
 
-    await expect(page.getByTestId('toast')).toContainText('2 commandes importées');
+    await expect(page.getByTestId('toast')).toContainText('3 commandes importées');
     await expect(page.getByTestId('toast')).toContainText('2 produits créés');
     const problem = page.getByTestId('import-problem');
     await expect(problem).toHaveCount(1);
@@ -32,7 +32,7 @@ test('import SumUp orders: one error for uncovered dates, no duplicates on re-im
     await expect(page.getByRole('row').filter({ hasText: 'TFAKE0005' })).toHaveCount(0);
 
     await page.getByRole('button', { name: 'Synchroniser' }).click();
-    await expect(page.getByTestId('toast').last()).toContainText('0 commande importée, 2 déjà importées');
+    await expect(page.getByTestId('toast').last()).toContainText('0 commande importée, 3 déjà importées');
     await expect(page.getByRole('row').filter({ hasText: /TFAKE000[12]/ })).toHaveCount(2);
 
     await page.goto('/products');
@@ -95,6 +95,37 @@ test('an amount typed on the terminal for several items is split into their prod
     await expect(page.getByRole('row').filter({ hasText: 'Produit inconnu' })).toHaveCount(0);
     await expect(page.getByRole('row').filter({ hasText: badge.name })).toContainText('3,00');
     await expect(page.getByText('Remise SumUp')).toBeVisible();
+});
+
+test('a basket SumUp took in two payments is merged, then both typed amounts are split into its products', async ({ page, request }) => {
+    await addSumUp(request);
+    const sticker = await createProduct(request, { name: unique('Sticker'), sellingPrice: 250 });
+    await request.post('/api/events', { data: { name: 'Salon de printemps 2030', location: 'Lyon', startDate: '2030-03-14', endDate: '2030-03-15' } });
+    await request.post('/api/services/sumup/import');
+
+    await page.goto('/orders');
+    await choose(page, page.getByRole('combobox', { name: 'Événement' }), 'Salon de printemps 2030');
+    await page.getByRole('row').filter({ hasText: 'TFAKE0006' }).getByRole('link', { name: /^CMD-/ }).click();
+    await page.getByRole('button', { name: 'Fusionner avec…' }).click();
+    const merge = page.getByRole('dialog', { name: 'Fusionner deux commandes' });
+    await merge.getByRole('radio').filter({ hasText: 'TFAKE0002' }).click();
+    await merge.getByRole('button', { name: 'Fusionner', exact: true }).click();
+    await expect(page.getByTestId('toast')).toContainText('fusionnée dans celle-ci');
+    await expect(page.getByRole('row').filter({ hasText: 'Produit inconnu' })).toHaveCount(2);
+
+    await page.getByRole('button', { name: 'Répartir en plusieurs produits' }).first().click();
+    const dialog = page.getByRole('dialog', { name: 'Répartir en plusieurs produits' });
+    await dialog.getByRole('checkbox', { name: /Répartir aussi « Produit inconnu »/ }).click();
+    await expect(dialog.getByTestId('split-summary')).toContainText('6,00');
+    await choose(page, dialog.getByRole('combobox', { name: 'Produit' }), `${sticker.displayName} — 2,50 €`);
+    await dialog.getByLabel('Quantité', { exact: true }).fill('3');
+    await dialog.getByRole('button', { name: 'Ajouter', exact: true }).click();
+    await expect(dialog.getByTestId('split-summary')).toContainText('1,50');
+    await dialog.getByRole('button', { name: 'Répartir' }).click();
+
+    await expect(page.getByTestId('toast').last()).toContainText('Vente répartie entre les produits choisis.');
+    await expect(page.getByRole('row').filter({ hasText: 'Produit inconnu' })).toHaveCount(0);
+    await expect(page.getByRole('row').filter({ hasText: sticker.displayName })).toContainText('7,50');
 });
 
 test('two SumUp sales of one customer are merged into one order', async ({ page, request }) => {

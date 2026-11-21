@@ -32,7 +32,7 @@ final readonly class SplitOrderLineHandler
         $ruleDiscounts = null === $order->event() ? [] : $this->pricing->discounts($items, $order->placedAt());
         $service = $this->connectors->get($order->source())->describe()->label;
 
-        $order->splitLine($line->id(), $items, $ruleDiscounts, $this->translator->trans('import.discount', ['service' => $service]));
+        $order->splitLine($line->id(), $items, $ruleDiscounts, $this->translator->trans('import.discount', ['service' => $service]), array_map(Ulid::fromString(...), $command->alongWith));
         $this->transaction->commit();
     }
 }

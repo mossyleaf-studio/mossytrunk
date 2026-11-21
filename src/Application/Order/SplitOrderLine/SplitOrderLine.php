@@ -10,11 +10,13 @@ final readonly class SplitOrderLine
 {
     /**
      * @param list<RequestedLine> $lines
+     * @param list<string>        $alongWith
      */
     public function __construct(
         public string $orderId,
         public string $lineId,
         public array $lines,
+        public array $alongWith = [],
     ) {
     }
 }

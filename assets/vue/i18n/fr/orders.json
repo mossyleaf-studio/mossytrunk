@@ -181,6 +181,7 @@
         "discount": "Remise ajoutée",
         "discountHint": "Une remise du catalogue si elle explique la différence, sinon la remise du service.",
         "worthLess": "Les produits choisis valent moins que le montant payé : ajoutez-en ou choisissez-en d'autres.",
+        "alongWith": "Répartir aussi « {label} » ({amount}) : une même vente payée en plusieurs fois",
         "save": "Répartir",
         "saved": "Vente répartie entre les produits choisis."
     },
