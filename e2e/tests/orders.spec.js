@@ -8,6 +8,7 @@ test('place an order with automatic bundle discount while seeing the list', asyn
     const event = await createEvent(request);
     const sticker = await createProduct(request, { name: unique('Sticker'), sellingPrice: 400, buyingPrice: 100 });
     const tshirt = await createProduct(request, { name: unique('T-shirt'), sellingPrice: 2_000, variants: ['Mousse', 'Fougère'] });
+    const pin = await createProduct(request, { name: unique('Pin'), sellingPrice: 600, variants: ['Doré'] });
     const bundle = await createDiscountRule(request, {
         name: unique('3 stickers pour 10 €'),
         conditions: [{ quantity: 3, targets: [{ kind: 'product', id: sticker.id }] }],
@@ -26,6 +27,8 @@ test('place an order with automatic bundle discount while seeing the list', asyn
     await form.getByRole('group', { name: 'Variante' }).getByRole('button', { name: 'Fougère' }).click();
     await form.getByRole('button', { name: 'Ajouter', exact: true }).click();
 
+    await choose(page, form.getByRole('combobox', { name: 'Produit' }), `${pin.name} — 6,00 €`);
+    await expect(form.getByRole('group', { name: 'Variante' }).getByRole('button', { name: 'Doré' })).toHaveAttribute('data-state', 'on');
     await choose(page, form.getByRole('combobox', { name: 'Produit' }), `${sticker.name} — 4,00 €`);
     await expect(form.getByRole('group', { name: 'Variante' })).toHaveCount(0);
     await form.getByLabel('Quantité', { exact: true }).fill('3');

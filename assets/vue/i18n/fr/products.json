@@ -176,8 +176,6 @@
         "variant": "Variante",
         "destination": "Destination",
         "newProductName": "Nom du produit",
-        "targetProduct": "Produit",
-        "searchProduct": "Rechercher un produit…",
         "targetVariant": "Dans la variante",
         "summary": "Les ventes passées gardent leur prix et comptent désormais pour {target}.",
         "submit": "Déplacer",
@@ -333,5 +331,12 @@
         "label": "Aperçu de l'étiquette",
         "namePlaceholder": "Nom du produit",
         "unique": "Produit unique"
+    },
+    "picker": {
+        "product": "Produit",
+        "search": "Rechercher un produit…",
+        "variant": "Variante",
+        "chooseProduct": "Choisissez un produit.",
+        "chooseVariant": "Choisissez une variante pour « {product} »."
     }
 }

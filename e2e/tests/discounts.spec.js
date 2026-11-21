@@ -57,6 +57,7 @@ test('create "2 prints and 1 sticker for 15 €", start it today and delete it',
 
 test('a product variant condition and an amount off, edited afterwards', async ({ page, request }) => {
     const tshirt = await createProduct(request, { name: unique('T-shirt'), sellingPrice: 2_500, variants: ['S', 'M'] });
+    const sticker = await createProduct(request, { name: unique('Sticker'), sellingPrice: 400 });
     const name = unique('T-shirt −5 €');
 
     await page.goto('/discounts');
@@ -64,8 +65,12 @@ test('a product variant condition and an amount off, edited afterwards', async (
     const form = page.getByRole('dialog', { name: 'Nouvelle remise' }).locator('form');
     await form.getByLabel('Nom').fill(name);
     await form.getByRole('group', { name: 'Cible de la condition 1' }).getByRole('button', { name: 'Produit' }).click();
+    await choose(page, form.getByRole('combobox', { name: 'Produit de la condition 1' }), sticker.displayName);
+    await expect(form.getByRole('group', { name: 'Variante de la condition 1' })).toHaveCount(0);
     await choose(page, form.getByRole('combobox', { name: 'Produit de la condition 1' }), tshirt.displayName);
-    await choose(page, form.getByRole('combobox', { name: 'Variante de la condition 1' }), 'M');
+    const variants = form.getByRole('group', { name: 'Variante de la condition 1' });
+    await expect(variants.getByRole('button', { name: 'Toutes les variantes' })).toHaveAttribute('data-state', 'on');
+    await variants.getByRole('button', { name: 'M', exact: true }).click();
     await form.getByRole('group', { name: 'Type d\'action' }).getByRole('button', { name: 'Remise en €' }).click();
     await form.getByRole('spinbutton', { name: 'Montant', exact: true }).fill('5');
     await form.getByRole('button', { name: 'Créer la remise' }).click();
@@ -75,7 +80,7 @@ test('a product variant condition and an amount off, edited afterwards', async (
 
     await item.getByRole('button', { name: `Modifier ${name}` }).click();
     const edit = page.getByRole('dialog', { name: 'Modifier la remise' }).locator('form');
-    await expect(edit.getByRole('combobox', { name: 'Variante de la condition 1' })).toContainText('M');
+    await expect(edit.getByRole('group', { name: 'Variante de la condition 1' }).getByRole('button', { name: 'M', exact: true })).toHaveAttribute('data-state', 'on');
     await edit.getByRole('group', { name: 'Type d\'action' }).getByRole('button', { name: 'Remise en %' }).click();
     await edit.getByRole('spinbutton', { name: 'Pourcentage' }).fill('20');
     await edit.getByRole('button', { name: 'Enregistrer' }).click();

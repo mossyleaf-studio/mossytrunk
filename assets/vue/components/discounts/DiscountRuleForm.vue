@@ -17,6 +17,8 @@ import FormError from '../ui/FormError.vue';
 import FormField from '../ui/FormField.vue';
 import FormSection from '../ui/FormSection.vue';
 import IconButton from '../ui/IconButton.vue';
+import ProductPicker from '../products/ProductPicker.vue';
+import VariantChoice from '../products/VariantChoice.vue';
 import { describePeriod, describeRange, pricingDay, regularPrice, savingOn } from '../../composables/useRulePrice.js';
 import { formatDate } from '../../composables/useDate.js';
 import { useFormSubmit } from '../../composables/useFormSubmit.js';
@@ -53,20 +55,10 @@ const form = reactive(props.rule ? fromRule(props.rule) : emptyForm());
 const { saving, errors, run } = useFormSubmit();
 const isEditing = computed(() => props.rule !== null);
 
-const offered = (subjects, target) => subjects.filter((subject) => !subject.archived || subject.id === target.id);
-const productOptions = (target) => offered(props.products, target).map((product) => ({ value: product.id, label: product.displayName }));
-const typeOptions = (target) => offered(props.types, target).map((type) => ({ value: type.id, label: type.name }));
-const optionsFor = (target) => (target.kind === 'type' ? typeOptions(target) : productOptions(target));
-const subjectOf = (target) => (target.kind === 'type' ? props.types : props.products).find((subject) => subject.id === target.id);
-const archivedVariantsOf = (target) => (target.kind === 'type'
-    ? subjectOf(target)?.archivedVariants ?? []
-    : (subjectOf(target)?.variants ?? []).filter((variant) => !subjectOf(target).activeVariants.includes(variant)));
-const variantsOf = (target) => (subjectOf(target)?.variants ?? [])
-    .filter((variant) => variant === target.variant || !archivedVariantsOf(target).includes(variant));
-const variantOptions = (target) => [
-    { value: '', label: t('discounts.form.allVariants') },
-    ...variantsOf(target).map((variant) => ({ value: variant, label: variant })),
-];
+const typeOptions = (target) => props.types.filter((type) => !type.archived || type.id === target.id).map((type) => ({ value: type.id, label: type.name }));
+const typeOf = (target) => props.types.find((type) => type.id === target.id);
+const typeVariantsOf = (target) => (typeOf(target)?.variants ?? [])
+    .filter((variant) => variant === target.variant || !typeOf(target).archivedVariants.includes(variant));
 const collectionsOf = (target) => (target.kind === 'type' ? [...new Map(props.products
     .filter((product) => product.typeId === target.id && product.collectionId)
     .map((product) => [product.collectionId, product.collectionName])).entries()] : []);
@@ -191,25 +183,38 @@ async function onSubmit() {
                                         @click="condition.targets.splice(position, 1)"
                                     />
                                     <div class="discount-rule-form__target">
-                                        <BaseCombobox
-                                            :model-value="target.id"
-                                            :options="optionsFor(target)"
-                                            :aria-label="target.kind === 'type' ? t('discounts.form.conditionType', { number: targetNumber(index, position) }) : t('discounts.form.conditionProduct', { number: targetNumber(index, position) })"
-                                            :placeholder="target.kind === 'type' ? t('discounts.form.chooseType') : t('discounts.form.searchProduct')"
-                                            @update:model-value="(id) => setSubject(target, id ?? '')"
+                                        <ProductPicker
+                                            v-if="target.kind === 'product'"
+                                            v-model="target.id"
+                                            v-model:variant="target.variant"
+                                            :products="products"
+                                            :label="t('discounts.form.conditionProduct', { number: targetNumber(index, position) })"
+                                            :variant-label="t('discounts.form.conditionVariant', { number: targetNumber(index, position) })"
+                                            :extra-variants="target.variant ? [target.variant] : []"
+                                            :none="t('discounts.form.allVariants')"
                                         />
-                                        <BaseSelect
-                                            v-if="collectionsOf(target).length"
-                                            v-model="target.collectionId"
-                                            :options="collectionOptions(target)"
-                                            :aria-label="t('discounts.form.conditionCollection', { number: targetNumber(index, position) })"
-                                        />
-                                        <BaseSelect
-                                            v-if="variantsOf(target).length"
-                                            v-model="target.variant"
-                                            :options="variantOptions(target)"
-                                            :aria-label="t('discounts.form.conditionVariant', { number: targetNumber(index, position) })"
-                                        />
+                                        <template v-else>
+                                            <BaseCombobox
+                                                :model-value="target.id"
+                                                :options="typeOptions(target)"
+                                                :aria-label="t('discounts.form.conditionType', { number: targetNumber(index, position) })"
+                                                :placeholder="t('discounts.form.chooseType')"
+                                                @update:model-value="(id) => setSubject(target, id ?? '')"
+                                            />
+                                            <BaseSelect
+                                                v-if="collectionsOf(target).length"
+                                                v-model="target.collectionId"
+                                                :options="collectionOptions(target)"
+                                                :aria-label="t('discounts.form.conditionCollection', { number: targetNumber(index, position) })"
+                                            />
+                                            <VariantChoice
+                                                v-if="typeVariantsOf(target).length"
+                                                v-model="target.variant"
+                                                :options="typeVariantsOf(target)"
+                                                :none="t('discounts.form.allVariants')"
+                                                :aria-label="t('discounts.form.conditionVariant', { number: targetNumber(index, position) })"
+                                            />
+                                        </template>
                                     </div>
                                     <span v-if="targetError(index, position)" class="discount-rule-form__condition-error" role="alert">{{ targetError(index, position) }}</span>
                                 </li>

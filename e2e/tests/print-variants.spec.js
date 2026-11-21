@@ -54,7 +54,7 @@ test('a design drops A4 from its Print declination, and a discount on A3 prints 
     const ruleForm = page.getByRole('dialog', { name: 'Nouvelle remise' }).locator('form');
     await ruleForm.getByLabel('Nom').fill(rule);
     await choose(page, ruleForm.getByRole('combobox', { name: 'Type de la condition 1' }), printType.name);
-    await choose(page, ruleForm.getByRole('combobox', { name: 'Variante de la condition 1' }), 'A3');
+    await ruleForm.getByRole('group', { name: 'Variante de la condition 1' }).getByRole('button', { name: 'A3', exact: true }).click();
     await ruleForm.getByRole('group', { name: 'Type d\'action' }).getByRole('button', { name: 'Remise en %' }).click();
     await ruleForm.getByRole('spinbutton', { name: 'Pourcentage' }).fill('10');
     await ruleForm.getByRole('spinbutton', { name: 'Pourcentage' }).press('Tab');

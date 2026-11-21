@@ -54,12 +54,7 @@
         "notePlaceholder": "Pour qui, pourquoi… (ex. cadeau pour l'anniversaire de Léa)"
     },
     "picker": {
-        "product": "Produit",
-        "search": "Rechercher un produit…",
-        "variant": "Variante",
-        "quantity": "Quantité",
-        "chooseProduct": "Choisissez un produit.",
-        "chooseVariant": "Choisissez une variante pour « {product} »."
+        "quantity": "Quantité"
     },
     "lines": {
         "product": "Produit",
@@ -113,9 +108,6 @@
         "title": "Choisir le produit",
         "intro": "Le prix et la date de la vente ne changent pas ; le produit sort du stock comme une vente normale.",
         "line": "{quantity} × montant saisi à",
-        "product": "Produit",
-        "variant": "Variante",
-        "chooseProduct": "Choisissez un produit.",
         "save": "Associer",
         "saved": "Vente associée à « {name} »."
     },

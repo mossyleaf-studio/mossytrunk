@@ -108,14 +108,9 @@
         "inEuros": "soit {amount}"
     },
     "picker": {
-        "product": "Produit",
-        "searchProduct": "Rechercher un produit…",
-        "variant": "Variante",
         "quantity": "Quantité",
         "orderedQuantity": "Quantité commandée",
         "totalPrice": "Prix total",
-        "chooseProduct": "Choisissez un produit.",
-        "chooseVariant": "Choisissez une variante pour « {product} ».",
         "oneProduct": "Un produit",
         "wholeType": "Tout un type",
         "type": "Type",

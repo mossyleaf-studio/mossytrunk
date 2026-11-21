@@ -176,8 +176,6 @@
         "variant": "Variant",
         "destination": "Destination",
         "newProductName": "Product name",
-        "targetProduct": "Product",
-        "searchProduct": "Search a product…",
         "targetVariant": "As variant",
         "summary": "Past sales keep their price and now count for {target}.",
         "submit": "Move",
@@ -333,5 +331,12 @@
         "label": "Tag preview",
         "namePlaceholder": "Product name",
         "unique": "Single product"
+    },
+    "picker": {
+        "product": "Product",
+        "search": "Search for a product…",
+        "variant": "Variant",
+        "chooseProduct": "Choose a product.",
+        "chooseVariant": "Choose a variant for “{product}”."
     }
 }

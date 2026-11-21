@@ -3,13 +3,13 @@ import { computed, reactive, watch } from 'vue';
 import { RadioGroupRoot } from 'reka-ui';
 import { useI18n } from 'vue-i18n';
 import BaseButton from '../ui/BaseButton.vue';
-import BaseCombobox from '../ui/BaseCombobox.vue';
-import BaseSelect from '../ui/BaseSelect.vue';
 import FormActions from '../ui/FormActions.vue';
 import FormError from '../ui/FormError.vue';
 import FormField from '../ui/FormField.vue';
 import FormSection from '../ui/FormSection.vue';
 import RadioCard from '../ui/RadioCard.vue';
+import ProductPicker from './ProductPicker.vue';
+import VariantChoice from './VariantChoice.vue';
 import { useFormSubmit } from '../../composables/useFormSubmit.js';
 import { useProductTypes } from '../../composables/useProductTypes.js';
 import { sameVariant } from '../../composables/useVariantStock.js';
@@ -36,20 +36,13 @@ const form = reactive({
 const { saving, errors, run } = useFormSubmit();
 
 const hasVariants = computed(() => props.product.variants.length > 0);
-const variantOptions = computed(() => props.product.variants.map((variant) => ({ value: variant, label: variant })));
-const productOptions = computed(() => props.products
-    .filter((product) => product.id !== props.product.id)
-    .map((product) => ({ value: product.id, label: product.displayName })));
+const otherProducts = computed(() => props.products.filter((product) => product.id !== props.product.id));
 const modes = ['new', 'existing'];
 const target = computed(() => props.products.find((product) => product.id === form.targetProductId) ?? null);
 const targetName = computed(() => (form.mode === 'new' ? form.newProductName.trim() : target.value?.displayName ?? ''));
 
 const targetTypeId = computed(() => (form.mode === 'new' ? props.product.typeId : target.value?.typeId) ?? null);
 const targetVariants = computed(() => [...new Set([...variantsOf(targetTypeId.value), ...(form.mode === 'existing' ? target.value?.variants ?? [] : [])])]);
-const targetVariantOptions = computed(() => [
-    { value: '', label: t('products.move.noVariant') },
-    ...targetVariants.value.map((variant) => ({ value: variant, label: variant })),
-]);
 const targetChosen = computed(() => form.mode === 'new' || target.value !== null);
 
 const suggestedVariant = computed(() => {
@@ -85,7 +78,7 @@ function onSubmit() {
 
             <FormSection>
                 <FormField v-if="hasVariants" as="group" :label="t('products.move.variant')">
-                    <BaseSelect v-model="form.variant" :options="variantOptions" :aria-label="t('products.move.variant')" class="control--medium" />
+                    <VariantChoice v-model="form.variant" :options="product.variants" />
                 </FormField>
                 <FormField as="group" :label="t('products.move.destination')">
                     <RadioGroupRoot v-model="form.mode" class="move-variant-form__modes" :aria-label="t('products.move.destination')">
@@ -100,11 +93,25 @@ function onSubmit() {
                 <FormField v-if="form.mode === 'new'" :label="t('products.move.newProductName')" :error="errors.newProductName">
                     <input v-model="form.newProductName" type="text">
                 </FormField>
-                <FormField v-else as="group" :label="t('products.move.targetProduct')" :error="errors.targetProductId">
-                    <BaseCombobox v-model="form.targetProductId" :options="productOptions" :aria-label="t('products.move.targetProduct')" :placeholder="t('products.move.searchProduct')" />
+                <FormField v-if="form.mode === 'new'" as="group" :label="t('products.move.targetVariant')" :error="errors.targetVariant" :hint="targetVariants.length === 0 ? t('products.move.noTypeVariants') : null">
+                    <VariantChoice v-if="targetVariants.length" v-model="form.targetVariant" :options="targetVariants" :none="t('products.move.noVariant')" />
                 </FormField>
-                <FormField as="group" :label="t('products.move.targetVariant')" :error="errors.targetVariant" :hint="targetChosen && targetVariants.length === 0 ? t('products.move.noTypeVariants') : null">
-                    <BaseSelect v-model="form.targetVariant" :options="targetVariantOptions" :aria-label="t('products.move.targetVariant')" class="control--medium" />
+                <FormField
+                    v-else
+                    as="group"
+                    :label="t('products.picker.product')"
+                    :error="errors.targetProductId ?? errors.targetVariant"
+                    :hint="targetChosen && targetVariants.length === 0 ? t('products.move.noTypeVariants') : null"
+                >
+                    <ProductPicker
+                        v-model="form.targetProductId"
+                        v-model:variant="form.targetVariant"
+                        :products="otherProducts"
+                        :variant-label="t('products.move.targetVariant')"
+                        :preferred-variant="suggestedVariant"
+                        :extra-variants="targetVariants"
+                        :none="t('products.move.noVariant')"
+                    />
                 </FormField>
             </FormSection>
 

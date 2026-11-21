@@ -4,12 +4,12 @@ import { ToggleGroupItem } from 'reka-ui';
 import { Plus } from '@lucide/vue';
 import { useI18n } from 'vue-i18n';
 import BaseButton from '../ui/BaseButton.vue';
-import BaseCombobox from '../ui/BaseCombobox.vue';
 import BaseMoneyField from '../ui/BaseMoneyField.vue';
 import BaseNumberField from '../ui/BaseNumberField.vue';
 import BaseSelect from '../ui/BaseSelect.vue';
 import ChoiceGroup from '../ui/ChoiceGroup.vue';
 import FieldError from '../ui/FieldError.vue';
+import ProductPicker from '../products/ProductPicker.vue';
 import VariantPicker from '../products/VariantPicker.vue';
 import { useProductTypes } from '../../composables/useProductTypes.js';
 import { sameVariant } from '../../composables/useVariantStock.js';
@@ -26,6 +26,7 @@ const { activeTypes, variantsOf } = useProductTypes();
 const PRODUCT = 'product';
 const TYPE = 'type';
 const mode = ref(PRODUCT);
+const picker = ref(null);
 const productId = ref('');
 const variant = ref('');
 const typeId = ref('');
@@ -41,10 +42,6 @@ const unitPrice = ref(null);
 const error = ref(null);
 
 const purchasable = computed(() => props.products.filter((p) => !p.archived));
-const product = computed(() => purchasable.value.find((p) => p.id === productId.value) ?? null);
-const needsVariant = computed(() => (product.value?.activeVariants.length ?? 0) > 0);
-const productOptions = computed(() => purchasable.value.map((p) => ({ value: p.id, label: p.displayName })));
-const variantOptions = computed(() => (product.value?.activeVariants ?? []).map((v) => ({ value: v, label: v })));
 const typeOptions = computed(() => activeTypes.value
     .filter((type) => purchasable.value.some((p) => p.typeId === type.id))
     .map((type) => ({ value: type.id, label: type.name })));
@@ -68,11 +65,6 @@ const typeItems = computed(() => purchasable.value
         return p.activeVariants.filter(wanted).map((chosen) => ({ product: p, variant: chosen }));
     }));
 
-watch(productId, () => {
-    variant.value = '';
-    error.value = null;
-});
-
 watch(typeId, () => {
     typeVariants.value = [];
     collectionId.value = ANY;
@@ -91,19 +83,14 @@ function reset() {
 }
 
 function addProduct() {
-    if (!product.value) {
-        error.value = t('purchasing.picker.chooseProduct');
+    if (!picker.value.validate()) {
         return;
     }
-    if (needsVariant.value && !variant.value) {
-        error.value = t('purchasing.picker.chooseVariant', { product: product.value.displayName });
-        return;
-    }
-    const chosen = needsVariant.value ? variant.value : null;
+    const chosen = variant.value || null;
     emit('add', {
-        productId: product.value.id,
+        productId: productId.value,
         variant: chosen,
-        label: label(product.value, chosen),
+        label: label(props.products.find((p) => p.id === productId.value), chosen),
         quantity: Math.max(1, quantity.value ?? 1),
         totalPrice: totalPrice.value ?? 0,
     });
@@ -152,13 +139,9 @@ function addType() {
         <BaseButton variant="ghost" class="purchase-line-picker__create" @click="emit('create')"><Plus size="1rem" aria-hidden="true" /> {{ t('purchasing.form.newProduct') }}</BaseButton>
 
         <template v-if="mode === PRODUCT">
-            <label class="purchase-line-picker__field purchase-line-picker__product">
-                <span class="purchase-line-picker__label">{{ t('purchasing.picker.product') }}</span>
-                <BaseCombobox v-model="productId" :options="productOptions" :placeholder="t('purchasing.picker.searchProduct')" />
-            </label>
-            <div v-if="needsVariant" class="purchase-line-picker__field purchase-line-picker__variant">
-                <span class="purchase-line-picker__label" aria-hidden="true">{{ t('purchasing.picker.variant') }}</span>
-                <BaseSelect v-model="variant" :options="variantOptions" :aria-label="t('purchasing.picker.variant')" />
+            <div class="purchase-line-picker__field purchase-line-picker__product">
+                <span class="purchase-line-picker__label" aria-hidden="true">{{ t('products.picker.product') }}</span>
+                <ProductPicker ref="picker" v-model="productId" v-model:variant="variant" :products="products" />
             </div>
             <div class="purchase-line-picker__field purchase-line-picker__quantity">
                 <span class="purchase-line-picker__label" aria-hidden="true">{{ t('purchasing.picker.quantity') }}</span>
@@ -224,7 +207,6 @@ function addType() {
 .purchase-line-picker__field { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
 .purchase-line-picker__label { color: var(--color-muted); font-size: var(--font-size-sm); }
 .purchase-line-picker__product { flex: 1 1 100%; }
-.purchase-line-picker__variant { flex: 1 1 7rem; }
 .purchase-line-picker__quantity { flex: 0 0 7rem; }
 .purchase-line-picker__price { flex: 0 0 7.5rem; }
 

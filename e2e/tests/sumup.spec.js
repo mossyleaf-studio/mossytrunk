@@ -42,6 +42,8 @@ test('import SumUp orders: one error for uncovered dates, no duplicates on re-im
 
 test('an amount typed on the terminal is imported without product, then linked to one', async ({ page, request }) => {
     await addSumUp(request);
+    const print = await createProduct(request, { name: unique('Print'), sellingPrice: 1_500, variants: ['A4', 'A3'] });
+    const pin = await createProduct(request, { name: unique('Pin'), sellingPrice: 600, variants: ['Doré'] });
     await request.post('/api/events', { data: { name: 'Salon de printemps 2030', location: 'Lyon', startDate: '2030-03-14', endDate: '2030-03-15' } });
     await request.post('/api/services/sumup/import');
 
@@ -55,7 +57,14 @@ test('an amount typed on the terminal is imported without product, then linked t
 
     await page.getByRole('button', { name: 'Choisir le produit' }).click();
     const dialog = page.getByRole('dialog', { name: 'Choisir le produit' });
+    await choose(page, dialog.getByRole('combobox', { name: 'Produit' }), print.name);
+    await expect(dialog.getByRole('group', { name: 'Variante' }).locator('[data-state="on"]')).toHaveCount(0);
+    await dialog.getByRole('button', { name: 'Associer' }).click();
+    await expect(dialog.getByRole('alert')).toContainText(`Choisissez une variante pour « ${print.name} ».`);
+    await choose(page, dialog.getByRole('combobox', { name: 'Produit' }), pin.name);
+    await expect(dialog.getByRole('group', { name: 'Variante' }).getByRole('button', { name: 'Doré' })).toHaveAttribute('data-state', 'on');
     await choose(page, dialog.getByRole('combobox', { name: 'Produit' }), 'Tote bag');
+    await expect(dialog.getByRole('group', { name: 'Variante' })).toHaveCount(0);
     await dialog.getByRole('button', { name: 'Associer' }).click();
 
     await expect(page.getByTestId('toast')).toContainText('Vente associée à « Tote bag ».');

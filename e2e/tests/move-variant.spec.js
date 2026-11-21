@@ -22,7 +22,7 @@ test('products split per variant are gathered into one product, their sales with
     await page.getByRole('button', { name: `Faire de ${lichen.name} une variante` }).click();
     let dialog = page.getByRole('dialog', { name: 'Faire une variante de ce produit' });
     await expect(dialog.getByLabel('Nom du produit')).toHaveValue(mug);
-    await expect(dialog.getByRole('combobox', { name: 'Dans la variante' })).toHaveText('Lichen');
+    await expect(dialog.getByRole('group', { name: 'Dans la variante' }).getByRole('button', { name: 'Lichen' })).toHaveAttribute('data-state', 'on');
     await dialog.getByRole('button', { name: 'Déplacer' }).click();
     await expect(page.getByTestId('toast')).toContainText(`Déplacé vers « ${mug} — Lichen ».`);
 
@@ -31,7 +31,7 @@ test('products split per variant are gathered into one product, their sales with
     dialog = page.getByRole('dialog', { name: 'Faire une variante de ce produit' });
     await dialog.getByRole('radiogroup', { name: 'Destination' }).getByRole('radio', { name: /^Produit existant/ }).click();
     await choose(page, dialog.getByRole('combobox', { name: 'Produit', exact: true }), mug);
-    await expect(dialog.getByRole('combobox', { name: 'Dans la variante' })).toHaveText('Fougère');
+    await expect(dialog.getByRole('group', { name: 'Dans la variante' }).getByRole('button', { name: 'Fougère' })).toHaveAttribute('data-state', 'on');
     await dialog.getByRole('button', { name: 'Déplacer' }).click();
     await expect(page.getByTestId('toast').last()).toContainText(`Déplacé vers « ${mug} — Fougère ».`);
 
@@ -42,4 +42,19 @@ test('products split per variant are gathered into one product, their sales with
 
     await page.goto(`/orders/${order.id}`);
     await expect(page.getByRole('cell', { name: `${mug} — Lichen` })).toBeVisible();
+});
+
+test('a product moved into a product without variants is offered no variant', async ({ page, request }) => {
+    const type = await createType(request, unique('Badges'), { prefixesNames: false });
+    const target = await createProduct(request, { name: unique('Badge'), type });
+    const moved = await createProduct(request, { name: unique('Badge rond'), type });
+
+    await page.goto('/products');
+    await page.getByLabel('Rechercher un produit').fill(moved.name);
+    await page.getByRole('button', { name: `Faire de ${moved.name} une variante` }).click();
+    const dialog = page.getByRole('dialog', { name: 'Faire une variante de ce produit' });
+    await dialog.getByRole('radiogroup', { name: 'Destination' }).getByRole('radio', { name: /^Produit existant/ }).click();
+    await choose(page, dialog.getByRole('combobox', { name: 'Produit', exact: true }), target.name);
+    await expect(dialog.getByRole('group', { name: 'Dans la variante' })).toHaveCount(0);
+    await expect(dialog.getByText("Ce type n'a pas de variante")).toBeVisible();
 });

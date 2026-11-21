@@ -5,6 +5,7 @@ import { createProduct } from './support/api.js';
 
 test('order from a new supplier, receive more than ordered, and stock the real unit cost', async ({ page, request }) => {
     const product = await createProduct(request, { name: unique('Print'), sellingPrice: 1_500, variants: ['A4'] });
+    const sleeve = await createProduct(request, { name: unique('Pochette'), sellingPrice: 100 });
     const supplier = unique('Imprimerie');
 
     await page.goto('/supplier-orders');
@@ -15,8 +16,10 @@ test('order from a new supplier, receive more than ordered, and stock the real u
     await form.getByRole('button', { name: 'Créer', exact: true }).click();
     await expect(form.getByRole('combobox', { name: 'Fournisseur' })).toHaveText(supplier);
 
+    await choose(page, form.getByRole('combobox', { name: 'Produit' }), sleeve.name);
+    await expect(form.getByRole('group', { name: 'Variante' })).toHaveCount(0);
     await choose(page, form.getByRole('combobox', { name: 'Produit' }), product.name);
-    await choose(page, form.getByRole('combobox', { name: 'Variante' }), 'A4');
+    await expect(form.getByRole('group', { name: 'Variante' }).getByRole('button', { name: 'A4' })).toHaveAttribute('data-state', 'on');
     await form.getByRole('spinbutton', { name: 'Quantité commandée' }).fill('20');
     await form.getByLabel('Prix total', { exact: true }).fill('60');
     await form.getByRole('button', { name: 'Ajouter', exact: true }).click();

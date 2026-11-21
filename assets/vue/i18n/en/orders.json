@@ -54,12 +54,7 @@
         "notePlaceholder": "Who for, why… (e.g. birthday gift for Lea)"
     },
     "picker": {
-        "product": "Product",
-        "search": "Search for a product…",
-        "variant": "Variant",
-        "quantity": "Quantity",
-        "chooseProduct": "Choose a product.",
-        "chooseVariant": "Choose a variant for “{product}”."
+        "quantity": "Quantity"
     },
     "lines": {
         "product": "Product",
@@ -113,9 +108,6 @@
         "title": "Choose the product",
         "intro": "The sale keeps its price and date; the product leaves the stock like any sale.",
         "line": "{quantity} × amount typed at",
-        "product": "Product",
-        "variant": "Variant",
-        "chooseProduct": "Choose a product.",
         "save": "Link",
         "saved": "Sale linked to “{name}”."
     },

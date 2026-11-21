@@ -1,13 +1,12 @@
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import BaseButton from '../ui/BaseButton.vue';
-import BaseCombobox from '../ui/BaseCombobox.vue';
-import BaseSelect from '../ui/BaseSelect.vue';
 import FormActions from '../ui/FormActions.vue';
 import FormField from '../ui/FormField.vue';
 import FormSection from '../ui/FormSection.vue';
 import MoneyAmount from '../ui/MoneyAmount.vue';
+import ProductPicker from '../products/ProductPicker.vue';
 import { useFormSubmit } from '../../composables/useFormSubmit.js';
 
 const props = defineProps({
@@ -18,27 +17,20 @@ const props = defineProps({
 const emit = defineEmits(['saved', 'cancel']);
 const { t } = useI18n();
 
+const picker = ref(null);
 const productId = ref('');
 const variant = ref('');
 const { saving, errors, run } = useFormSubmit('productId');
 
-const product = computed(() => props.products.find((candidate) => candidate.id === productId.value) ?? null);
-const productOptions = computed(() => props.products.filter((candidate) => !candidate.archived).map((candidate) => ({ value: candidate.id, label: candidate.displayName })));
-const variantOptions = computed(() => (product.value?.activeVariants ?? []).map((option) => ({ value: option, label: option })));
-
-watch(productId, () => {
-    variant.value = variantOptions.value[0]?.value ?? '';
-    errors.value = {};
-});
+watch(productId, () => { errors.value = {}; });
 
 async function onSubmit() {
-    if (!product.value) {
-        errors.value = { productId: t('orders.identify.chooseProduct') };
+    if (!picker.value.validate()) {
         return;
     }
     await run(async () => {
-        await props.submit({ productId: product.value.id, variant: variantOptions.value.length ? variant.value : null });
-        emit('saved', product.value.displayName);
+        await props.submit({ productId: productId.value, variant: variant.value || null });
+        emit('saved', props.products.find((product) => product.id === productId.value).displayName);
     });
 }
 </script>
@@ -50,11 +42,8 @@ async function onSubmit() {
                 <p class="identify-line-form__line">
                     {{ t('orders.identify.line', { quantity: line.quantity }) }} <MoneyAmount :cents="line.unitPrice" />
                 </p>
-                <FormField as="group" :label="t('orders.identify.product')" :error="errors.productId">
-                    <BaseCombobox v-model="productId" :options="productOptions" :placeholder="t('orders.picker.search')" :aria-label="t('orders.identify.product')" />
-                </FormField>
-                <FormField v-if="variantOptions.length" as="group" :label="t('orders.identify.variant')" :error="errors.variant">
-                    <BaseSelect v-model="variant" :options="variantOptions" :aria-label="t('orders.identify.variant')" />
+                <FormField as="group" :label="t('products.picker.product')" :error="errors.productId ?? errors.variant">
+                    <ProductPicker ref="picker" v-model="productId" v-model:variant="variant" :products="products" />
                 </FormField>
             </FormSection>
             <FormActions>
