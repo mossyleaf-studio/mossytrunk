@@ -26,7 +26,8 @@ const needsVariant = computed(() => (product.value?.variants.length ?? 0) > 0);
 const productOptions = computed(() => props.products.filter((p) => !p.archived).map((p) => ({ value: p.id, label: `${p.displayName} — ${formatCents(p.sellingPrice)}` })));
 
 watch(productId, () => {
-    variant.value = product.value?.activeVariants.find((option) => option.toLowerCase() === props.preferredVariant?.toLowerCase()) ?? '';
+    const options = product.value?.activeVariants ?? [];
+    variant.value = options.find((option) => option.toLowerCase() === props.preferredVariant?.toLowerCase()) ?? (options.length === 1 ? options[0] : '');
     error.value = null;
 });
 

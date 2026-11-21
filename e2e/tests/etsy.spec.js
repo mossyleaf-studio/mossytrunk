@@ -5,6 +5,7 @@ import { createProduct, forgetService } from './support/api.js';
 test('connect the Etsy shop, import its orders and link an unknown listing to a bundle of products', async ({ page, request }) => {
     await createProduct(request, { name: 'Sticker Mousse', sellingPrice: 400 });
     const print = await createProduct(request, { name: 'Print Forêt Etsy', sellingPrice: 1_800, variants: ['A4', 'A3'] });
+    const pin = await createProduct(request, { name: 'Pin Lichen Etsy', sellingPrice: 600, variants: ['Doré'] });
 
     await forgetService(request, 'etsy');
     await page.goto('/settings');
@@ -36,6 +37,8 @@ test('connect the Etsy shop, import its orders and link an unknown listing to a 
     const linker = page.getByRole('dialog', { name: 'Articles Etsy' });
     const a4 = linker.getByRole('listitem').filter({ hasText: /^Illustration forêt/ }).filter({ has: page.getByText('A4', { exact: true }) });
     await a4.getByRole('button', { name: 'Associer', exact: true }).click();
+    await choose(page, a4.getByRole('combobox', { name: 'Produit' }), `${pin.name} — 6,00 €`);
+    await expect(a4.getByRole('group', { name: 'Variante' }).getByRole('button', { name: 'Doré' })).toHaveAttribute('data-state', 'on');
     await choose(page, a4.getByRole('combobox', { name: 'Produit' }), `${print.name} — 18,00 €`);
     await expect(a4.getByRole('group', { name: 'Variante' }).getByRole('button', { name: 'A4' })).toHaveAttribute('data-state', 'on');
     await a4.getByRole('button', { name: 'Ajouter', exact: true }).click();
