@@ -46,6 +46,21 @@ test('schedule an event and track its expenses', async ({ page }) => {
     await expect(target.getByTestId('target-per-day')).toContainText('122,33');
 });
 
+test('an ongoing event shows its sales target', async ({ page, request }) => {
+    const { createEvent } = await import('./support/api.js');
+    const today = Date.parse(new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(new Date()));
+    const day = (offset) => new Date(today + offset * 86_400_000).toISOString().slice(0, 10);
+    const event = await createEvent(request, { startDate: day(-1), endDate: day(1) });
+    const expense = await request.post(`/api/events/${event.id}/expenses`, { data: { label: 'Stand', amount: 32_000 } });
+    expect(expense.status()).toBe(201);
+
+    await page.goto(`/events/${event.id}`);
+
+    const target = page.getByRole('region', { name: 'Objectif de ventes' });
+    await expect(target.getByTestId('target-total')).toContainText('366,98');
+    await expect(target.getByTestId('target-per-day')).toContainText('122,33');
+});
+
 test('share an expense with the next event', async ({ page, request }) => {
     const { createEvent } = await import('./support/api.js');
     const first = await createEvent(request, { startDate: uniqueDay() });

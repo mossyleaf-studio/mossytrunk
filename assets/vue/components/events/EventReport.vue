@@ -11,7 +11,7 @@ import { resultLines } from '../../composables/useResultLines.js';
 const props = defineProps({
     report: { type: Object, required: true },
     eventId: { type: String, required: true },
-    upcoming: { type: Boolean, default: false },
+    timing: { type: String, required: true },
     target: { type: Object, default: null },
     typeColors: { type: Map, required: true },
 });
@@ -26,7 +26,7 @@ const lines = computed(() => resultLines(props.report.total, {
 </script>
 
 <template>
-    <section v-if="upcoming && report.orders.count === 0" class="event-report event-report--upcoming" :aria-label="t('events.report.committedExpenses')">
+    <section v-if="timing === 'upcoming' && report.orders.count === 0" class="event-report event-report--upcoming" :aria-label="t('events.report.committedExpenses')">
         <h2 class="event-report__title">{{ t('events.report.committedExpenses') }}</h2>
         <p class="event-report__committed"><MoneyAmount :cents="report.total.expenses" /></p>
         <p class="event-report__summary">{{ t('events.report.noSales') }}</p>
@@ -47,6 +47,7 @@ const lines = computed(() => resultLines(props.report.total, {
                 <template v-if="report.orders.count > 0">{{ t('events.report.orderCount', report.orders.count) }}</template>
                 <template v-else>{{ t('events.report.noOrders') }}</template>
             </p>
+            <SalesTarget v-if="timing !== 'past' && target && target.expenses > 0" :target="target" />
             <div class="event-report__aside"><slot name="aside" /></div>
         </template>
 

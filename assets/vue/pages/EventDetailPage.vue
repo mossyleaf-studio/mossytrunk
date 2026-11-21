@@ -135,7 +135,7 @@ onMounted(() => Promise.all([load(), loadTypes(), loadChecks()]));
                 @cancel-restock="onRestockCancelled"
             />
 
-            <EventReport :report="report" :event-id="event.id" :upcoming="event.timing === 'upcoming'" :target="target" :type-colors="typeColors">
+            <EventReport :report="report" :event-id="event.id" :timing="event.timing" :target="target" :type-colors="typeColors">
                 <template #aside>
                     <section class="event-detail-page__expenses" aria-labelledby="event-expenses">
                         <h3 id="event-expenses" class="event-detail-page__expenses-title">{{ t('events.detail.expenses') }}</h3>

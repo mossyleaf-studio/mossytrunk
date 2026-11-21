@@ -45,8 +45,8 @@ chiffre d'affaires − coût d'achat − dépenses − URSSAF (rate shown) = **R
 
 ## Sales target (Objectif de ventes)
 
-An **upcoming** event with expenses shows how much it must sell to break even (result = 0), over the event and per day.
-Use case `GetSalesTarget` → `GET /api/events/{id}/target`; model `src/Domain/Reporting/SalesTarget.php`; UI: `SalesTarget.vue` in the upcoming report card.
+An **upcoming** or **ongoing** event with expenses shows how much it must sell to break even (result = 0), over the event and per day.
+Use case `GetSalesTarget` → `GET /api/events/{id}/target`; model `src/Domain/Reporting/SalesTarget.php`; UI: `SalesTarget.vue` in the upcoming report card, and in the result's summary once the event is ongoing or has orders (never for a past event).
 
 ```
 cost rate          = median over past events with sales of (cost of goods + supplies + supplies consumed + channel costs) / turnover
