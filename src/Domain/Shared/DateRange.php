@@ -50,6 +50,15 @@ final readonly class DateRange
         return $this->start->diff($this->end)->days + 1;
     }
 
+    public function daysLeftOn(\DateTimeImmutable $moment): int
+    {
+        $from = max(BusinessTime::day($moment), $this->start->format('Y-m-d'));
+        $end = $this->end->format('Y-m-d');
+        $utc = new \DateTimeZone('UTC');
+
+        return $from > $end ? 0 : (int) new \DateTimeImmutable($from, $utc)->diff(new \DateTimeImmutable($end, $utc))->days + 1;
+    }
+
     public static function yearOf(\DateTimeImmutable $moment): int
     {
         return (int) BusinessTime::local($moment)->format('Y');

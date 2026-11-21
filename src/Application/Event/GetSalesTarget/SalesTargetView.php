@@ -18,6 +18,10 @@ final readonly class SalesTargetView
         public int $basedOnEvents,
         public ?int $total,
         public ?int $perDay,
+        public int $sold,
+        public int $daysLeft,
+        public ?int $remaining,
+        public ?int $remainingPerDay,
     ) {
     }
 
@@ -32,6 +36,10 @@ final readonly class SalesTargetView
             $target->basedOnEvents,
             $target->total?->amount(),
             $target->perDay?->amount(),
+            $target->sold->amount(),
+            $target->daysLeft,
+            $target->remaining?->amount(),
+            $target->remainingPerDay?->amount(),
         );
     }
 }

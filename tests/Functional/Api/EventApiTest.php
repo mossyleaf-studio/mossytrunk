@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Api;
 
 use App\Tests\Support\Json;
+use App\Tests\Support\ProductTypesApi;
 use App\Tests\Support\SignsInClient;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Clock\Test\ClockSensitiveTrait;
 
 final class EventApiTest extends WebTestCase
 {
+    use ClockSensitiveTrait;
     use SignsInClient;
 
     public function testEventLifecycle(): void
@@ -104,6 +107,24 @@ final class EventApiTest extends WebTestCase
         $target = Json::decode((string) $client->getResponse()->getContent());
 
         self::assertSame([8_720, 1, 12.8, 10_000, 10_000], [$target['expenses'], $target['days'], $target['urssafRate'], $target['total'], $target['perDay']]);
+    }
+
+    public function testAnOngoingEventTargetCountsWhatIsAlreadySold(): void
+    {
+        self::mockTime('2031-06-02 18:00');
+        $client = self::signedInClient();
+        $client->jsonRequest('POST', '/api/events', ['name' => 'Salon', 'location' => 'Lyon', 'startDate' => '2031-06-01', 'endDate' => '2031-06-03']);
+        $id = Json::string(Json::decode((string) $client->getResponse()->getContent()), 'id');
+        $client->jsonRequest('POST', "/api/events/$id/expenses", ['label' => 'Stand', 'amount' => 8_720]);
+        $client->jsonRequest('POST', '/api/products', ['name' => 'Forêt', 'sellingPrice' => 4_000, 'typeId' => ProductTypesApi::create($client)]);
+        $product = Json::string(Json::decode((string) $client->getResponse()->getContent()), 'id');
+        $client->jsonRequest('POST', '/api/orders', ['placedAt' => '2031-06-01T15:30', 'lines' => [['productId' => $product, 'variant' => null, 'quantity' => 1]]]);
+        self::assertResponseStatusCodeSame(201);
+
+        $client->jsonRequest('GET', "/api/events/$id/target");
+        $target = Json::decode((string) $client->getResponse()->getContent());
+
+        self::assertSame([10_000, 4_000, 6_000, 2, 3_000], [$target['total'], $target['sold'], $target['remaining'], $target['daysLeft'], $target['remainingPerDay']]);
     }
 
     public function testEndBeforeStartIsRejected(): void

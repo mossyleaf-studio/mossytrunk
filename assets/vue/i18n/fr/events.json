@@ -126,6 +126,10 @@
         "covers": "Pour couvrir {expenses} de dépenses et l'URSSAF ({urssaf} du CA),",
         "costs": "avec le coût d'achat, les fournitures et les frais médians : {rate} du CA {events}.",
         "events": "sur {count} événement passé | sur {count} événements passés",
-        "noHistory": "sans compter le coût d'achat : aucun événement passé n'a de ventes."
+        "noHistory": "sans compter le coût d'achat : aucun événement passé n'a de ventes.",
+        "remainingPerDay": "Reste par jour | Reste par jour sur {count} jours",
+        "remaining": "Reste à vendre",
+        "sold": "Déjà vendu",
+        "reached": "Objectif atteint : {sold} vendus sur {total}."
     }
 }

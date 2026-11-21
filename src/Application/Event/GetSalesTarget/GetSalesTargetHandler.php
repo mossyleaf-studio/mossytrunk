@@ -43,6 +43,8 @@ final readonly class GetSalesTargetHandler
             $pastEvents[] = ['figures' => SalesFigures::of($sales[$key] ?? SalesTotals::zero(), $shares->totalOf($past), $consumed[$key] ?? null), 'days' => $past->period()->days()];
         }
 
-        return SalesTargetView::of(SalesTarget::of($shares->totalOf($event), $event->period()->days(), $pastEvents));
+        $sold = ($sales[(string) $event->id()] ?? SalesTotals::zero())->turnover();
+
+        return SalesTargetView::of(SalesTarget::of($shares->totalOf($event), $event->period()->days(), $pastEvents, $sold, $event->period()->daysLeftOn($today)));
     }
 }

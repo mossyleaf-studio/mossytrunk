@@ -13,7 +13,28 @@ const { t } = useI18n();
 <template>
     <section class="sales-target" aria-labelledby="sales-target-title">
         <h3 id="sales-target-title" class="sales-target__title">{{ t('events.target.title') }}</h3>
-        <dl v-if="target.total !== null" class="sales-target__figures">
+        <p v-if="target.remaining === 0" class="sales-target__reached" data-test="target-reached">
+            {{ t('events.target.reached', { sold: formatCents(target.sold), total: formatCents(target.total) }) }}
+        </p>
+        <dl v-else-if="target.total !== null && target.sold > 0" class="sales-target__figures">
+            <div class="sales-target__figure">
+                <dt>{{ t('events.target.remainingPerDay', target.daysLeft) }}</dt>
+                <dd data-test="target-remaining-per-day"><MoneyAmount :cents="target.remainingPerDay" /></dd>
+            </div>
+            <div class="sales-target__figure">
+                <dt>{{ t('events.target.remaining') }}</dt>
+                <dd data-test="target-remaining"><MoneyAmount :cents="target.remaining" /></dd>
+            </div>
+            <div class="sales-target__figure sales-target__figure--usual">
+                <dt>{{ t('events.target.sold') }}</dt>
+                <dd><MoneyAmount :cents="target.sold" /> / <MoneyAmount :cents="target.total" /></dd>
+            </div>
+            <div v-if="target.usualPerDay !== null" class="sales-target__figure sales-target__figure--usual">
+                <dt>{{ t('events.target.usualPerDay') }}</dt>
+                <dd><MoneyAmount :cents="target.usualPerDay" /></dd>
+            </div>
+        </dl>
+        <dl v-else-if="target.total !== null" class="sales-target__figures">
             <div class="sales-target__figure">
                 <dt>{{ t('events.target.perDay', target.days) }}</dt>
                 <dd data-test="target-per-day"><MoneyAmount :cents="target.perDay" /></dd>
@@ -43,5 +64,6 @@ const { t } = useI18n();
 .sales-target__figure dt { font-size: var(--font-size-xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-muted); }
 .sales-target__figure dd { margin: var(--space-1) 0 0; font-family: var(--font-display); font-size: 1.75rem; line-height: 1.1; }
 .sales-target__figure--usual dd { font-family: inherit; font-size: var(--font-size); color: var(--color-muted); }
+.sales-target__reached { margin: 0 0 var(--space-3); font-family: var(--font-display); font-size: 1.25rem; }
 .sales-target__hint { margin: 0; font-size: var(--font-size-md); color: var(--color-muted); }
 </style>

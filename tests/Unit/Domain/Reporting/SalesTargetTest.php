@@ -50,6 +50,28 @@ final class SalesTargetTest extends TestCase
         self::assertNull($target->perDay);
     }
 
+    public function testWhatIsAlreadySoldLeavesTheRestToSellOverTheDaysLeft(): void
+    {
+        $target = SalesTarget::of(Money::cents(8_720), 3, [], Money::cents(4_000), 2);
+
+        self::assertSame([10_000, 4_000, 6_000, 2, 3_000], [$target->total?->amount(), $target->sold->amount(), $target->remaining?->amount(), $target->daysLeft, $target->remainingPerDay?->amount()]);
+    }
+
+    public function testATargetAlreadyReachedLeavesNothingToSell(): void
+    {
+        $target = SalesTarget::of(Money::cents(8_720), 2, [], Money::cents(12_000), 1);
+
+        self::assertSame([0, 0], [$target->remaining?->amount(), $target->remainingPerDay?->amount()]);
+    }
+
+    public function testAnUnreachableTargetLeavesNoRest(): void
+    {
+        $target = SalesTarget::of(Money::cents(10_000), 1, [self::past(10_000, 9_000, 1)], Money::cents(500), 1);
+
+        self::assertNull($target->remaining);
+        self::assertNull($target->remainingPerDay);
+    }
+
     /**
      * @return array{figures: SalesFigures, days: int}
      */

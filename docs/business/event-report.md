@@ -53,6 +53,8 @@ cost rate          = median over past events with sales of (cost of goods + supp
 target             = expenses / (1 − URSSAF rate − cost rate)       (rounded up to the cent)
 target per day     = target / days of the event                      (rounded up to the cent)
 usual sales per day = median over past events with sales of turnover / days
+left to sell       = max(0, target − turnover already recorded on the event)
+left per day       = left to sell / days left (today included)        (rounded up to the cent)
 ```
 
 | # | Rule | Where | Tests |
@@ -60,3 +62,4 @@ usual sales per day = median over past events with sales of turnover / days
 | R8 | The target covers the event's expenses (its shares, E8), URSSAF (R1) and the **median** cost rate of the workspace's **past** events with a turnover > 0 (a median, so one odd event does not skew it). Without such an event the cost rate is 0. Donations are not counted | `SalesTarget::of()`, `GetSalesTargetHandler` | `SalesTargetTest`, `EventApiTest` |
 | R9 | When URSSAF and the cost rate reach 100 % of the turnover the target is out of reach (`total`/`perDay` null) | `SalesTarget::of()` | `SalesTargetTest` |
 | R10 | The median sales per day of past events are shown next to the target, to judge whether it is realistic | `SalesTarget::of()` | `SalesTargetTest` |
+| R11 | Once the event has sales (imported or entered), the target shows what is **left to sell**, over the event and per **day left** (today included, so a mid-day import updates today's share), with what is already sold; once reached, « Objectif atteint » | `SalesTarget::of()`, `DateRange::daysLeftOn()`, `GetSalesTargetHandler` | `SalesTargetTest`, `DateRangeTest`, `EventApiTest`, e2e `events.spec.js` |

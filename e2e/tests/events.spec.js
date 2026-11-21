@@ -59,6 +59,17 @@ test('an ongoing event shows its sales target', async ({ page, request }) => {
     const target = page.getByRole('region', { name: 'Objectif de ventes' });
     await expect(target.getByTestId('target-total')).toContainText('366,98');
     await expect(target.getByTestId('target-per-day')).toContainText('122,33');
+
+    const { createProduct } = await import('./support/api.js');
+    const product = await createProduct(request, { sellingPrice: 10_000 });
+    const order = await request.post('/api/orders', { data: { placedAt: `${day(-1)}T11:00`, lines: [{ productId: product.id, variant: null, quantity: 1 }] } });
+    expect(order.status()).toBe(201);
+
+    await page.reload();
+
+    await expect(target.getByTestId('target-remaining')).toContainText('266,98');
+    await expect(target.getByTestId('target-remaining-per-day')).toContainText('133,49');
+    await expect(target).toContainText('Reste par jour sur 2 jours');
 });
 
 test('share an expense with the next event', async ({ page, request }) => {

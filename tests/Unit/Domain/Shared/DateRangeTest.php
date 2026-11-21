@@ -61,6 +61,17 @@ final class DateRangeTest extends TestCase
         self::assertSame(4, DateRange::fromDates(new \DateTimeImmutable('2026-07-09'), new \DateTimeImmutable('2026-07-12'))->days());
     }
 
+    public function testCountsTheDaysLeftFromTodayIncluded(): void
+    {
+        $range = DateRange::fromDates(new \DateTimeImmutable('2026-07-09'), new \DateTimeImmutable('2026-07-12'));
+        $paris = new \DateTimeZone('Europe/Paris');
+
+        self::assertSame(4, $range->daysLeftOn(new \DateTimeImmutable('2026-07-01 10:00', $paris)));
+        self::assertSame(3, $range->daysLeftOn(new \DateTimeImmutable('2026-07-10 23:30', $paris)));
+        self::assertSame(1, $range->daysLeftOn(new \DateTimeImmutable('2026-07-12 08:00', $paris)));
+        self::assertSame(0, $range->daysLeftOn(new \DateTimeImmutable('2026-07-13 08:00', $paris)));
+    }
+
     public function testYearOfUsesParisLocalDate(): void
     {
         self::assertSame(2027, DateRange::yearOf(new \DateTimeImmutable('2026-12-31T23:30:00+00:00')));
