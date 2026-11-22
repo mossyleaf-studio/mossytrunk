@@ -9,11 +9,15 @@ use Symfony\Component\Uid\Ulid;
 
 final readonly class AppliedDiscount
 {
+    /**
+     * @param list<CoveredUnits> $covers
+     */
     public function __construct(
         public string $label,
         public Money $amount,
         public ?Ulid $ruleId = null,
         public ?DiscountAction $manualAction = null,
+        public array $covers = [],
     ) {
     }
 
@@ -25,6 +29,32 @@ final readonly class AppliedDiscount
     public function isManual(): bool
     {
         return null !== $this->manualAction;
+    }
+
+    public function awaitsItsCovers(): bool
+    {
+        return null !== $this->ruleId && !$this->isManual() && [] === $this->covers;
+    }
+
+    /**
+     * @param list<self> $calculated
+     */
+    public function coveredAs(array $calculated): self
+    {
+        foreach ($calculated as $discount) {
+            if ($this->awaitsItsCovers() && null !== $discount->ruleId && $discount->ruleId->equals($this->ruleId)) {
+                return new self($this->label, $this->amount, $this->ruleId, null, $discount->covers);
+            }
+        }
+
+        return $this;
+    }
+
+    public function withSalesMoved(Ulid $productId, ?string $variant, Ulid $toProductId, ?string $toVariant): self
+    {
+        $covers = array_map(static fn (CoveredUnits $cover): CoveredUnits => $cover->covers($productId, $variant) ? $cover->movedTo($toProductId, $toVariant) : $cover, $this->covers);
+
+        return new self($this->label, $this->amount, $this->ruleId, $this->manualAction, $covers);
     }
 
     /**
@@ -70,7 +100,15 @@ final readonly class AppliedDiscount
     }
 
     /**
-     * @param array{label: string, amount: int, ruleId?: ?string, manual?: array{kind: string, value: int}} $data
+     * @return array{label: string, amount: int, ruleId: ?string, manual?: array{kind: string, value: int}, covers?: list<array{productId: string, variant: ?string, quantity: int}>}
+     */
+    public function stored(): array
+    {
+        return [] === $this->covers ? $this->toArray() : [...$this->toArray(), 'covers' => array_map(static fn (CoveredUnits $cover): array => $cover->toArray(), $this->covers)];
+    }
+
+    /**
+     * @param array{label: string, amount: int, ruleId?: ?string, manual?: array{kind: string, value: int}, covers?: list<array{productId: string, variant: ?string, quantity: int}>} $data
      */
     public static function fromArray(array $data): self
     {
@@ -82,6 +120,7 @@ final readonly class AppliedDiscount
             Money::cents($data['amount']),
             null === $ruleId ? null : Ulid::fromString($ruleId),
             null === $manual ? null : DiscountAction::of(DiscountActionKind::from($manual['kind']), $manual['value']),
+            array_map(CoveredUnits::fromArray(...), $data['covers'] ?? []),
         );
     }
 }

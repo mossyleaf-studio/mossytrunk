@@ -8,6 +8,7 @@ use App\Domain\Design\DesignCollection;
 use App\Domain\Discount\AppliedDiscount;
 use App\Domain\Discount\BasketLine;
 use App\Domain\Discount\ConditionSpec;
+use App\Domain\Discount\CoveredUnits;
 use App\Domain\Discount\DiscountAction;
 use App\Domain\Discount\DiscountCalculator;
 use App\Domain\Discount\DiscountRule;
@@ -54,7 +55,7 @@ final class DiscountCalculatorTest extends TestCase
 
         $discounts = $this->calculator->calculate([$this->line($this->forest, 1), $this->line($this->river, 1), $this->line($this->sticker, 1)], [$rule], $this->now);
 
-        self::assertEquals([new AppliedDiscount('2 prints et 1 sticker pour 15 €', Money::cents(1_900), $rule->id())], $discounts);
+        self::assertEquals([new AppliedDiscount('2 prints et 1 sticker pour 15 €', Money::cents(1_900), $rule->id())], self::withoutCovers($discounts));
     }
 
     public function testAManualRuleIsNeverAppliedAutomatically(): void
@@ -73,7 +74,7 @@ final class DiscountCalculatorTest extends TestCase
 
         $discounts = $this->calculator->calculate([...$basket, $this->line($this->forest, 1, 'A4')], [$rule], $this->now);
 
-        self::assertEquals([new AppliedDiscount('3 prints au choix : −2 €', Money::cents(200), $rule->id())], $discounts);
+        self::assertEquals([new AppliedDiscount('3 prints au choix : −2 €', Money::cents(200), $rule->id())], self::withoutCovers($discounts));
     }
 
     public function testEveryConditionMustBeMet(): void
@@ -89,7 +90,7 @@ final class DiscountCalculatorTest extends TestCase
 
         $discounts = $this->calculator->calculate([$this->line($this->forest, 5), $this->line($this->sticker, 2)], [$rule], $this->now);
 
-        self::assertEquals([new AppliedDiscount('2 prints et 1 sticker ×2', Money::cents(800), $rule->id())], $discounts);
+        self::assertEquals([new AppliedDiscount('2 prints et 1 sticker ×2', Money::cents(800), $rule->id())], self::withoutCovers($discounts));
     }
 
     public function testProductConditionOnlyMatchesThatProductWhateverTheVariant(): void
@@ -106,7 +107,7 @@ final class DiscountCalculatorTest extends TestCase
 
         $discounts = $this->calculator->calculate([$this->line($this->holoSticker, 1), $this->line($this->sticker, 1)], [$rule], $this->now);
 
-        self::assertEquals([new AppliedDiscount('1 Holo et 1 sticker', Money::cents(200), $rule->id())], $discounts);
+        self::assertEquals([new AppliedDiscount('1 Holo et 1 sticker', Money::cents(200), $rule->id())], self::withoutCovers($discounts));
     }
 
     public function testMostExpensiveMatchingUnitsAreTakenFirst(): void
@@ -115,14 +116,14 @@ final class DiscountCalculatorTest extends TestCase
 
         $discounts = $this->calculator->calculate([$this->line($this->sticker, 1), $this->line($this->holoSticker, 1)], [$rule], $this->now);
 
-        self::assertEquals([new AppliedDiscount('−50 % sur 1 sticker ×2', Money::cents(500), $rule->id())], $discounts);
+        self::assertEquals([new AppliedDiscount('−50 % sur 1 sticker ×2', Money::cents(500), $rule->id())], self::withoutCovers($discounts));
     }
 
     public function testAmountOffIsCappedAtTheItemsPrice(): void
     {
         $rule = $this->rule('Sticker −10 €', [ConditionSpec::on(1, $this->sticker)], DiscountAction::amountOff(Money::cents(1_000)));
 
-        self::assertEquals([new AppliedDiscount('Sticker −10 €', Money::cents(400), $rule->id())], $this->calculator->calculate([$this->line($this->sticker, 1)], [$rule], $this->now));
+        self::assertEquals([new AppliedDiscount('Sticker −10 €', Money::cents(400), $rule->id())], self::withoutCovers($this->calculator->calculate([$this->line($this->sticker, 1)], [$rule], $this->now)));
     }
 
     public function testFixedPriceAboveTheRegularPriceIsNotApplied(): void
@@ -139,7 +140,7 @@ final class DiscountCalculatorTest extends TestCase
 
         $discounts = $this->calculator->calculate([$this->line($this->tshirt, 1)], [$small, $big], $this->now);
 
-        self::assertEquals([new AppliedDiscount('B: T-shirt −20 %', Money::cents(500), $big->id())], $discounts);
+        self::assertEquals([new AppliedDiscount('B: T-shirt −20 %', Money::cents(500), $big->id())], self::withoutCovers($discounts));
     }
 
     public function testRulesOnlyApplyWithinTheirValidityPeriodBoundsIncluded(): void
@@ -166,7 +167,7 @@ final class DiscountCalculatorTest extends TestCase
         self::assertSame([], $this->calculator->calculate([$this->line($this->forest, 1, 'A4'), $this->line($this->river, 1)], [$rule], $this->now));
         self::assertEquals(
             [new AppliedDiscount('−5 € sur les prints A3 ×2', Money::cents(1_000), $rule->id())],
-            $this->calculator->calculate([$this->line($this->forest, 1, 'a3'), $this->line($this->forest, 1, 'A4'), $this->line($this->lake, 1, 'A3')], [$rule], $this->now),
+            self::withoutCovers($this->calculator->calculate([$this->line($this->forest, 1, 'a3'), $this->line($this->forest, 1, 'A4'), $this->line($this->lake, 1, 'A3')], [$rule], $this->now)),
         );
     }
 
@@ -177,7 +178,7 @@ final class DiscountCalculatorTest extends TestCase
         self::assertSame([], $this->calculator->calculate([$this->line($this->forest, 1, 'A4'), $this->line($this->lake, 1, 'A3')], [$rule], $this->now));
         self::assertEquals(
             [new AppliedDiscount('−5 € sur Forêt A3', Money::cents(500), $rule->id())],
-            $this->calculator->calculate([$this->line($this->forest, 1, 'A3'), $this->line($this->lake, 1, 'A3')], [$rule], $this->now),
+            self::withoutCovers($this->calculator->calculate([$this->line($this->forest, 1, 'A3'), $this->line($this->lake, 1, 'A3')], [$rule], $this->now)),
         );
     }
 
@@ -197,7 +198,7 @@ final class DiscountCalculatorTest extends TestCase
             new BasketLine($this->river->id(), Money::cents(1_000), 1, $this->printType->id()),
         ];
 
-        self::assertEquals([new AppliedDiscount('5 prints pour 60 €', Money::cents(5_400), $rule->id())], $this->calculator->calculate($basket, [$rule], $this->now));
+        self::assertEquals([new AppliedDiscount('5 prints pour 60 €', Money::cents(5_400), $rule->id())], self::withoutCovers($this->calculator->calculate($basket, [$rule], $this->now)));
     }
 
     public function testATypeCollectionConditionOnlyMatchesTheTypesProductsOfThatCollection(): void
@@ -208,7 +209,7 @@ final class DiscountCalculatorTest extends TestCase
         self::assertSame([], $this->calculator->calculate([$this->line($this->holoSticker, 1), $this->line($this->sticker, 1, collectionId: DesignCollection::start(TestWorkspace::get(), 'Mossy')->id())], [$rule], $this->now));
         self::assertEquals(
             [new AppliedDiscount('1 sticker Eevee : −1 €', Money::cents(100), $rule->id())],
-            $this->calculator->calculate([$this->line($this->holoSticker, 1), $this->line($this->sticker, 1, collectionId: $eevee->id())], [$rule], $this->now),
+            self::withoutCovers($this->calculator->calculate([$this->line($this->holoSticker, 1), $this->line($this->sticker, 1, collectionId: $eevee->id())], [$rule], $this->now)),
         );
     }
 
@@ -219,7 +220,26 @@ final class DiscountCalculatorTest extends TestCase
 
         $discounts = $this->calculator->calculate([$this->line($this->holoSticker, 1, collectionId: $eevee->id()), $this->line($this->sticker, 1)], [$rule], $this->now);
 
-        self::assertEquals([new AppliedDiscount('1 sticker Eevee + 1 sticker', Money::cents(500), $rule->id())], $discounts);
+        self::assertEquals([new AppliedDiscount('1 sticker Eevee + 1 sticker', Money::cents(500), $rule->id())], self::withoutCovers($discounts));
+    }
+
+    public function testADiscountCoversTheUnitsItWasCalculatedOn(): void
+    {
+        $rule = $this->rule('2 prints pour 25 €', [ConditionSpec::on(2, $this->printType)], DiscountAction::fixedPrice(Money::cents(2_500)));
+
+        $discounts = $this->calculator->calculate([$this->line($this->forest, 3, 'A4'), $this->line($this->sticker, 2), $this->line($this->river, 1)], [$rule], $this->now);
+
+        self::assertEquals([new CoveredUnits($this->forest->id(), 'A4', 3), new CoveredUnits($this->river->id(), null, 1)], $discounts[0]->covers);
+    }
+
+    /**
+     * @param list<AppliedDiscount> $discounts
+     *
+     * @return list<AppliedDiscount>
+     */
+    private static function withoutCovers(array $discounts): array
+    {
+        return array_map(static fn (AppliedDiscount $discount): AppliedDiscount => new AppliedDiscount($discount->label, $discount->amount, $discount->ruleId, $discount->manualAction), $discounts);
     }
 
     /**

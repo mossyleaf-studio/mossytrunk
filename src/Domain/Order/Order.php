@@ -27,7 +27,6 @@ use App\Domain\Reference\ReferenceSubject;
 use App\Domain\Sales\Exception\MarketOrderWithoutEvent;
 use App\Domain\Sales\OrderCharge;
 use App\Domain\Sales\SalesChannel;
-use App\Domain\Shared\CostAllocation;
 use App\Domain\Shared\Exception\NegativeAmount;
 use App\Domain\Shared\Exception\NotFound;
 use App\Domain\Shared\Money;
@@ -596,16 +595,40 @@ class Order implements Referenced
             $twin->add($line->quantity(), $line->cost());
             $this->lines->removeElement($line);
         }
+        $this->moveDiscountCovers($productId, $variant, $to);
         if (null !== $raisedPricesDiscount && $raised->isPositive()) {
             $this->appliedDiscounts = self::withDiscount($this->appliedDiscounts(), $raisedPricesDiscount, $raised);
         }
         $this->recordSales();
     }
 
+    private function moveDiscountCovers(Ulid $productId, ?string $variant, SellableItem $to): void
+    {
+        if (null !== $to->productId) {
+            $this->appliedDiscounts = array_map(static fn (AppliedDiscount $discount): array => $discount->withSalesMoved($productId, $variant, $to->productId, $to->variant)->stored(), $this->appliedDiscounts());
+        }
+    }
+
+    /**
+     * @param list<AppliedDiscount> $calculated
+     */
+    public function coverDiscounts(array $calculated): bool
+    {
+        $discounts = $this->appliedDiscounts();
+        $covered = array_map(static fn (AppliedDiscount $discount): AppliedDiscount => $discount->coveredAs($calculated), $discounts);
+        if ($covered == $discounts) {
+            return false;
+        }
+        $this->appliedDiscounts = array_map(static fn (AppliedDiscount $discount): array => $discount->stored(), $covered);
+        $this->recordSales();
+
+        return true;
+    }
+
     /**
      * @param list<AppliedDiscount> $discounts
      *
-     * @return list<array{label: string, amount: int, ruleId: ?string, manual?: array{kind: string, value: int}}>
+     * @return list<array{label: string, amount: int, ruleId: ?string, manual?: array{kind: string, value: int}, covers?: list<array{productId: string, variant: ?string, quantity: int}>}>
      */
     private static function withDiscount(array $discounts, string $label, Money $amount): array
     {
@@ -617,7 +640,7 @@ class Order implements Referenced
             }
         }
 
-        return array_map(static fn (AppliedDiscount $discount): array => $discount->toArray(), $added ? $discounts : [...$discounts, new AppliedDiscount($label, $amount)]);
+        return array_map(static fn (AppliedDiscount $discount): array => $discount->stored(), $added ? $discounts : [...$discounts, new AppliedDiscount($label, $amount)]);
     }
 
     private function line(Ulid $lineId): OrderLine
@@ -677,7 +700,7 @@ class Order implements Referenced
             $discounts = self::importDiscounts($gap, $ruleDiscounts, $discountLabel);
             $this->appliedDiscounts = null === $discounts[0]->ruleId
                 ? self::withDiscount($this->appliedDiscounts(), $discountLabel, $gap)
-                : array_map(static fn (AppliedDiscount $discount): array => $discount->toArray(), [...$this->appliedDiscounts(), ...$discounts]);
+                : array_map(static fn (AppliedDiscount $discount): array => $discount->stored(), [...$this->appliedDiscounts(), ...$discounts]);
         }
         $this->recordSales();
     }
@@ -778,7 +801,7 @@ class Order implements Referenced
             throw new DiscountExceedsSubtotal();
         }
 
-        $this->appliedDiscounts = array_map(static fn (AppliedDiscount $discount): array => $discount->toArray(), $discounts);
+        $this->appliedDiscounts = array_map(static fn (AppliedDiscount $discount): array => $discount->stored(), $discounts);
     }
 
     /**
@@ -811,7 +834,7 @@ class Order implements Referenced
         $this->subtotal = $this->linesTotal();
         $this->discountTotal = AppliedDiscount::total($this->appliedDiscounts());
         $this->total = $this->subtotal->subtract($this->discountTotal)->add($this->shipping);
-        $shares = CostAllocation::proportionally($this->discountTotal, array_map(static fn (OrderLine $line): Money => $line->total(), $lines));
+        $shares = DiscountShares::of($this->appliedDiscounts(), $lines);
         foreach ($lines as $index => $line) {
             $line->shareDiscount($shares[$index]);
         }

@@ -61,7 +61,7 @@ final class ProductReportsTest extends KernelTestCase
 
         self::assertSame(['from' => '2030-01-01', 'to' => '2030-12-31'], ['from' => $report->period['from'], 'to' => $report->period['to']]);
         self::assertSame(
-            [['Print Forêt', 2, 2_000, 1_565, 435, 8], ['Sticker Mousse', 3, 900, 835, 65, -3]],
+            [['Print Forêt', 2, 2_000, 1_500, 500, 8], ['Sticker Mousse', 3, 900, 900, 0, -3]],
             array_map(static fn (array $row): array => [$row['name'], $row['units'], $row['gross'], $row['revenue'], $row['discount'], $row['onHand']], $report->products),
         );
         self::assertSame(2_400, $report->totals['revenue']);
@@ -84,7 +84,7 @@ final class ProductReportsTest extends KernelTestCase
 
         self::assertCount(12, $report->months);
         [$january, , $march, $april] = $report->months;
-        self::assertSame(['2030-03', 2, 2_000, 1_565, 2, 8], [$march['month'], $march['units'], $march['gross'], $march['revenue'], $march['sold'], $march['onHand']]);
+        self::assertSame(['2030-03', 2, 2_000, 1_500, 2, 8], [$march['month'], $march['units'], $march['gross'], $march['revenue'], $march['sold'], $march['onHand']]);
         self::assertSame([10, 8], [$january['onHand'], $april['onHand']]);
         self::assertSame([['2 prints pour 15 €', '2030-03-01', '2030-03-31', 31]], array_map(static fn (array $discount): array => [$discount['name'], $discount['from'], $discount['to'], $discount['days']], $report->discounts));
         self::assertSame(31, $report->discountedDays);

@@ -66,4 +66,9 @@ interface OrderRepository
     public function countOutside(Ulid $eventId, DateRange $period): int;
 
     public function countWithoutEventOn(Ulid $channelId): int;
+
+    /**
+     * @return list<Order>
+     */
+    public function withRuleDiscounts(): array;
 }

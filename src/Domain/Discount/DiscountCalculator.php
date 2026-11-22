@@ -21,17 +21,18 @@ final class DiscountCalculator
         usort($rules, static fn (DiscountRule $a, DiscountRule $b): int => strcmp($a->name(), $b->name()));
 
         $units = $this->expand($basket);
-        /** @var array<string, array{rule: DiscountRule, times: int, saving: Money}> $applied */
+        /** @var array<string, array{rule: DiscountRule, times: int, saving: Money, units: list<array{productId: Ulid, variant: ?string}>}> $applied */
         $applied = [];
 
         while (null !== $best = $this->bestApplication($units, $rules)) {
             [$rule, $unitKeys, $saving] = $best;
+            $id = (string) $rule->id();
+            $applied[$id] ??= ['rule' => $rule, 'times' => 0, 'saving' => Money::zero(), 'units' => []];
             foreach ($unitKeys as $key) {
+                $applied[$id]['units'][] = ['productId' => $units[$key]['productId'], 'variant' => $units[$key]['variant']];
                 unset($units[$key]);
             }
 
-            $id = (string) $rule->id();
-            $applied[$id] ??= ['rule' => $rule, 'times' => 0, 'saving' => Money::zero()];
             ++$applied[$id]['times'];
             $applied[$id]['saving'] = $applied[$id]['saving']->add($saving);
         }
@@ -41,6 +42,7 @@ final class DiscountCalculator
                 $entry['times'] > 1 ? \sprintf('%s ×%d', $entry['rule']->name(), $entry['times']) : $entry['rule']->name(),
                 $entry['saving'],
                 $entry['rule']->id(),
+                covers: CoveredUnits::tally($entry['units']),
             ),
             $applied,
         ));

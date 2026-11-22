@@ -170,6 +170,16 @@ final readonly class DoctrineOrderRepository implements OrderRepository
             ->getSingleScalarResult();
     }
 
+    public function withRuleDiscounts(): array
+    {
+        $ids = $this->entityManager->getConnection()->fetchFirstColumn(
+            'SELECT id FROM "order" WHERE workspace_id = :workspace AND applied_discounts::text LIKE :rule ORDER BY id',
+            ['workspace' => $this->scope->workspace()->id()->toRfc4122(), 'rule' => '%"ruleId":"%'],
+        );
+
+        return [] === $ids ? [] : $this->getMany(array_map(static fn (mixed $id): Ulid => Ulid::fromString(\is_string($id) ? $id : ''), $ids));
+    }
+
     public function countOutside(Ulid $eventId, DateRange $period): int
     {
         [$from, $until] = SalePeriodBounds::of($period);

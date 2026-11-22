@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Domain\Order;
 
 use App\Domain\Discount\AppliedDiscount;
+use App\Domain\Discount\CoveredUnits;
 use App\Domain\Event\Event;
 use App\Domain\Order\Exception\InvalidOrder;
 use App\Domain\Order\Exception\OrderAlreadyRefunded;
@@ -81,6 +82,69 @@ final class OrderTest extends TestCase
         ], [new AppliedDiscount('3 stickers pour 10 €', Money::cents(200))]);
 
         self::assertSame([[75, 1_125], [125, 1_875]], array_map(static fn ($line): array => [$line->discount()->amount(), $line->revenue()->amount()], $order->lines()));
+    }
+
+    public function testARuleDiscountIsSharedOnlyBetweenTheLinesItCoversAndTheOthersBetweenAllLines(): void
+    {
+        $order = Order::place('CMD-1', $this->event, self::at('2026-07-10 15:00'), [
+            new OrderedItem($this->sticker->sellable(null), 3),
+            new OrderedItem($this->tshirt->sellable('M'), 1),
+        ], [
+            new AppliedDiscount('3 stickers pour 10 €', Money::cents(200), new Ulid(), covers: [new CoveredUnits($this->sticker->id(), null, 3)]),
+            new AppliedDiscount('Geste', Money::cents(320)),
+        ]);
+
+        self::assertSame([320, 200], self::lineDiscounts($order));
+        self::assertSame(520, $order->discountTotal()->amount());
+    }
+
+    public function testACoveredDiscountIsSharedByTheCoveredUnitsOfEachLine(): void
+    {
+        $order = Order::place('CMD-1', $this->event, self::at('2026-07-10 15:00'), [
+            new OrderedItem($this->tshirt->sellable('M'), 3),
+            new OrderedItem($this->tshirt->sellable('S'), 1),
+            new OrderedItem($this->sticker->sellable(null), 1),
+        ], [new AppliedDiscount('2 T-shirts', Money::cents(300), new Ulid(), covers: [new CoveredUnits($this->tshirt->id(), 'M', 1), new CoveredUnits($this->tshirt->id(), 'S', 1)])]);
+
+        self::assertSame([150, 150, 0], self::lineDiscounts($order));
+    }
+
+    public function testADiscountCoveringNoLineLeftIsSharedBetweenAllLines(): void
+    {
+        $order = Order::place('CMD-1', $this->event, self::at('2026-07-10 15:00'), [
+            new OrderedItem($this->sticker->sellable(null), 3),
+            new OrderedItem($this->tshirt->sellable('M'), 1),
+        ], [new AppliedDiscount('Ancienne remise', Money::cents(200), new Ulid(), covers: [new CoveredUnits(new Ulid(), null, 1)])]);
+
+        self::assertSame([75, 125], self::lineDiscounts($order));
+    }
+
+    public function testMovedSalesKeepTheDiscountsThatCoveredThem(): void
+    {
+        $holo = Product::create(TestWorkspace::get(), 'HOLO', 'Holo', Money::cents(400), TestProductType::get());
+        $order = Order::place('CMD-1', $this->event, self::at('2026-07-10 15:00'), [
+            new OrderedItem($this->sticker->sellable(null), 3),
+            new OrderedItem($this->tshirt->sellable('M'), 1),
+        ], [new AppliedDiscount('3 stickers pour 10 €', Money::cents(200), new Ulid(), covers: [new CoveredUnits($this->sticker->id(), null, 3)])]);
+
+        $order->moveSales($this->sticker->id(), null, $holo->sellable(null));
+
+        self::assertSame([200, 0], self::lineDiscounts($order));
+        self::assertEquals([new CoveredUnits($holo->id(), null, 3)], $order->appliedDiscounts()[0]->covers);
+    }
+
+    public function testRuleDiscountsRecordedWithoutTheirUnitsAreCoveredAfterwards(): void
+    {
+        $rule = new Ulid();
+        $order = Order::place('CMD-1', $this->event, self::at('2026-07-10 15:00'), [
+            new OrderedItem($this->sticker->sellable(null), 3),
+            new OrderedItem($this->tshirt->sellable('M'), 1),
+        ], [new AppliedDiscount('3 stickers pour 10 €', Money::cents(200), $rule), new AppliedDiscount('Geste', Money::cents(320))]);
+
+        $order->coverDiscounts([new AppliedDiscount('3 stickers pour 10 €', Money::cents(150), $rule, covers: [new CoveredUnits($this->sticker->id(), null, 3)])]);
+
+        self::assertSame([320, 200], self::lineDiscounts($order));
+        self::assertSame([200, 320], array_map(static fn (AppliedDiscount $discount): int => $discount->amount->amount(), $order->appliedDiscounts()));
     }
 
     public function testTheRecordedFiguresFollowTheChangesOfTheOrder(): void
@@ -407,5 +471,13 @@ final class OrderTest extends TestCase
 
         self::assertSame([[true, 1_000], [true, 200]], array_map(static fn ($line): array => [$line->sellsUnknownProduct(), $line->total()->amount()], $order->lines()));
         self::assertTrue($order->costOfGoods()->isZero());
+    }
+
+    /**
+     * @return list<int>
+     */
+    private static function lineDiscounts(Order $order): array
+    {
+        return array_map(static fn ($line): int => $line->discount()->amount(), $order->lines());
     }
 }
