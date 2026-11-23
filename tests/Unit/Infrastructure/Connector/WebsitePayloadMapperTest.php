@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Infrastructure\Connector;
 
+use App\Application\Integration\StockedCollection;
 use App\Application\Integration\StockedItem;
 use App\Application\Integration\StockedProduct;
 use App\Domain\Order\PaymentMethod;
@@ -130,8 +131,8 @@ final class WebsitePayloadMapperTest extends TestCase
 
         self::assertSame(
             '{"products":['
-            .'{"id":"01JD3V5M8Q0000000000000001","reference":"PRT-002","name":"Forêt","category":"Print","displayName":"Print Forêt","price":1500,"variants":[{"name":"A4","sku":"PRT-002-A4","stock":12},{"name":"A3","sku":"PRT-002-A3","stock":0}]},'
-            .'{"id":"01JD3V5M8Q0000000000000002","reference":"STK-001","name":"Mousse","category":"Sticker","displayName":"Sticker Mousse","price":400,"variants":[{"name":null,"sku":"STK-001","stock":3}]}'
+            .'{"id":"01JD3V5M8Q0000000000000001","reference":"PRT-002","name":"Forêt","category":"Print","displayName":"Print Forêt","price":1500,"variants":[{"name":"A4","sku":"PRT-002-A4","stock":12},{"name":"A3","sku":"PRT-002-A3","stock":0}],"collection":null},'
+            .'{"id":"01JD3V5M8Q0000000000000002","reference":"STK-001","name":"Mousse","category":"Sticker","displayName":"Sticker Mousse","price":400,"variants":[{"name":null,"sku":"STK-001","stock":3}],"collection":null}'
             .']}',
             json_encode($body, \JSON_THROW_ON_ERROR | \JSON_UNESCAPED_UNICODE),
         );
@@ -147,11 +148,24 @@ final class WebsitePayloadMapperTest extends TestCase
 
         self::assertSame(
             '{"products":['
-            .'{"id":"01JD3V5M8Q0000000000000002","reference":"STK-001","name":"Mousse","category":"Sticker","displayName":"Sticker Mousse","price":400,"variants":[{"name":null,"sku":"STK-001","stock":3}],"descriptions":{"fr":"Sticker mat.\nL\'eau glisse.","en":"Matte sticker."}},'
-            .'{"id":"01JD3V5M8Q0000000000000003","reference":"STK-002","name":"Fougère","category":"Sticker","displayName":"Sticker Fougère","price":400,"variants":[{"name":null,"sku":"STK-002","stock":1}],"descriptions":{"en":"Fern sticker."}},'
-            .'{"id":"01JD3V5M8Q0000000000000004","reference":"STK-003","name":"Lichen","category":"Sticker","displayName":"Sticker Lichen","price":400,"variants":[{"name":null,"sku":"STK-003","stock":0}]}'
+            .'{"id":"01JD3V5M8Q0000000000000002","reference":"STK-001","name":"Mousse","category":"Sticker","displayName":"Sticker Mousse","price":400,"variants":[{"name":null,"sku":"STK-001","stock":3}],"collection":null,"descriptions":{"fr":"Sticker mat.\nL\'eau glisse.","en":"Matte sticker."}},'
+            .'{"id":"01JD3V5M8Q0000000000000003","reference":"STK-002","name":"Fougère","category":"Sticker","displayName":"Sticker Fougère","price":400,"variants":[{"name":null,"sku":"STK-002","stock":1}],"collection":null,"descriptions":{"en":"Fern sticker."}},'
+            .'{"id":"01JD3V5M8Q0000000000000004","reference":"STK-003","name":"Lichen","category":"Sticker","displayName":"Sticker Lichen","price":400,"variants":[{"name":null,"sku":"STK-003","stock":0}],"collection":null}'
             .']}',
             json_encode($body, \JSON_THROW_ON_ERROR | \JSON_UNESCAPED_UNICODE),
+        );
+    }
+
+    public function testAProductOfACollectionCarriesItsIdAndNameAndAProductWithoutCarriesNull(): void
+    {
+        $body = (new WebsitePayloadMapper())->catalogue([
+            new StockedProduct('01JD3V5M8Q0000000000000002', 'STK-001', 'Évoli', 'Sticker', 'Sticker Évoli', Money::cents(400), [new StockedItem(null, 'STK-001', 3)], collection: new StockedCollection('01JD3V5M8Q00000000000000C1', 'Eevee & friends')),
+            new StockedProduct('01JD3V5M8Q0000000000000003', 'STK-002', 'Mossy', 'Sticker', 'Sticker Mossy', Money::cents(500), [new StockedItem(null, 'STK-002', 1)]),
+        ]);
+
+        self::assertSame(
+            [['id' => '01JD3V5M8Q00000000000000C1', 'name' => 'Eevee & friends'], null],
+            array_column($body['products'], 'collection'),
         );
     }
 

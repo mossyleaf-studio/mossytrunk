@@ -152,7 +152,7 @@ final class WebsiteApiGatewayTest extends TestCase
             0,
             20.0,
             60.0,
-            '{"products":[{"id":"01JD3V5M8Q0000000000000001","reference":"STK-001","name":"Mousse","category":"Sticker","displayName":"Sticker Mousse","price":400,"variants":[{"name":null,"sku":"STK-001","stock":3}]}]}',
+            '{"products":[{"id":"01JD3V5M8Q0000000000000001","reference":"STK-001","name":"Mousse","category":"Sticker","displayName":"Sticker Mousse","price":400,"variants":[{"name":null,"sku":"STK-001","stock":3}],"collection":null}]}',
         ]], $requests);
         self::assertSame([1, 0, 2], [$changes->created, $changes->updated, $changes->retired]);
     }

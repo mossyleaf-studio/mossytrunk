@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Application\Integration;
 
+use App\Application\Design\CreateCollection\CreateCollectionHandler;
+use App\Application\Design\CreateGabarit\CreateGabarit;
+use App\Application\Design\CreateGabarit\CreateGabaritHandler;
+use App\Application\Design\DesignProduct\DesignProductHandler;
 use App\Application\Integration\ConfigureConnection\AddConnectionHandler;
 use App\Application\Integration\Exception\EmptyCatalogue;
 use App\Application\Integration\Exception\ServiceNotPublishingCatalogue;
@@ -20,6 +24,8 @@ use App\Application\Product\SetChannelPrice\SetChannelPriceHandler;
 use App\Application\Sales\CreateChannel\CreateChannelHandler;
 use App\Application\Stock\Restock\Restock;
 use App\Application\Stock\Restock\RestockHandler;
+use App\Domain\Design\DesignCollectionRepository;
+use App\Domain\Identity\User;
 use App\Domain\Product\ProductKind;
 use App\Domain\Product\ProductRepository;
 use App\Domain\Sales\ChannelKind;
@@ -38,13 +44,14 @@ final class PublishCatalogueTest extends KernelTestCase
     use ActsAsUser;
     use CreatesProducts;
 
+    private User $member;
     private string $sticker;
     private string $print;
 
     protected function setUp(): void
     {
         self::getContainer()->get(LocaleSwitcher::class)->setLocale('en');
-        self::actAsMemberOf();
+        $this->member = self::actAsMemberOf();
         $types = self::getContainer()->get(CreateProductTypeHandler::class);
         $this->sticker = self::createProduct('Mousse', 400, typeId: (string) $types('Sticker')->id(), reference: 'WEB-STICKER');
         $this->print = self::createProduct('Forêt', 1_800, variants: ['A4', 'A3'], typeId: (string) $types('Print', variants: ['A4', 'A3'])->id(), reference: 'WEB-PRINT');
@@ -134,6 +141,52 @@ final class PublishCatalogueTest extends KernelTestCase
         self::assertSame([], self::getContainer()->get(FakeWebsiteGateway::class)->published());
     }
 
+    public function testAProductWhoseDesignIsInACollectionIsSentWithItAndTheOthersWithNone(): void
+    {
+        $collection = (string) self::getContainer()->get(CreateCollectionHandler::class)('Forêt de mousse', null);
+        $gabarit = $this->gabarit();
+        self::getContainer()->get(DesignProductHandler::class)($this->sticker, $gabarit, $collection);
+        $loose = self::createProduct('Lichen', 400, typeId: $this->stickerType(), reference: 'WEB-LICHEN');
+        self::getContainer()->get(DesignProductHandler::class)($loose, $gabarit);
+
+        $this->publish();
+
+        self::assertSame(
+            ['WEB-LICHEN' => null, 'WEB-PRINT' => null, 'WEB-STICKER' => [Ulid::fromString($collection)->toBase32(), 'Forêt de mousse']],
+            $this->collections(),
+        );
+    }
+
+    public function testTheCollectionsReadForAPublicationAreOnlyThoseOfTheWorkspace(): void
+    {
+        self::actAsMemberOf('Autre atelier');
+        $type = (string) self::getContainer()->get(CreateProductTypeHandler::class)('Sticker')->id();
+        $elsewhere = (string) Ulid::fromString(self::createProduct('Ailleurs', 400, typeId: $type, reference: 'WEB-STICKER'));
+        self::getContainer()->get(DesignProductHandler::class)($elsewhere, $this->gabarit($type), (string) self::getContainer()->get(CreateCollectionHandler::class)('Ailleurs', null));
+        self::assertArrayHasKey($elsewhere, self::getContainer()->get(DesignCollectionRepository::class)->byProduct());
+        self::actAs($this->member);
+
+        self::assertArrayNotHasKey($elsewhere, self::getContainer()->get(DesignCollectionRepository::class)->byProduct());
+    }
+
+    public function testTheQueriesOfAPublicationDoNotGrowWithTheProductsOfACollection(): void
+    {
+        $collection = (string) self::getContainer()->get(CreateCollectionHandler::class)('Forêt de mousse', null);
+        $gabarit = $this->gabarit();
+        self::getContainer()->get(DesignProductHandler::class)($this->sticker, $gabarit, $collection);
+        $before = $this->queriesOfAPublication();
+
+        foreach (['A', 'B', 'C'] as $letter) {
+            $product = self::createProduct('Mousse '.$letter, 400, typeId: $this->stickerType(), reference: 'WEB-STICKER-'.$letter);
+            self::getContainer()->get(DesignProductHandler::class)($product, $gabarit, $collection);
+        }
+        $after = $this->queriesOfAPublication();
+
+        self::assertGreaterThan(0, $before);
+        self::assertCount(5, $this->collections());
+        self::assertSame($before, $after);
+    }
+
     public function testOnlyAServiceThatPublishesCataloguesCanBeAsked(): void
     {
         DomainExceptions::assertThrown(new ServiceNotPublishingCatalogue('SumUp'), static fn (): PublishedCatalogue => self::getContainer()->get(PublishCatalogueHandler::class)('sumup'));
@@ -142,6 +195,40 @@ final class PublishCatalogueTest extends KernelTestCase
     private function publish(): PublishedCatalogue
     {
         return self::getContainer()->get(PublishCatalogueHandler::class)('website');
+    }
+
+    private function stickerType(): string
+    {
+        return (string) self::getContainer()->get(ProductRepository::class)->get(Ulid::fromString($this->sticker))->type()->id();
+    }
+
+    private function gabarit(?string $typeId = null): string
+    {
+        return (string) self::getContainer()->get(CreateGabaritHandler::class)(new CreateGabarit('Sticker 5 cm', $typeId ?? $this->stickerType(), 400, [], []))->id();
+    }
+
+    private function queriesOfAPublication(): int
+    {
+        $holder = self::getContainer()->get('doctrine.debug_data_holder');
+        self::getContainer()->get(EntityManagerInterface::class)->clear();
+        $holder->reset();
+        $this->publish();
+
+        return \count($holder->getData()['default'] ?? []);
+    }
+
+    /**
+     * @return array<string, array{string, string}|null>
+     */
+    private function collections(): array
+    {
+        $collections = [];
+        foreach (self::getContainer()->get(FakeWebsiteGateway::class)->published() as $product) {
+            $collections[$product->reference] = null === $product->collection ? null : [$product->collection->id, $product->collection->name];
+        }
+        ksort($collections);
+
+        return $collections;
     }
 
     private static function restock(string $productId, ?string $variant, int $quantity): void

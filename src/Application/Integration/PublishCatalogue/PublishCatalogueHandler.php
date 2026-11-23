@@ -8,8 +8,11 @@ use App\Application\Integration\AddedConnection;
 use App\Application\Integration\ConnectionSession;
 use App\Application\Integration\Connectors;
 use App\Application\Integration\Exception\EmptyCatalogue;
+use App\Application\Integration\StockedCollection;
 use App\Application\Integration\StockedItem;
 use App\Application\Integration\StockedProduct;
+use App\Domain\Design\DesignCollection;
+use App\Domain\Design\DesignCollectionRepository;
 use App\Domain\Product\Product;
 use App\Domain\Product\ProductRepository;
 use App\Domain\Product\Sku;
@@ -28,6 +31,7 @@ final readonly class PublishCatalogueHandler
         private SalesChannelRepository $channels,
         private StockRepository $stock,
         private ProductDescriptions $descriptions,
+        private DesignCollectionRepository $collections,
     ) {
     }
 
@@ -53,15 +57,21 @@ final readonly class PublishCatalogueHandler
     private function stocked(?SalesChannel $channel): array
     {
         $stock = $this->stock->byProduct();
+        $collections = $this->collections->byProduct();
         $stocked = [];
         foreach ($this->products->articles() as $product) {
             $items = $product->isArchived() ? [] : self::items($product, $stock[(string) $product->id()] ?? []);
             if ([] !== $items) {
-                $stocked[] = new StockedProduct((string) $product->id(), $product->reference(), $product->name(), $product->type()->name(), $product->displayName(), $product->priceOn($channel), $items);
+                $stocked[] = new StockedProduct((string) $product->id(), $product->reference(), $product->name(), $product->type()->name(), $product->displayName(), $product->priceOn($channel), $items, collection: self::collection($collections[(string) $product->id()] ?? null));
             }
         }
 
         return $stocked;
+    }
+
+    private static function collection(?DesignCollection $collection): ?StockedCollection
+    {
+        return null === $collection ? null : new StockedCollection((string) $collection->id(), $collection->name());
     }
 
     /**

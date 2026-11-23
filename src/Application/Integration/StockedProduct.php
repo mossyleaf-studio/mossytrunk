@@ -21,6 +21,7 @@ final readonly class StockedProduct
         public Money $price,
         public array $items,
         public array $descriptions = [],
+        public ?StockedCollection $collection = null,
     ) {
     }
 
@@ -29,6 +30,6 @@ final readonly class StockedProduct
      */
     public function describedIn(array $descriptions): self
     {
-        return new self($this->id, $this->reference, $this->name, $this->category, $this->displayName, $this->price, $this->items, $descriptions);
+        return new self($this->id, $this->reference, $this->name, $this->category, $this->displayName, $this->price, $this->items, $descriptions, $this->collection);
     }
 }
