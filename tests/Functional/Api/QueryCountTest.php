@@ -22,7 +22,7 @@ final class QueryCountTest extends WebTestCase
         $type = ProductTypesApi::create($client);
         $client->jsonRequest('POST', '/api/events', ['name' => 'Japan Expo', 'location' => 'Villepinte', 'startDate' => '2026-07-09', 'endDate' => '2026-07-12']);
         $event = Json::string(Json::decode((string) $client->getResponse()->getContent()), 'id');
-        $urls = ['/api/dashboard', '/api/events', "/api/events/$event/report", '/api/products', '/api/orders'];
+        $urls = ['/api/dashboard', '/api/events', "/api/events/$event/report", '/api/products', '/api/orders', '/api/reports/products?period=2026', '/api/reports/products/analysis?period=2026'];
 
         $this->sellNewProducts($client, $type, 1);
         $before = array_map(fn (string $url): int => $this->queriesOf($client, $url), $urls);

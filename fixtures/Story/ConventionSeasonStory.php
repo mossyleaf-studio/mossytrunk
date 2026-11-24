@@ -105,6 +105,12 @@ final class ConventionSeasonStory extends Story
             $this->product('ORI-CLAIRIERE', '« Clairière »', 12_000, 0, type: $type('Aquarelle originale', 'AQU')), // unique product
         ];
         $catalogue = [...$stickers, ...$prints, ...$others];
+        $bestseller = $this->product('STI-BRUYERE', 'Bruyère', 400, 60, type: $sticker);
+        $newcomer = $this->product('STI-AURORE', 'Aurore', 400, 60, type: $sticker);
+        $cheap = $this->product('STI-PASTILLE', 'Pastille', 200, 60, type: $sticker);
+        $rare = $this->product('STI-ROSEE', 'Rosée', 400, 60, type: $sticker);
+        $unsold = $this->product('STI-MIRAGE', 'Mirage', 400, 60, type: $sticker);
+        $premium = $this->product('STI-BRUME', 'Brume', 1_200, 100, type: $sticker);
 
         $packaging = $type('Emballage', 'EMB');
         $packaging->prefixNames(false);
@@ -149,30 +155,33 @@ final class ConventionSeasonStory extends Story
         ];
 
         $received = new \DateTimeImmutable('-100 days');
-        foreach ([...$stickers, $others[2], $others[3]] as $product) {
-            $this->receive($product, null, 150, $received);
+        foreach ([...$stickers, $others[2], $others[3], $rare, $unsold, $premium] as $product) {
+            $this->receive($product, null, 400, $received);
         }
+        $this->receive($bestseller, null, 150, $received);
+        $this->receive($cheap, null, 400, $received);
+        $this->receive($newcomer, null, 40, new \DateTimeImmutable('-14 days'));
         foreach ($prints as $product) {
             foreach ($product->variants() as $variant) {
-                $this->receive($product, $variant, 12, $received);
+                $this->receive($product, $variant, 60, $received);
             }
         }
-        foreach ($others[0]->variants() as $variant) {
-            $this->receive($others[0], $variant, 4, $received);
-        }
-        foreach ($others[1]->variants() as $variant) {
-            $this->receive($others[1], $variant, 15, $received);
+        foreach ([$others[0], $others[1]] as $product) {
+            foreach ($product->variants() as $variant) {
+                $this->receive($product, $variant, 40, $received);
+            }
         }
         foreach ($this->sleeve->variants() as $variant) {
-            $this->receive($this->sleeve, $variant, 300, $received);
+            $this->receive($this->sleeve, $variant, 600, $received);
         }
         $this->receive($this->envelope, null, 100, $received);
         $this->receive($flyer, null, 500, $received);
 
-        $this->sellDuring($events[0], $catalogue, $rules, 45);
+        $this->sellDuring($events[0], $catalogue, $rules, 120);
         $this->receive($stickers[0], null, 100, new \DateTimeImmutable('-60 days'), 80);
-        $this->sellDuring($events[1], $catalogue, $rules, 25);
-        $this->sellDuring($events[2], $catalogue, $rules, 15);
+        $this->sellDuring($events[1], $catalogue, $rules, 60);
+        $this->sellDuring($events[2], $catalogue, $rules, 30);
+        $this->soldAtEvents($events, $bestseller, $newcomer, $cheap, $rare, $premium);
 
         $pins = $this->stockOf($others[2], null);
         $forestA4 = $this->stockOf($prints[0], 'A4');
@@ -412,6 +421,35 @@ final class ConventionSeasonStory extends Story
             static fn (string $size): PurchasedItem => new PurchasedItem($tshirt->sellable($size), 6, Money::cents(6 * 1_050)),
             $tshirt->variants(),
         )));
+    }
+
+    /**
+     * @param list<Event> $events
+     */
+    private function soldAtEvents(array $events, Product $bestseller, Product $newcomer, Product $cheap, Product $rare, Product $premium): void
+    {
+        foreach ([[0, 12], [1, 8], [2, 10]] as [$index, $orders]) {
+            $this->sellAlone($events[$index], $bestseller, 5, $orders);
+        }
+        foreach ([[0, 15], [1, 15], [2, 10]] as [$index, $orders]) {
+            $this->sellAlone($events[$index], $cheap, 3, $orders);
+        }
+        $this->sellAlone($events[2], $newcomer, 2, 4);
+        $this->sellAlone($events[0], $rare, 2, 1);
+        foreach ([[0, 5], [1, 5], [2, 3]] as [$index, $orders]) {
+            $this->sellAlone($events[$index], $premium, 2, $orders);
+        }
+    }
+
+    private function sellAlone(Event $event, Product $product, int $quantity, int $orders): void
+    {
+        for ($i = 0; $i < $orders; ++$i) {
+            $placedAt = $event->period()->start()->setTime(10 + $i % 8, 7 * $i % 60);
+            $item = $product->sellable(null);
+            $items = [(new OrderedItem($item, $quantity))->costing($this->stockOf($product, null)->withdraw($quantity, $item->buyingPrice))];
+            $order = $this->persisted(Order::place(self::reference('CMD', $placedAt), $event, $placedAt, $items, [], $this->market));
+            $this->packInto($order, 'Petite', false);
+        }
     }
 
     private function receive(Product $product, ?string $variant, int $quantity, \DateTimeImmutable $at, ?int $unitCost = null): void

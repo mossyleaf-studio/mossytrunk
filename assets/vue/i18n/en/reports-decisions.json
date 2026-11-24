@@ -1,0 +1,34 @@
+{
+    "title": "Decisions",
+    "empty": "No orders over this period: nothing to judge.",
+    "past": "This period is over: verdicts and stock only read on a period that runs up to today.",
+    "search": "Search a product",
+    "noMatch": "No product matches.",
+    "tiles": {
+        "label": "Verdict",
+        "all": "All"
+    },
+    "columns": {
+        "product": "Product",
+        "verdict": "Verdict",
+        "class": "Class",
+        "quadrant": "Quadrant",
+        "units": "Sold",
+        "pace": "/100 orders",
+        "margin": "Margin",
+        "unitMargin": "Per unit",
+        "stock": "Stock",
+        "cover": "Lasts (orders)",
+        "events": "Per event"
+    },
+    "strip": {
+        "units": "{event}: {count} sold | {event}: {count} sold",
+        "absent": "{event}: not on sale",
+        "offEvent": "Outside events"
+    },
+    "columnNames": {
+        "pace": "Units sold per 100 orders",
+        "unitMargin": "Margin per unit sold",
+        "cover": "Orders the stock lasts"
+    }
+}

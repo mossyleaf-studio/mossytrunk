@@ -63,5 +63,43 @@
         "share": "Part remisée",
         "shareTooltip": "{month} : {share} du plein tarif laissé en remises"
     },
-    "months": "Mois"
+    "months": "Mois",
+    "views": {
+        "label": "Vue",
+        "palmares": "Palmarès",
+        "decisions": "Décisions"
+    },
+    "analysis": {
+        "verdicts": {
+            "restock": "À réassortir",
+            "discontinue": "À arrêter",
+            "reprice": "Prix à revoir",
+            "watch": "À surveiller",
+            "keep": "À garder",
+            "too_early": "Trop tôt"
+        },
+        "rules": {
+            "restock": "Il se vend bien (populaire ou classe A) et son stock est épuisé ou trop court.",
+            "discontinue": "Il n'a rien vendu, ou il est peu demandé et de classe C.",
+            "reprice": "Il se vend bien mais rapporte peu par unité : cheval de trait.",
+            "watch": "Il est peu demandé sans être de classe A.",
+            "keep": "Il se vend et son stock suffit : rien à faire.",
+            "too_early": "Moins de 150 commandes depuis son arrivée, ou moins de la moitié de celles de la période : trop tôt pour juger."
+        },
+        "classes": {
+            "A": "Classe A",
+            "B": "Classe B",
+            "C": "Classe C"
+        },
+        "quadrants": {
+            "star": "Vedette",
+            "workhorse": "Cheval de trait",
+            "puzzle": "Énigme",
+            "dog": "Poids mort"
+        },
+        "stock": {
+            "out": "Épuisé",
+            "low": "Stock court"
+        }
+    }
 }

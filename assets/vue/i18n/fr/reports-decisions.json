@@ -1,0 +1,34 @@
+{
+    "title": "Décisions",
+    "empty": "Aucune commande sur cette période : rien à juger.",
+    "past": "Cette période est terminée : les verdicts et le stock ne se lisent que sur une période qui va jusqu'à aujourd'hui.",
+    "search": "Rechercher un produit",
+    "noMatch": "Aucun produit ne correspond.",
+    "tiles": {
+        "label": "Verdict",
+        "all": "Tous"
+    },
+    "columns": {
+        "product": "Produit",
+        "verdict": "Verdict",
+        "class": "Classe",
+        "quadrant": "Quadrant",
+        "units": "Vendus",
+        "pace": "/100 cmd.",
+        "margin": "Marge",
+        "unitMargin": "Marge unit.",
+        "stock": "Stock",
+        "cover": "Tient (cmd.)",
+        "events": "Par événement"
+    },
+    "strip": {
+        "units": "{event} : {count} vendu | {event} : {count} vendus",
+        "absent": "{event} : pas en vente",
+        "offEvent": "Hors événement"
+    },
+    "columnNames": {
+        "pace": "Vendus pour 100 commandes",
+        "unitMargin": "Marge par unité vendue",
+        "cover": "Commandes couvertes par le stock"
+    }
+}

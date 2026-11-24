@@ -63,5 +63,43 @@
         "share": "Discounted share",
         "shareTooltip": "{month}: {share} of the full price given in discounts"
     },
-    "months": "Months"
+    "months": "Months",
+    "views": {
+        "label": "View",
+        "palmares": "Best sellers",
+        "decisions": "Decisions"
+    },
+    "analysis": {
+        "verdicts": {
+            "restock": "Restock",
+            "discontinue": "Discontinue",
+            "reprice": "Reprice",
+            "watch": "Watch",
+            "keep": "Keep",
+            "too_early": "Too early"
+        },
+        "rules": {
+            "restock": "It sells well (popular or class A) and its stock is out or too short.",
+            "discontinue": "It sold nothing, or it is unpopular and class C.",
+            "reprice": "It sells well but earns little per unit: a workhorse.",
+            "watch": "It is unpopular without being class A.",
+            "keep": "It sells and its stock is enough: nothing to do.",
+            "too_early": "Under 150 orders since it arrived, or under half of the period's orders: too early to judge."
+        },
+        "classes": {
+            "A": "Class A",
+            "B": "Class B",
+            "C": "Class C"
+        },
+        "quadrants": {
+            "star": "Star",
+            "workhorse": "Workhorse",
+            "puzzle": "Puzzle",
+            "dog": "Dog"
+        },
+        "stock": {
+            "out": "Out of stock",
+            "low": "Low stock"
+        }
+    }
 }

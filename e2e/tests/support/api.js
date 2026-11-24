@@ -65,6 +65,11 @@ export async function addService(request, service, fields, options = {}) {
 
 export const addSumUp = (request) => addService(request, 'sumup', { merchant_code: 'MCODE', api_key: 'sup_sk_e2e_key' });
 
+export async function placeOrder(request, placedAt, lines) {
+    const response = await request.post('/api/orders', { data: { placedAt, lines: lines.map(({ product, quantity = 1 }) => ({ productId: product.id, variant: null, quantity })) } });
+    expect(response.status()).toBe(201);
+}
+
 export async function restock(request, product, { variant = null, quantity, totalPaid }) {
     const response = await request.post('/api/stock/restock', { data: { productId: product.id, variant, quantity, totalPaid } });
     expect(response.status()).toBe(204);

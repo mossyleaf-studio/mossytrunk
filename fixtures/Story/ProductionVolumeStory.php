@@ -51,6 +51,11 @@ final class ProductionVolumeStory extends Story
         ['Pin\'s', 'PIN', 5, [], 800, 250],
     ];
 
+    private const int BEST_SELLERS = 6;
+    private const int NEWCOMERS = 4;
+    private const int NEVER_SOLD = 3;
+    private const int NEWCOMER_DAYS = 25;
+
     private Workspace $workspace;
 
     private Product $sleeve;
@@ -69,7 +74,7 @@ final class ProductionVolumeStory extends Story
         $this->workspace = WorkspaceFactory::createOne(['name' => 'Atelier Volume']);
         UserFactory::createOne(['accountId' => 'volume', 'email' => 'volume@mossytrunk.local', 'workspace' => $this->workspace]);
         $market = $this->entityManager->getRepository(SalesChannel::class)->findOneBy(['workspace' => $this->workspace, 'main' => true]) ?? throw new \LogicException('The workspace has no main channel.');
-        $this->entityManager->persist(SalesChannel::open($this->workspace, 'Boutique en ligne'));
+        $shop = $this->persisted(SalesChannel::open($this->workspace, 'Boutique en ligne'));
 
         $types = [];
         $catalogue = [];
@@ -79,6 +84,8 @@ final class ProductionVolumeStory extends Story
                 $catalogue[] = $this->product($types[$code], \sprintf('%s-%03d', $code, $i), $variants, $selling, $buying);
             }
         }
+        $ranked = $catalogue;
+        array_multisort(array_map(static fn (Product $product): float => faker()->randomFloat(6), $ranked), $ranked);
 
         $packaging = ProductTypeFactory::createOne(['workspace' => $this->workspace, 'name' => 'Emballage', 'code' => 'EMB', 'color' => ProductType::paletteColor(6)]);
         $this->sleeve = $this->persisted(Product::supply($this->workspace, 'EMB-POCHETTE', 'Pochette', $packaging, ['Petite', 'Grande']));
@@ -97,11 +104,22 @@ final class ProductionVolumeStory extends Story
                 ->create(['workspace' => $this->workspace, 'name' => 'Japan Expo', 'location' => 'Paris', 'period' => EventFactory::during('-60 days', '-57 days')]),
             EventFactory::new()->withExpenses(['Stand' => 6_000, 'Essence' => 3_200])
                 ->create(['workspace' => $this->workspace, 'name' => 'Festival de la BD', 'location' => 'Angoulême', 'period' => EventFactory::during('-20 days', '-18 days')]),
+            EventFactory::new()->withExpenses(['Emplacement' => 1_500])
+                ->create(['workspace' => $this->workspace, 'name' => 'Marché de quartier', 'location' => 'Lille', 'period' => EventFactory::during('-6 days', '-6 days')]),
         ];
-        $this->sellDuring($events[0], $market, $catalogue, 220);
-        $this->sellDuring($events[1], $market, $catalogue, 129);
 
-        $this->purchase($catalogue);
+        $baskets = [
+            ...$this->basketsDuring($events[0], 220, $ranked),
+            ...$this->basketsDuring($events[1], 129, $ranked),
+            ...$this->basketsDuring($events[2], 20, $ranked),
+            ...$this->basketsOutsideEvents(30, $ranked),
+        ];
+        $this->stockUp($ranked, $baskets);
+        foreach ($baskets as ['event' => $event, 'at' => $placedAt, 'lines' => $lines]) {
+            $this->place($event, $shop, $market, $placedAt, $lines);
+        }
+
+        $this->purchase(\array_slice($ranked, self::BEST_SELLERS + self::NEWCOMERS, -self::NEVER_SOLD));
         $this->designs($types, $catalogue);
         for ($i = 0; $i < 128; ++$i) {
             $this->entityManager->persist(ExternalItem::seen($this->workspace, 'sumup', (string) (900_000 + $i), \sprintf('Article %d', $i), [null, 'A4', 'M', 'Noir'][$i % 4], new \DateTimeImmutable('-30 days')));
@@ -115,6 +133,8 @@ final class ProductionVolumeStory extends Story
      */
     private function product(ProductType $type, string $reference, array $variants, int $selling, int $buying): Product
     {
+        $selling = (int) round($selling * faker()->numberBetween(8, 15) / 10 / 50) * 50;
+        $buying = (int) round($buying * faker()->numberBetween(7, 16) / 10 / 5) * 5;
         $product = ProductFactory::createOne([
             'workspace' => $this->workspace,
             'type' => $type,
@@ -124,9 +144,6 @@ final class ProductionVolumeStory extends Story
             'variants' => $variants,
         ]);
         $product->bought(Money::cents($buying));
-        foreach ([] === $variants ? [null] : $variants as $variant) {
-            $this->stockOf($product, $variant)->receive(150, Money::cents($buying * 150), LotOrigin::Purchase, new \DateTimeImmutable('-120 days'));
-        }
 
         return $product;
     }
@@ -150,33 +167,135 @@ final class ProductionVolumeStory extends Story
     }
 
     /**
-     * @param list<Product> $catalogue
+     * @param list<Product> $ranked
+     *
+     * @return list<array{event: ?Event, at: \DateTimeImmutable, lines: list<array{Product, ?string, int}>}>
      */
-    private function sellDuring(Event $event, SalesChannel $market, array $catalogue, int $count): void
+    private function basketsDuring(Event $event, int $count, array $ranked): array
     {
         $days = (int) $event->period()->start()->diff($event->period()->end())->days;
+        $baskets = [];
         for ($i = 0; $i < $count; ++$i) {
             $placedAt = $event->period()->start()
                 ->modify(\sprintf('+%d days', faker()->numberBetween(0, $days)))
                 ->setTime(faker()->numberBetween(10, 18), faker()->numberBetween(0, 59));
-            $items = [];
-            foreach (faker()->randomElements($catalogue, faker()->numberBetween(1, 3)) as $product) {
-                if (!$product instanceof Product) {
-                    continue;
+            $baskets[] = ['event' => $event, 'at' => $placedAt, 'lines' => $this->linesAt($placedAt, $ranked)];
+        }
+
+        return $baskets;
+    }
+
+    /**
+     * @param list<Product> $ranked
+     *
+     * @return list<array{event: ?Event, at: \DateTimeImmutable, lines: list<array{Product, ?string, int}>}>
+     */
+    private function basketsOutsideEvents(int $count, array $ranked): array
+    {
+        $baskets = [];
+        for ($i = 0; $i < $count; ++$i) {
+            $placedAt = (new \DateTimeImmutable(\sprintf('-%d days', faker()->numberBetween(1, 90))))->setTime(faker()->numberBetween(10, 21), faker()->numberBetween(0, 59));
+            $baskets[] = ['event' => null, 'at' => $placedAt, 'lines' => $this->linesAt($placedAt, $ranked)];
+        }
+
+        return $baskets;
+    }
+
+    /**
+     * @param list<Product> $ranked
+     *
+     * @return list<array{Product, ?string, int}>
+     */
+    private function linesAt(\DateTimeImmutable $placedAt, array $ranked): array
+    {
+        $newcomersArrived = $placedAt >= new \DateTimeImmutable(\sprintf('-%d days', self::NEWCOMER_DAYS - 1));
+        $pool = [];
+        foreach (\array_slice($ranked, 0, -self::NEVER_SOLD, true) as $rank => $product) {
+            $isNewcomer = $rank >= self::BEST_SELLERS && $rank < self::BEST_SELLERS + self::NEWCOMERS;
+            if (!$isNewcomer || $newcomersArrived) {
+                $pool[] = [$product, 1 / ($rank + 1) ** 0.8];
+            }
+        }
+
+        $lines = [];
+        foreach ($this->weightedPicks($pool, faker()->numberBetween(1, 3)) as $product) {
+            $variant = $product->hasVariants() ? $product->variants()[faker()->numberBetween(0, \count($product->variants()) - 1)] : null;
+            $lines[] = [$product, $variant, faker()->numberBetween(1, 2)];
+        }
+
+        return $lines;
+    }
+
+    /**
+     * @param list<array{Product, float}> $pool
+     *
+     * @return list<Product>
+     */
+    private function weightedPicks(array $pool, int $count): array
+    {
+        $picked = [];
+        while (\count($picked) < $count) {
+            $target = faker()->randomFloat(6, 0, array_sum(array_column($pool, 1)));
+            foreach ($pool as [$product, $weight]) {
+                $target -= $weight;
+                if ($target <= 0) {
+                    $picked[$product->reference()] = $product;
+                    break;
                 }
-                $variant = $product->hasVariants() ? $product->variants()[faker()->numberBetween(0, \count($product->variants()) - 1)] : null;
-                $quantity = faker()->numberBetween(1, 2);
-                $item = $product->sellable($variant);
-                $items[] = (new OrderedItem($item, $quantity))->costing($this->stockOf($product, $variant)->withdraw($quantity, $item->buyingPrice));
             }
-            $charged = array_reduce($items, static fn (Money $total, OrderedItem $ordered): Money => $total->add($ordered->item->sellingPrice->multiply($ordered->quantity)), Money::zero());
-            $transaction = (string) new Ulid();
-            $order = $this->persisted(Order::imported(self::reference('CMD', $placedAt), $this->workspace, 'sumup', $transaction, 'TX'.substr($transaction, -10), $event, $placedAt, $items, $charged, Money::zero(), PaymentMethod::Card, [], 'Remise', $market));
-            $order->settleSaleFee('sumup', $transaction, $charged->percentage(175));
-            foreach ($this->sleeve->variants() as $size) {
-                $supply = $this->sleeve->sellable($size);
-                $order->useSupply($supply, 1, $this->stockOf($this->sleeve, $size)->withdraw(1, $supply->buyingPrice));
+        }
+
+        return array_values($picked);
+    }
+
+    /**
+     * @param list<Product>                                                                                 $ranked
+     * @param list<array{event: ?Event, at: \DateTimeImmutable, lines: list<array{Product, ?string, int}>}> $baskets
+     */
+    private function stockUp(array $ranked, array $baskets): void
+    {
+        $demand = [];
+        foreach ($baskets as ['lines' => $lines]) {
+            foreach ($lines as [$product, $variant, $quantity]) {
+                $key = $product->reference().'|'.$variant;
+                $demand[$key] = ($demand[$key] ?? 0) + $quantity;
             }
+        }
+
+        foreach ($ranked as $rank => $product) {
+            $bestSeller = $rank < self::BEST_SELLERS;
+            $newcomer = !$bestSeller && $rank < self::BEST_SELLERS + self::NEWCOMERS;
+            $receivedAt = new \DateTimeImmutable($newcomer ? \sprintf('-%d days', self::NEWCOMER_DAYS) : '-120 days');
+            foreach ([] === $product->variants() ? [null] : $product->variants() as $variant) {
+                $needed = $demand[$product->reference().'|'.$variant] ?? 0;
+                $quantity = $bestSeller ? $needed : $needed + faker()->numberBetween(10, 120);
+                if ($quantity > 0) {
+                    $this->stockOf($product, $variant)->receive($quantity, $product->buyingPrice()->multiply($quantity), LotOrigin::Purchase, $receivedAt);
+                }
+            }
+        }
+    }
+
+    /**
+     * @param list<array{Product, ?string, int}> $lines
+     */
+    private function place(?Event $event, SalesChannel $shop, SalesChannel $market, \DateTimeImmutable $placedAt, array $lines): void
+    {
+        $items = [];
+        foreach ($lines as [$product, $variant, $quantity]) {
+            $item = $product->sellable($variant);
+            $items[] = (new OrderedItem($item, $quantity))->costing($this->stockOf($product, $variant)->withdraw($quantity, $item->buyingPrice));
+        }
+        $charged = array_reduce($items, static fn (Money $total, OrderedItem $ordered): Money => $total->add($ordered->item->sellingPrice->multiply($ordered->quantity)), Money::zero());
+        $transaction = (string) new Ulid();
+        $order = $this->persisted(Order::imported(self::reference('CMD', $placedAt), $this->workspace, 'sumup', $transaction, 'TX'.substr($transaction, -10), $event, $placedAt, $items, $charged, Money::zero(), PaymentMethod::Card, [], 'Remise', null === $event ? $shop : $market));
+        $order->settleSaleFee('sumup', $transaction, $charged->percentage(175));
+        if (null === $event) {
+            return;
+        }
+        foreach ($this->sleeve->variants() as $size) {
+            $supply = $this->sleeve->sellable($size);
+            $order->useSupply($supply, 1, $this->stockOf($this->sleeve, $size)->withdraw(1, $supply->buyingPrice));
         }
     }
 

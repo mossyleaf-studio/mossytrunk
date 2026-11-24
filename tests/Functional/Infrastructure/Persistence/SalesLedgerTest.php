@@ -7,6 +7,7 @@ namespace App\Tests\Functional\Infrastructure\Persistence;
 use App\Application\Order\ListOrders\OrderSummaries;
 use App\Application\Product\CreateProductType\CreateProductTypeHandler;
 use App\Application\Reporting\ProductSalesLedger;
+use App\Application\Reporting\SalesCalendar;
 use App\Application\Reporting\SalesLedger;
 use App\Application\WorkspaceContext;
 use App\Domain\Discount\AppliedDiscount;
@@ -16,6 +17,8 @@ use App\Domain\Order\OrderedItem;
 use App\Domain\Order\PaymentMethod;
 use App\Domain\Product\ProductRepository;
 use App\Domain\Product\SellableItem;
+use App\Domain\Reporting\Analysis\EventUnits;
+use App\Domain\Reporting\Analysis\SellingDay;
 use App\Domain\Reporting\ProductSales;
 use App\Domain\Shared\BusinessTime;
 use App\Domain\Shared\DateRange;
@@ -109,6 +112,27 @@ final class SalesLedgerTest extends KernelTestCase
         self::assertSame(2, $ledger->ofProduct($this->print, DateRange::fromDates(new \DateTimeImmutable('2026-04-01'), new \DateTimeImmutable('2026-04-30')))?->quantity);
         self::assertSame(3, $ledger->ofProduct($this->print)?->quantity);
         self::assertNull($ledger->ofProduct(new Ulid()));
+    }
+
+    public function testTheSalesCalendarCountsUnrefundedOrdersAndUnitsPerParisDayAndEvent(): void
+    {
+        $calendar = self::getContainer()->get(SalesCalendar::class);
+        $year = DateRange::year(2026);
+
+        self::assertSame(
+            [['2026-04-30', 1, 'Salon', '2026-04-30', '2026-05-01'], ['2026-05-01', 2, 'Salon', '2026-04-30', '2026-05-01']],
+            array_map(static fn (SellingDay $day): array => [$day->day, $day->orders, $day->event?->name, $day->event?->from, $day->event?->to], $calendar->days($year)),
+        );
+        $units = $calendar->unitsByEvent($year);
+        usort($units, static fn (EventUnits $a, EventUnits $b): int => $b->units <=> $a->units);
+        self::assertEquals(
+            [new EventUnits($this->print, $this->event->id(), 3, '2026-04-30', '2026-05-01'), new EventUnits($this->sticker, $this->event->id(), 1, '2026-04-30', '2026-04-30')],
+            $units,
+        );
+        self::assertSame([], $calendar->days(DateRange::year(2025)));
+
+        self::actAsMemberOf('Autre atelier');
+        self::assertSame([[], []], [$calendar->days($year), $calendar->unitsByEvent($year)]);
     }
 
     public function testOrderSummariesReadTheRecordedFigures(): void

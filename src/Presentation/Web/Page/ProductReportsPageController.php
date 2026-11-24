@@ -23,7 +23,7 @@ final readonly class ProductReportsPageController
     public function __invoke(#[MapQueryParameter] string $period = ReportPeriod::LAST_TWELVE_MONTHS, #[MapQueryParameter] string $product = ''): Response
     {
         $query = '?period='.rawurlencode($period);
-        $preload = ['/api/reports/products'.$query];
+        $preload = ['/api/reports/products'.$query, '/api/reports/products/analysis'.$query];
         if (1 === preg_match('/^'.Requirement::ULID.'$/', $product)) {
             $preload[] = "/api/reports/products/$product$query";
         }
