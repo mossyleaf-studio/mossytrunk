@@ -17,21 +17,11 @@ export function useProductReports() {
     });
     const report = ref(null);
     const analysis = ref(null);
-    const story = ref(null);
 
     const query = () => `?period=${encodeURIComponent(period.value)}`;
     const loadReport = () => api.load(`/api/reports/products${query()}`, report);
     const loadAnalysis = () => api.load(`/api/reports/products/analysis${query()}`, analysis);
+    const loadAll = () => Promise.all([loadReport(), loadAnalysis()]);
 
-    async function loadStory() {
-        if (!productId.value) {
-            story.value = null;
-            return;
-        }
-        await api.load(`/api/reports/products/${productId.value}${query()}`, story);
-    }
-
-    const loadAll = () => Promise.all([loadReport(), loadAnalysis(), loadStory()]);
-
-    return { period, productId, view, report, analysis, story, loadAll, loadStory };
+    return { period, productId, view, report, analysis, loadAll };
 }

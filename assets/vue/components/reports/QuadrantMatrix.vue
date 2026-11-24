@@ -3,9 +3,11 @@ import { computed, useId } from 'vue';
 import { useI18n } from 'vue-i18n';
 import BaseCard from '../ui/BaseCard.vue';
 import EmptyState from '../ui/EmptyState.vue';
+import FormDisclosure from '../ui/FormDisclosure.vue';
 import Notice from '../ui/Notice.vue';
 import QuadrantPanel from './QuadrantPanel.vue';
 import VerdictBadge from './VerdictBadge.vue';
+import { QUADRANTS } from '../../composables/useProductAnalysis.js';
 
 const props = defineProps({
     analysis: { type: Object, required: true },
@@ -27,11 +29,20 @@ const apart = computed(() => props.analysis.products.filter((product) => product
         <div v-else class="quadrant-matrix__body">
             <p class="quadrant-matrix__lead">{{ t('reports-matrix.lead') }}</p>
             <Notice v-if="!analysis.period.current" tone="success">{{ t('reports-matrix.past') }}</Notice>
+            <FormDisclosure :title="t('reports.analysis.how.title')">
+                <p class="quadrant-matrix__how">{{ t('reports.analysis.how.pace') }}</p>
+                <p class="quadrant-matrix__how">{{ t('reports.analysis.how.unitMargin') }}</p>
+                <p class="quadrant-matrix__how">{{ t('reports-matrix.how.lines', { pace: analysis.rules.popularPercent, margin: analysis.rules.profitablePercent }) }}</p>
+                <ul class="quadrant-matrix__how quadrant-matrix__names">
+                    <li v-for="quadrant in QUADRANTS" :key="quadrant">{{ t(`reports.analysis.how.quadrants.${quadrant}`) }}</li>
+                </ul>
+            </FormDisclosure>
             <div v-if="panels.length > 0" class="quadrant-matrix__panels">
                 <QuadrantPanel
                     v-for="{ type, products } in panels"
                     :key="type.id"
                     :type="type"
+                    :rules="analysis.rules"
                     :products="products"
                     :selected-id="selectedId"
                     @select="emit('select', $event)"
@@ -67,6 +78,8 @@ const apart = computed(() => props.analysis.products.filter((product) => product
 .quadrant-matrix { min-width: 0; }
 .quadrant-matrix__body { display: flex; flex-direction: column; gap: var(--space-5); }
 .quadrant-matrix__lead { margin: 0; color: var(--color-muted); font-size: var(--font-size-sm); }
+.quadrant-matrix__how { margin: 0; font-size: var(--font-size-sm); }
+.quadrant-matrix__names { display: flex; flex-direction: column; gap: var(--space-1); padding-left: var(--space-5); }
 
 .quadrant-matrix__panels {
     display: grid;

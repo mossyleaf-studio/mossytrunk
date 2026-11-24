@@ -38,5 +38,10 @@ final class ProductsAnalysisApiTest extends WebTestCase
             [$product, 2, 3_000, '2026-07-10', 1, 200, 0, [2]],
             [$row['id'], $row['units'], $row['revenue'], $row['availableSince'], $row['exposure'], $row['per100Orders'], $row['onHand'], $row['byEvent']],
         );
+        self::assertSame(
+            [3_000, 0, 0, 2, 0, 0, 1, 'too_few_orders', 'too_early'],
+            [$row['gross'], $row['discount'], $row['cost'], $row['fullPriceUnits'], $row['discountedUnits'], $row['discountedGross'], $row['ordersSinceArrival'], $row['reason'], $row['verdict']],
+        );
+        self::assertSame([150, null, null, 0], [Json::int($analysis, 'rules', 'enoughOrders'), Json::at($analysis, 'types', 0, 'averagePace'), Json::at($analysis, 'types', 0, 'averageUnitMargin'), Json::int($analysis, 'totals', 'discountedUnits')]);
     }
 }

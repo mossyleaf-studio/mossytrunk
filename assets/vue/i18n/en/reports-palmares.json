@@ -1,0 +1,9 @@
+{
+    "legendFullPrice": "Full price",
+    "legendDiscounted": "Discounted",
+    "discounted": "{count} discounted | {count} discounted",
+    "tooltip": {
+        "fullPriceUnits": "{count} sold at full price | {count} sold at full price",
+        "discountedUnits": "{count} sold discounted | {count} sold discounted"
+    }
+}

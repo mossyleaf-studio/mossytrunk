@@ -6,9 +6,15 @@
     "total": "Total",
     "orders": "{count} commande | {count} commandes",
     "key": {
-        "label": "Vendus pour 100 commandes de l'événement :",
+        "label": "Teinte : unités vendues pour 100 commandes de l'événement. Plus c'est foncé, plus ça part vite.",
         "upTo": "jusqu'à {rate}",
         "absent": "pas en vente"
+    },
+    "how": {
+        "cell": "Chaque case donne le nombre d'unités vendues de ce produit à cet événement. « 0 » : en vente, mais rien de vendu.",
+        "tint": "La teinte mesure les unités vendues pour 100 commandes de l'événement, pas les unités brutes : un petit événement et un grand se comparent donc. La plus foncée va jusqu'à {top} pour 100 commandes, le plus haut taux du tableau.",
+        "absent": "« — » : le produit n'était pas en vente à cet événement, parce qu'il est arrivé après ou qu'il était déjà épuisé.",
+        "total": "Total : les unités vendues sur toute la période, hors événement comprises."
     },
     "tip": {
         "units": "{event} : {count} vendu, {rate} pour 100 commandes | {event} : {count} vendus, {rate} pour 100 commandes",

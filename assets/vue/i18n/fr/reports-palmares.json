@@ -1,0 +1,9 @@
+{
+    "legendFullPrice": "Au plein tarif",
+    "legendDiscounted": "Remisés",
+    "discounted": "dont {count} remisé | dont {count} remisés",
+    "tooltip": {
+        "fullPriceUnits": "{count} vendu au plein tarif | {count} vendus au plein tarif",
+        "discountedUnits": "{count} vendu remisé | {count} vendus remisés"
+    }
+}

@@ -17,7 +17,7 @@ Module 1 = **Order Management**. This folder is the reference for business rules
 | [discounts.md](discounts.md) | Discount rules (conditions, action, validity) and the automatic calculation |
 | [event-report.md](event-report.md) | Profitability of an event: Dépenses, Commandes, URSSAF 12.8 %, Total |
 | [dashboard.md](dashboard.md) | Results per month and per year |
-| [product-reports.md](product-reports.md) | Product report: best sellers, sales, stock flow and discounts over time; per-product verdicts (ABC class, quadrant in its type, stock cover) |
+| [product-reports.md](product-reports.md) | Product report: best sellers with units sold at full price or discounted; per-product verdicts with their reason (ABC class, quadrant in its type, stock cover) |
 | [stock.md](stock.md) | Stock per sellable item in FIFO lots, low stock, inventory after an event and missing orders |
 | [references.md](references.md) | Reference formats per kind (orders, supplier orders, products): tags, numbering, renumbering existing items |
 | [supplier-orders.md](supplier-orders.md) | Suppliers, supplier orders, reception into stock at the real unit cost |

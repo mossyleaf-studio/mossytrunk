@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n';
 import BaseCard from '../ui/BaseCard.vue';
 import ChartTip from '../ui/ChartTip.vue';
 import EmptyState from '../ui/EmptyState.vue';
+import FormDisclosure from '../ui/FormDisclosure.vue';
 import { CLASSES, classTone } from '../../composables/useProductAnalysis.js';
 import { formatCents, formatPercent, formatRatio } from '../../composables/useMoney.js';
 
@@ -15,8 +16,7 @@ const props = defineProps({
 const emit = defineEmits(['select']);
 const { t } = useI18n();
 
-const MARKS = [0.8, 0.95];
-
+const marks = computed(() => [props.analysis.rules.classAPercent / 100, props.analysis.rules.classBPercent / 100]);
 const products = computed(() => props.analysis.products);
 const earned = computed(() => products.value.reduce((sum, product) => sum + Math.max(0, product.margin), 0));
 const classes = computed(() => CLASSES.map((abcClass) => {
@@ -29,14 +29,16 @@ const classes = computed(() => CLASSES.map((abcClass) => {
         earned: members.reduce((sum, product) => sum + Math.max(0, product.margin), 0),
     };
 }));
-const countOf = (abcClass) => classes.value.find((entry) => entry.abcClass === abcClass).count;
+const classOf = (abcClass) => classes.value.find((entry) => entry.abcClass === abcClass);
+const countOf = (abcClass) => classOf(abcClass).count;
+const shareOfClass = (abcClass) => formatRatio(classOf(abcClass).earned, earned.value);
 
 const headline = computed(() => {
     const total = products.value.length;
-    const head = t('reports-concentration.head', { count: countOf('A'), total, share: formatPercent(MARKS[0]) }, countOf('A'));
+    const head = t('reports-concentration.head', { count: countOf('A'), total, share: shareOfClass('A') }, countOf('A'));
     const tailCount = countOf('C');
     if (tailCount === 0) return head;
-    const tail = t('reports-concentration.tail', { count: tailCount, share: formatPercent(1 - MARKS[1]) }, tailCount);
+    const tail = t('reports-concentration.tail', { count: tailCount, share: shareOfClass('C') }, tailCount);
     return t('reports-concentration.sentence', { head, tail });
 });
 
@@ -79,10 +81,10 @@ const tip = (product, index) => t('reports-concentration.tip', {
             <div class="concentration__chart" :style="slotCount">
                 <span class="concentration__label concentration__label--title">{{ t('reports-concentration.cumulated') }}</span>
                 <div class="concentration__scale" aria-hidden="true">
-                    <span v-for="mark in MARKS" :key="mark" class="concentration__tick" :style="{ bottom: `${mark * 100}%` }">{{ formatPercent(mark) }}</span>
+                    <span v-for="mark in marks" :key="mark" class="concentration__tick" :style="{ bottom: `${mark * 100}%` }">{{ formatPercent(mark) }}</span>
                 </div>
                 <div class="concentration__plot">
-                    <span v-for="mark in MARKS" :key="mark" class="concentration__hairline" :style="{ bottom: `${mark * 100}%` }" aria-hidden="true" />
+                    <span v-for="mark in marks" :key="mark" class="concentration__hairline" :style="{ bottom: `${mark * 100}%` }" aria-hidden="true" />
                     <svg class="concentration__curve" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
                         <polygon :points="area" class="concentration__area" />
                         <polyline :points="line" class="concentration__line" vector-effect="non-scaling-stroke" />
@@ -115,6 +117,12 @@ const tip = (product, index) => t('reports-concentration.tip', {
                     </span>
                 </template>
             </div>
+
+            <FormDisclosure :title="t('reports.analysis.how.title')">
+                <p class="concentration__how">{{ t('reports.analysis.how.margin') }}</p>
+                <p class="concentration__how">{{ t('reports.analysis.how.classes', { a: analysis.rules.classAPercent, b: analysis.rules.classBPercent }) }}</p>
+                <p class="concentration__how">{{ t('reports-concentration.how.curve') }}</p>
+            </FormDisclosure>
         </figure>
     </BaseCard>
 </template>
@@ -122,6 +130,8 @@ const tip = (product, index) => t('reports-concentration.tip', {
 <style scoped>
 .concentration { display: flex; flex-direction: column; gap: var(--space-4); margin: 0; }
 .concentration__headline { margin: 0; color: var(--color-ink); font-family: var(--font-display); font-size: 1.25rem; line-height: 1.3; }
+
+.concentration__how { margin: 0; color: var(--color-muted); font-size: var(--font-size-sm); line-height: 1.5; }
 
 .concentration__legend { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); margin: 0; padding: 0; list-style: none; font-size: var(--font-size-sm); }
 .concentration__key { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); color: var(--color-ink); }

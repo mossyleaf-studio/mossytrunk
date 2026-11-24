@@ -26,7 +26,6 @@
     --color-danger: color-mix(in oklch, oklch(from var(--theme-background) calc(0.74 - 0.26 * clamp(0, (l - 0.62) * 100, 1)) 0.15 28) 90%, var(--theme-accent));
     --color-success: color-mix(in oklch, oklch(from var(--theme-background) calc(0.76 - 0.25 * clamp(0, (l - 0.62) * 100, 1)) 0.13 145) 90%, var(--theme-accent));
     --color-warning: color-mix(in oklch, oklch(from var(--theme-background) calc(0.8 - 0.22 * clamp(0, (l - 0.62) * 100, 1)) 0.13 70) 90%, var(--theme-accent));
-    --color-chart-out: color-mix(in oklch, oklch(from var(--theme-background) calc(0.72 - 0.22 * clamp(0, (l - 0.62) * 100, 1)) 0.11 262) 90%, var(--theme-accent));
     --color-surface-hueless: oklch(from var(--color-surface) l 0 none);
     --color-danger-soft: color-mix(in oklch, var(--color-danger) 10%, var(--color-surface-hueless));
     --color-success-soft: color-mix(in oklch, var(--color-success) 12%, var(--color-surface-hueless));

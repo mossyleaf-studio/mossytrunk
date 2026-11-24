@@ -38,19 +38,4 @@ final readonly class ReportPeriod
     {
         return SalesYears::of(array_keys($this->sales->totalsByMonth()), DateRange::yearOf($this->clock->now()));
     }
-
-    /**
-     * @return list<string>
-     */
-    public static function months(DateRange $period): array
-    {
-        $months = [];
-        $month = $period->start()->modify('first day of this month');
-        while ($month <= $period->end()) {
-            $months[] = $month->format('Y-m');
-            $month = $month->modify('+1 month');
-        }
-
-        return $months;
-    }
 }

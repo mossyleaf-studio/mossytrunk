@@ -24,18 +24,8 @@ final readonly class AnalysedProduct
         return (string) $this->product->type()->id();
     }
 
-    public function revenue(): Money
-    {
-        return $this->sold->sales ?? Money::zero();
-    }
-
     public function margin(): Money
     {
         return $this->sold?->margin() ?? Money::zero();
-    }
-
-    public function unknownCost(): bool
-    {
-        return $this->sold->unknownCost ?? false;
     }
 }

@@ -8,7 +8,6 @@ use App\Application\Reporting\ProductSalesLedger;
 use App\Application\WorkspaceContext;
 use App\Domain\Product\VariantLabel;
 use App\Domain\Reporting\ProductSales;
-use App\Domain\Shared\BusinessTime;
 use App\Domain\Shared\DateRange;
 use App\Domain\Shared\Money;
 use Doctrine\DBAL\Connection;
@@ -54,16 +53,6 @@ final readonly class DoctrineProductSalesLedger implements ProductSalesLedger
         )[0] ?? null;
     }
 
-    public function monthlyOf(Ulid $productId): array
-    {
-        $months = [];
-        foreach ($this->rows('l.product_id, grouped', 'NULL', 'l.product_id = :product', ['product' => $productId->toRfc4122(), 'timezone' => BusinessTime::ZONE], [], "to_char(o.placed_at AT TIME ZONE :timezone, 'YYYY-MM')") as $row) {
-            $months[SqlValue::string($row['grouped'])] = self::productSales($row);
-        }
-
-        return $months;
-    }
-
     /**
      * @param array<string, string|\DateTimeImmutable|null> $parameters
      * @param array<string, string>                         $types
@@ -81,15 +70,17 @@ final readonly class DoctrineProductSalesLedger implements ProductSalesLedger
      *
      * @return list<array<string, mixed>>
      */
-    private function rows(string $group, string $variant, string $condition, array $parameters, array $types = [], string $key = 'NULL'): array
+    private function rows(string $group, string $variant, string $condition, array $parameters, array $types = []): array
     {
         return $this->connection->fetchAllAssociative(
             <<<SQL
-                SELECT l.product_id AS product_id, {$variant} AS variant, {$key} AS grouped,
+                SELECT l.product_id AS product_id, {$variant} AS variant,
                     (ARRAY_AGG(l.product_name ORDER BY o.placed_at DESC))[1] AS product_name,
                     SUM(l.quantity) AS quantity, SUM(l.unit_price_cents * l.quantity) AS gross,
                     SUM(l.unit_price_cents * l.quantity - l.discount_cents) AS sales,
-                    SUM(l.cost_cents) AS cost, BOOL_OR(l.cost_cents = 0) AS unknown_cost
+                    SUM(l.cost_cents) AS cost, BOOL_OR(l.cost_cents = 0) AS unknown_cost,
+                    SUM(CASE WHEN l.discount_cents > 0 THEN l.quantity ELSE 0 END) AS discounted_units,
+                    SUM(CASE WHEN l.discount_cents > 0 THEN l.unit_price_cents * l.quantity ELSE 0 END) AS discounted_gross
                 FROM order_line l
                 JOIN "order" o ON o.id = l.order_id
                 WHERE o.workspace_id = :workspace AND o.refunded_at IS NULL AND {$condition}
@@ -118,6 +109,8 @@ final readonly class DoctrineProductSalesLedger implements ProductSalesLedger
             Money::cents(SqlValue::int($row['sales'])),
             Money::cents(SqlValue::int($row['cost'])),
             SqlValue::bool($row['unknown_cost']),
+            SqlValue::int($row['discounted_units']),
+            Money::cents(SqlValue::int($row['discounted_gross'])),
         );
     }
 }

@@ -6,6 +6,7 @@ namespace App\Tests\Functional\Application\Reporting;
 
 use App\Application\Product\CreateProductType\CreateProductTypeHandler;
 use App\Application\Reporting\ProductsAnalysis\GetProductsAnalysisHandler;
+use App\Domain\Discount\AppliedDiscount;
 use App\Domain\Event\Event;
 use App\Domain\Order\Order;
 use App\Domain\Order\OrderedItem;
@@ -77,7 +78,7 @@ final class ProductsAnalysisTest extends KernelTestCase
         $this->sell('2026-09-26', $market, 40, ['mousse' => 8, 'print' => 1, 'holo' => 4, 'fougere' => 2, 'nouveau' => 5]);
         $shop = SalesChannel::open($workspace, 'Boutique');
         $entityManager->persist($shop);
-        $this->sell('2026-10-05', $shop, 4, ['mousse' => 2]);
+        $this->sell('2026-10-05', $shop, 4, ['mousse' => 2], [new AppliedDiscount('Fidélité', Money::cents(60))]);
         $entityManager->flush();
         $entityManager->clear();
     }
@@ -92,20 +93,33 @@ final class ProductsAnalysisTest extends KernelTestCase
         self::assertSame([204, 4], [$analysis->orders, $analysis->offEventOrders]);
         self::assertSame([['Expo', '2026-07-09', '2026-07-10', 160], ['Marché', '2026-09-26', '2026-09-26', 40]], array_map(static fn (array $event): array => [$event['name'], $event['from'], $event['to'], $event['orders']], $analysis->events));
         self::assertSame($analysis->events[0], $analysis->busiestEvent);
-        self::assertSame([['Print', 1, 2.0, 680], ['Sticker', 5, 6.3, 191]], array_map(static fn (array $type): array => [$type['name'], $type['judged'], $type['popularFrom'], $type['unitMarginFrom']], $analysis->types));
+        self::assertSame(['enoughOrders' => 150, 'popularPercent' => 70, 'profitablePercent' => 85, 'classAPercent' => 80, 'classBPercent' => 95], $analysis->rules);
+        self::assertSame([['Print', 1, 2.9, 2.0, 800, 680], ['Sticker', 5, 9.1, 6.4, 224, 190]], array_map(static fn (array $type): array => [$type['name'], $type['judged'], $type['averagePace'], $type['popularFrom'], $type['averageUnitMargin'], $type['unitMarginFrom']], $analysis->types));
         self::assertSame(
             [
-                ['Sticker Mousse', 40, 10_000, 250, '2026-07-01', 204, 19.6, 'A', 'star', 10_000, 20, 102, 'low', [30, 8], 2, 'restock'],
-                ['Print Forêt', 6, 4_800, 800, '2026-07-01', 204, 2.9, 'A', 'star', 14_800, 24, 816, 'ok', [5, 1], 0, 'keep'],
-                ['Sticker Holo', 20, 3_000, 150, '2026-07-01', 204, 9.8, 'A', 'workhorse', 17_800, 40, 408, 'ok', [16, 4], 0, 'reprice'],
-                ['Sticker Lichen', 12, 3_000, 250, '2026-07-01', 100, 12.0, 'A', 'star', 20_800, 0, 0, 'out', [12, null], 0, 'restock'],
-                ['Sticker Fougère', 8, 2_000, 250, '2026-07-01', 204, 3.9, 'B', 'puzzle', 22_800, 42, 1_071, 'ok', [6, 2], 0, 'watch'],
-                ['Sticker Nouveau', 5, 1_250, 250, '2026-09-20', 44, 11.4, 'B', null, 24_050, 25, 220, 'ok', [null, 5], 0, 'too_early'],
-                ['Sticker Dormant', 0, 0, null, '2026-07-01', 204, 0.0, 'C', null, 24_050, 20, null, 'ok', [0, 0], 0, 'discontinue'],
+                ['Sticker Mousse', 40, 9_940, 249, '2026-07-01', 204, 19.6, 'A', 'star', 9_940, 20, 102, 'low', [30, 8], 2, 'restock'],
+                ['Print Forêt', 6, 4_800, 800, '2026-07-01', 204, 2.9, 'A', 'star', 14_740, 24, 816, 'ok', [5, 1], 0, 'keep'],
+                ['Sticker Holo', 20, 3_000, 150, '2026-07-01', 204, 9.8, 'A', 'workhorse', 17_740, 40, 408, 'ok', [16, 4], 0, 'reprice'],
+                ['Sticker Lichen', 12, 3_000, 250, '2026-07-01', 100, 12.0, 'A', 'star', 20_740, 0, 0, 'out', [12, null], 0, 'restock'],
+                ['Sticker Fougère', 8, 2_000, 250, '2026-07-01', 204, 3.9, 'B', 'puzzle', 22_740, 42, 1_071, 'ok', [6, 2], 0, 'watch'],
+                ['Sticker Nouveau', 5, 1_250, 250, '2026-09-20', 44, 11.4, 'B', null, 23_990, 25, 220, 'ok', [null, 5], 0, 'too_early'],
+                ['Sticker Dormant', 0, 0, null, '2026-07-01', 204, 0.0, 'C', null, 23_990, 20, null, 'ok', [0, 0], 0, 'discontinue'],
             ],
             array_map(static fn (array $row): array => [$row['name'], $row['units'], $row['margin'], $row['unitMargin'], $row['availableSince'], $row['exposure'], $row['per100Orders'], $row['class'], $row['quadrant'], $row['cumulativeMargin'], $row['onHand'], $row['coverOrders'], $row['stock'], $row['byEvent'], $row['offEvent'], $row['verdict']], $analysis->products),
         );
-        self::assertSame(['units' => 91, 'revenue' => 31_500, 'margin' => 24_050, 'onHand' => 171], $analysis->totals);
+        self::assertSame(
+            [
+                [12_000, 60, 2_000, 11_940, 38, 2, 600, 204, 'low_cover'],
+                [6_000, 0, 1_200, 6_000, 6, 0, 0, 204, 'fine'],
+                [6_000, 0, 3_000, 6_000, 20, 0, 0, 204, 'workhorse'],
+                [3_600, 0, 600, 3_600, 12, 0, 0, 204, 'sold_out'],
+                [2_400, 0, 400, 2_400, 8, 0, 0, 204, 'unpopular'],
+                [1_500, 0, 250, 1_500, 5, 0, 0, 44, 'too_few_orders'],
+                [0, 0, 0, 0, 0, 0, 0, 204, 'nothing_sold'],
+            ],
+            array_map(static fn (array $row): array => [$row['gross'], $row['discount'], $row['cost'], $row['revenue'], $row['fullPriceUnits'], $row['discountedUnits'], $row['discountedGross'], $row['ordersSinceArrival'], $row['reason']], $analysis->products),
+        );
+        self::assertSame(['units' => 91, 'discountedUnits' => 2, 'revenue' => 31_440, 'margin' => 23_990, 'onHand' => 171], $analysis->totals);
     }
 
     public function testAPeriodThatIsOverIsJudgedWithoutTodaysStock(): void
@@ -115,7 +129,7 @@ final class ProductsAnalysisTest extends KernelTestCase
         $analysis = self::getContainer()->get(GetProductsAnalysisHandler::class)('2026');
 
         self::assertFalse($analysis->period['current']);
-        self::assertSame([[null, null, null]], array_values(array_unique(array_map(static fn (array $row): array => [$row['stock'], $row['coverOrders'], $row['verdict']], $analysis->products), \SORT_REGULAR)));
+        self::assertSame([[null, null, null, null]], array_values(array_unique(array_map(static fn (array $row): array => [$row['stock'], $row['coverOrders'], $row['verdict'], $row['reason']], $analysis->products), \SORT_REGULAR)));
         $lichen = array_values(array_filter($analysis->products, static fn (array $row): bool => 'Sticker Lichen' === $row['name']))[0];
         self::assertSame([204, 5.9, [12, 0]], [$lichen['exposure'], $lichen['per100Orders'], $lichen['byEvent']]);
     }
@@ -132,9 +146,10 @@ final class ProductsAnalysisTest extends KernelTestCase
     }
 
     /**
-     * @param array<string, int> $units
+     * @param array<string, int>    $units
+     * @param list<AppliedDiscount> $discounts
      */
-    private function sell(string $day, Event|SalesChannel $where, int $orders, array $units): void
+    private function sell(string $day, Event|SalesChannel $where, int $orders, array $units, array $discounts = []): void
     {
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);
         $lines = [];
@@ -148,7 +163,7 @@ final class ProductsAnalysisTest extends KernelTestCase
             }
             $reference = 'CMD-'.++$this->reference;
             $placedAt = BusinessTime::at("$day 12:00");
-            $entityManager->persist($where instanceof Event ? Order::place($reference, $where, $placedAt, $items, []) : Order::placeOn($reference, $where, $placedAt, $items, []));
+            $entityManager->persist($where instanceof Event ? Order::place($reference, $where, $placedAt, $items, $discounts) : Order::placeOn($reference, $where, $placedAt, $items, $discounts));
         }
     }
 }

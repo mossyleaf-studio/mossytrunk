@@ -14,11 +14,11 @@
         "class": "Class",
         "quadrant": "Quadrant",
         "units": "Sold",
-        "pace": "/100 orders",
+        "pace": "Pace",
         "margin": "Margin",
-        "unitMargin": "Per unit",
+        "unitMargin": "Margin",
         "stock": "Stock",
-        "cover": "Lasts (orders)",
+        "cover": "Lasts",
         "events": "Per event"
     },
     "strip": {
@@ -26,9 +26,23 @@
         "absent": "{event}: not on sale",
         "offEvent": "Outside events"
     },
-    "columnNames": {
-        "pace": "Units sold per 100 orders",
-        "unitMargin": "Margin per unit sold",
-        "cover": "Orders the stock lasts"
+    "units": {
+        "pace": "per 100 orders",
+        "unitMargin": "per unit",
+        "cover": "orders"
+    },
+    "how": {
+        "limits": "Each product is compared with the products of its type. It sells well when its pace reaches {popular}% of its type's average pace. It earns well when its margin per unit reaches {profitable}% of its type's average margin per unit.",
+        "type": "{type}: average pace {average}, limit {limit}; average margin per unit {marginAverage}, limit {marginLimit}.",
+        "quadrant": "The quadrant crosses these two limits:",
+        "verdictsIntro": "What each verdict means:",
+        "verdicts": {
+            "restock": "it sells well (pace above the limit, or class A) and its stock is out or low.",
+            "discontinue": "no unit sold, or it sells little and is class C.",
+            "reprice": "it sells well but its margin per unit is under its type's limit.",
+            "watch": "it sells little and is class B.",
+            "keep": "it sells well with a margin per unit above the limit and enough stock, or it sells little but is class A.",
+            "too_early": "under {enough} orders since it arrived, or under half of the period's {orders} orders: not judged yet."
+        }
     }
 }

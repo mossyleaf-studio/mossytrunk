@@ -54,14 +54,14 @@ final class PagePreloadTest extends WebTestCase
         self::assertSame(3, Json::int($this->preloadedOn($client, '/settings'), '/api/planning-settings', 'readyDaysBefore'));
     }
 
-    public function testTheProductReportPagePreloadsTheBestSellersTheAnalysisAndTheChosenProduct(): void
+    public function testTheProductReportPagePreloadsTheBestSellersAndTheAnalysisOnly(): void
     {
         $client = self::signedInClient();
         $product = Json::string(Json::decode($this->post($client, '/api/products', ['name' => 'Forêt', 'sellingPrice' => 1_500, 'typeId' => ProductTypesApi::create($client)])), 'id');
 
         $preloaded = $this->preloadedOn($client, "/reports/products?period=2026&product=$product");
 
-        self::assertSame(['/api/reports/products?period=2026', '/api/reports/products/analysis?period=2026', "/api/reports/products/$product?period=2026"], array_keys($preloaded));
+        self::assertSame(['/api/reports/products?period=2026', '/api/reports/products/analysis?period=2026'], array_keys($preloaded));
         self::assertSame('2026', Json::string($preloaded, '/api/reports/products/analysis?period=2026', 'period', 'choice'));
     }
 

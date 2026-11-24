@@ -19,7 +19,14 @@ final readonly class ProductSales
         public Money $sales,
         public Money $cost,
         public bool $unknownCost,
+        public int $discountedUnits,
+        public Money $discountedGross,
     ) {
+    }
+
+    public function fullPriceUnits(): int
+    {
+        return $this->quantity - $this->discountedUnits;
     }
 
     public function discount(): Money

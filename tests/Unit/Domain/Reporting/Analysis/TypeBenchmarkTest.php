@@ -27,7 +27,7 @@ final class TypeBenchmarkTest extends TestCase
             $benchmark = $benchmark->with($exposure, $margin);
         }
 
-        self::assertSame([5, 6.3, 191], [$benchmark->judged, $benchmark->popularFrom(), $benchmark->unitMarginFrom()?->amount()]);
+        self::assertSame([5, 9.1, 6.4, 225, 191], [$benchmark->judged, $benchmark->averagePace(), $benchmark->popularFrom(), $benchmark->averageUnitMargin()?->amount(), $benchmark->unitMarginFrom()?->amount()]);
         self::assertSame(
             ['mousse' => Quadrant::Star, 'holo' => Quadrant::Workhorse, 'lichen' => Quadrant::Star, 'fougere' => Quadrant::Puzzle, 'nouveau' => null, 'dormant' => null],
             array_map(static fn (array $sticker): ?Quadrant => $benchmark->quadrant($sticker[0], $sticker[1]), $stickers),
@@ -57,8 +57,8 @@ final class TypeBenchmarkTest extends TestCase
     {
         $benchmark = TypeBenchmark::none()->with(Exposure::of(Scenario::calendar(), '2026-07-01', 0), Money::zero());
 
-        self::assertSame([1, 0.0, null], [$benchmark->judged, $benchmark->popularFrom(), $benchmark->unitMarginFrom()]);
-        self::assertSame([null, null], [TypeBenchmark::none()->popularFrom(), TypeBenchmark::unitMargin(Money::cents(500), 0)]);
+        self::assertSame([1, 0.0, 0.0, null, null], [$benchmark->judged, $benchmark->averagePace(), $benchmark->popularFrom(), $benchmark->averageUnitMargin(), $benchmark->unitMarginFrom()]);
+        self::assertSame([null, null, null], [TypeBenchmark::none()->averagePace(), TypeBenchmark::none()->popularFrom(), TypeBenchmark::unitMargin(Money::cents(500), 0)]);
         self::assertSame(250, TypeBenchmark::unitMargin(Money::cents(10_000), 40)?->amount());
     }
 

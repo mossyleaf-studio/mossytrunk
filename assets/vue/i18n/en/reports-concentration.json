@@ -13,5 +13,8 @@
     },
     "cumulated": "Cumulative margin",
     "axis": "Products from most to least profitable",
-    "tip": "{rank}. {name}: {margin} margin, {share} cumulative, class {abcClass}"
+    "tip": "{rank}. {name}: {margin} margin, {share} cumulative, class {abcClass}",
+    "how": {
+        "curve": "The curve adds up the margin of the products, from most to least profitable. Each dashed line marks a share of the total margin: a product's class depends on which line the curve places it under."
+    }
 }

@@ -33,6 +33,12 @@ const lengthOf = (product) => (sort.value === 'revenue' ? product.gross : Math.m
 const widest = computed(() => Math.max(1, ...props.products.map(lengthOf)));
 const width = (product) => `${(lengthOf(product) / widest.value) * 100}%`;
 const revenueShare = (product) => (product.gross ? (product.revenue / product.gross) * 100 : 0);
+const fullPriceShare = (product) => (product.units ? (product.fullPriceUnits / product.units) * 100 : 0);
+const meta = (product) => {
+    const units = t('reports.palmares.units', { count: product.units }, product.units);
+    if (sort.value === 'units') return product.discountedUnits > 0 ? `${units}, ${t('reports-palmares.discounted', { count: product.discountedUnits }, product.discountedUnits)}` : units;
+    return product.discount > 0 ? `${units}, ${t('reports.palmares.discountShare', { share: formatRatio(product.discount, product.gross, 1) })}` : units;
+};
 const figure = (product) => (sort.value === 'units' ? t('reports.palmares.units', { count: product.units }, product.units) : formatCents(product[sort.value]));
 </script>
 
@@ -48,6 +54,12 @@ const figure = (product) => (sort.value === 'units' ? t('reports.palmares.units'
         <p v-if="sort === 'revenue'" class="palmares__legend">
             <span class="palmares__swatch palmares__swatch--revenue" aria-hidden="true" />{{ t('reports.palmares.legendRevenue') }}
             <span class="palmares__swatch palmares__swatch--discount" aria-hidden="true" />{{ t('reports.palmares.legendDiscount') }}
+        </p>
+
+        <p v-else-if="sort === 'units'" class="palmares__legend">
+            <span class="palmares__swatch palmares__swatch--revenue" aria-hidden="true" />{{ t('reports-palmares.legendFullPrice') }}
+            <span class="palmares__swatch palmares__swatch--discount" aria-hidden="true" />{{ t('reports-palmares.legendDiscounted') }}
+            <span class="palmares__definition">{{ t('reports.analysis.how.discounted') }}</span>
         </p>
 
         <ol class="palmares__list">
@@ -66,7 +78,7 @@ const figure = (product) => (sort.value === 'units' ? t('reports.palmares.units'
                     <span class="palmares__rank">{{ rankOf.get(product.id) }}</span>
                     <span class="palmares__name">
                         {{ product.name }}
-                        <span class="palmares__meta">{{ t('reports.palmares.units', { count: product.units }, product.units) }}<template v-if="product.discount > 0">, {{ t('reports.palmares.discountShare', { share: formatRatio(product.discount, product.gross, 1) }) }}</template></span>
+                        <span class="palmares__meta">{{ meta(product) }}</span>
                     </span>
                     <span class="palmares__track" aria-hidden="true">
                         <span v-if="sort === 'revenue'" class="palmares__bar" :style="{ width: width(product) }">
@@ -76,6 +88,10 @@ const figure = (product) => (sort.value === 'units' ? t('reports.palmares.units'
                         <span v-else-if="sort === 'discount'" class="palmares__bar" :style="{ width: width(product) }">
                             <span v-if="product.discount > 0" class="palmares__discount palmares__discount--alone" />
                         </span>
+                        <span v-else-if="sort === 'units'" class="palmares__bar" :style="{ width: width(product) }">
+                            <span v-if="product.fullPriceUnits > 0" class="palmares__revenue" :style="{ width: `${fullPriceShare(product)}%` }" />
+                            <span v-if="product.discountedUnits > 0" :class="['palmares__discount', { 'palmares__discount--alone': product.fullPriceUnits === 0 }]" />
+                        </span>
                         <span v-else class="palmares__bar" :style="{ width: width(product) }">
                             <span class="palmares__revenue palmares__revenue--alone" />
                         </span>
@@ -84,8 +100,10 @@ const figure = (product) => (sort.value === 'units' ? t('reports.palmares.units'
                 </button>
                 <div v-if="hovered === product.id" class="palmares__tooltip" role="tooltip">
                     <strong>{{ product.name }}</strong>
+                    <span>{{ t('reports-palmares.tooltip.fullPriceUnits', { count: product.fullPriceUnits }, product.fullPriceUnits) }}</span>
+                    <span>{{ t('reports-palmares.tooltip.discountedUnits', { count: product.discountedUnits }, product.discountedUnits) }}</span>
                     <span>{{ t('reports.palmares.tooltip.gross') }} <MoneyAmount :cents="product.gross" /></span>
-                    <span>{{ t('reports.palmares.tooltip.discount') }} −<MoneyAmount :cents="product.discount" /> ({{ formatRatio(product.discount, product.gross, 1) }})</span>
+                    <span v-if="product.discount > 0">{{ t('reports.palmares.tooltip.discount') }} −<MoneyAmount :cents="product.discount" /> ({{ formatRatio(product.discount, product.gross, 1) }})</span>
                     <span>{{ t('reports.palmares.tooltip.revenue') }} <MoneyAmount :cents="product.revenue" /></span>
                     <span>{{ t('reports.palmares.tooltip.margin') }} <MoneyAmount :cents="product.margin" /><template v-if="product.unknownCost"> ({{ t('reports.palmares.tooltip.unknownCost') }})</template></span>
                     <span>{{ t('reports.palmares.tooltip.onHand') }} {{ product.onHand }}</span>
@@ -123,6 +141,7 @@ const figure = (product) => (sort.value === 'units' ? t('reports.palmares.units'
 .palmares__search { width: 100%; max-width: 20rem; }
 
 .palmares__legend { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); margin: 0; color: var(--color-muted); font-size: var(--font-size-sm); }
+.palmares__definition { flex-basis: 100%; }
 .palmares__swatch { display: inline-block; width: 0.75rem; height: 0.75rem; border-radius: 0.125rem; }
 .palmares__swatch + .palmares__swatch { margin-left: var(--space-2); }
 .palmares__swatch--revenue { background: var(--color-accent); }

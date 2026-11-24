@@ -108,6 +108,7 @@ final class SalesLedgerTest extends KernelTestCase
         $year = $ledger->within(DateRange::year(2026));
         usort($year, static fn (ProductSales $a, ProductSales $b): int => $a->productName <=> $b->productName);
         self::assertSame([['Forêt', null, 3, 4_200], ['Sticker Mousse', null, 1, 360]], array_map(static fn (ProductSales $sales): array => [$sales->productName, $sales->variant, $sales->quantity, $sales->sales->amount()], $year));
+        self::assertSame([[1, 2, 3_000], [0, 1, 400]], array_map(static fn (ProductSales $sales): array => [$sales->fullPriceUnits(), $sales->discountedUnits, $sales->discountedGross->amount()], $year));
 
         self::assertSame(2, $ledger->ofProduct($this->print, DateRange::fromDates(new \DateTimeImmutable('2026-04-01'), new \DateTimeImmutable('2026-04-30')))?->quantity);
         self::assertSame(3, $ledger->ofProduct($this->print)?->quantity);

@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n';
 import BaseCard from '../ui/BaseCard.vue';
 import ChoiceGroup from '../ui/ChoiceGroup.vue';
 import EmptyState from '../ui/EmptyState.vue';
+import FormDisclosure from '../ui/FormDisclosure.vue';
 import Notice from '../ui/Notice.vue';
 import StockStateBadge from './StockStateBadge.vue';
 import { queryText } from '../../composables/useQueryState.js';
@@ -38,6 +39,7 @@ const idOf = (product, part) => `${uid}-${product.id}-${part}`;
 const current = computed(() => props.analysis.period.current);
 const ordered = computed(() => [...props.analysis.products].sort((a, b) => ORDERS[sort.value](a, b) || b.units - a.units || a.name.localeCompare(b.name)));
 const shown = computed(() => (showAll.value ? ordered.value : ordered.value.slice(0, FIRST)));
+const example = computed(() => props.analysis.products.find((product) => product.coverOrders !== null && product.per100Orders !== null && product.onHand > 0));
 const countWhere = (state) => props.analysis.products.filter((product) => product.stock === state).length;
 const widest = computed(() => Math.max(1, ...props.analysis.products.map((product) => product.units + product.onHand)));
 const share = (units) => `${(units / widest.value) * 100}%`;
@@ -56,6 +58,17 @@ const share = (units) => `${(units / widest.value) * 100}%`;
                     {{ t('reports-stock.busiest', { event: analysis.busiestEvent.name, orders: t('reports-stock.orders', { count: analysis.busiestEvent.orders }, analysis.busiestEvent.orders) }) }}
                 </p>
             </div>
+
+            <FormDisclosure :title="t('reports.analysis.how.title')">
+                <p class="stock-cover__how">{{ t('reports-stock.howCover') }}</p>
+                <p v-if="example" class="stock-cover__how">
+                    {{ t('reports-stock.howExample', { name: example.name, onHand: n(example.onHand), exposure: n(example.exposure), units: n(example.units), cover: t('reports-stock.orders', { count: n(example.coverOrders) }, example.coverOrders) }) }}
+                </p>
+                <p v-if="analysis.busiestEvent" class="stock-cover__how">
+                    {{ t('reports-stock.howLow', { event: analysis.busiestEvent.name, orders: t('reports-stock.orders', { count: analysis.busiestEvent.orders }, analysis.busiestEvent.orders) }) }}
+                </p>
+                <p class="stock-cover__how">{{ t('reports-stock.howNoSales') }}</p>
+            </FormDisclosure>
 
             <div class="stock-cover__controls">
                 <p class="stock-cover__legend">
@@ -104,6 +117,7 @@ const share = (units) => `${(units / widest.value) * 100}%`;
 .stock-cover__summary { display: flex; flex-direction: column; gap: var(--space-1); }
 .stock-cover__headline { margin: 0; font-size: 1.1rem; font-weight: 600; }
 .stock-cover__hint { margin: 0; color: var(--color-muted); font-size: var(--font-size-sm); }
+.stock-cover__how { margin: 0; color: var(--color-muted); font-size: var(--font-size-sm); }
 .stock-cover__controls { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-3); }
 .stock-cover__sorts { display: flex; flex-wrap: wrap; gap: var(--space-3); }
 

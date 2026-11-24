@@ -2,11 +2,11 @@
 import { computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { TriangleAlert } from '@lucide/vue';
-import { VisuallyHidden } from 'reka-ui';
 import BaseCard from '../ui/BaseCard.vue';
 import ChartTip from '../ui/ChartTip.vue';
 import DataTable from '../ui/DataTable.vue';
 import EmptyState from '../ui/EmptyState.vue';
+import FormDisclosure from '../ui/FormDisclosure.vue';
 import MoneyAmount from '../ui/MoneyAmount.vue';
 import Notice from '../ui/Notice.vue';
 import SortableHeader from '../ui/SortableHeader.vue';
@@ -15,7 +15,8 @@ import EventStrip from './EventStrip.vue';
 import StockStateBadge from './StockStateBadge.vue';
 import VerdictBadge from './VerdictBadge.vue';
 import VerdictTiles from './VerdictTiles.vue';
-import { QUADRANTS, VERDICTS, formatRate } from '../../composables/useProductAnalysis.js';
+import { formatCents } from '../../composables/useMoney.js';
+import { QUADRANTS, VERDICTS, formatRate, reasonSentence } from '../../composables/useProductAnalysis.js';
 import { queryText } from '../../composables/useQueryState.js';
 import { normalize } from '../../composables/useSearch.js';
 import { useSort } from '../../composables/useSort.js';
@@ -41,7 +42,7 @@ const columns = {
     cover: (product) => product.coverOrders,
 };
 const FIGURES = ['units', 'pace', 'margin', 'unitMargin'];
-const ABBREVIATED = ['pace', 'unitMargin', 'cover'];
+const UNITS = ['pace', 'unitMargin', 'cover'];
 
 const chosenVerdict = queryText('verdict', ALL);
 const verdict = computed({
@@ -69,6 +70,8 @@ const slots = (product) => [
     ...(props.analysis.offEventOrders > 0 ? [{ name: t('reports-decisions.strip.offEvent'), units: product.offEvent }] : []),
 ];
 const orDash = (value, format) => (value === null ? '—' : format(value));
+
+const judgedTypes = computed(() => props.analysis.types.filter((type) => type.popularFrom !== null));
 </script>
 
 <template>
@@ -77,6 +80,36 @@ const orDash = (value, format) => (value === null ? '—' : format(value));
         <div v-else class="product-decisions__body">
             <VerdictTiles v-if="current" v-model="verdict" :products="analysis.products" />
             <Notice v-else tone="success">{{ t('reports-decisions.past') }}</Notice>
+            <FormDisclosure :title="t('reports.analysis.how.title')" class="product-decisions__how">
+                <p class="product-decisions__explain">{{ t('reports.analysis.how.pace') }}</p>
+                <p class="product-decisions__explain">{{ t('reports.analysis.how.unitMargin') }}</p>
+                <p class="product-decisions__explain">{{ t('reports-decisions.how.limits', { popular: analysis.rules.popularPercent, profitable: analysis.rules.profitablePercent }) }}</p>
+                <ul v-if="judgedTypes.length > 0" class="product-decisions__explain product-decisions__list">
+                    <li v-for="type in judgedTypes" :key="type.id">
+                        {{ t('reports-decisions.how.type', { type: type.name, average: orDash(type.averagePace, formatRate), limit: formatRate(type.popularFrom), marginAverage: orDash(type.averageUnitMargin, formatCents), marginLimit: orDash(type.unitMarginFrom, formatCents) }) }}
+                    </li>
+                </ul>
+                <p class="product-decisions__explain">{{ t('reports.analysis.how.classes', { a: analysis.rules.classAPercent, b: analysis.rules.classBPercent }) }}</p>
+                <div class="product-decisions__explain">
+                    {{ t('reports-decisions.how.quadrant') }}
+                    <ul class="product-decisions__list">
+                        <li v-for="quadrant in QUADRANTS" :key="quadrant">{{ t(`reports.analysis.how.quadrants.${quadrant}`) }}</li>
+                    </ul>
+                </div>
+                <template v-if="current">
+                    <p class="product-decisions__explain">{{ t('reports.analysis.how.cover') }}</p>
+                    <p v-if="analysis.busiestEvent" class="product-decisions__explain">{{ t('reports.analysis.how.lowStock', { event: analysis.busiestEvent.name, orders: analysis.busiestEvent.orders }) }}</p>
+                    <div class="product-decisions__explain">
+                        {{ t('reports-decisions.how.verdictsIntro') }}
+                        <dl class="product-decisions__verdicts">
+                            <template v-for="key in VERDICTS" :key="key">
+                                <dt><VerdictBadge :verdict="key" :tip="false" /></dt>
+                                <dd class="product-decisions__meaning">{{ t(`reports-decisions.how.verdicts.${key}`, { enough: analysis.rules.enoughOrders, orders: analysis.orders }) }}</dd>
+                            </template>
+                        </dl>
+                    </div>
+                </template>
+            </FormDisclosure>
             <input v-model="search" class="control control--compact product-decisions__search" type="search" :placeholder="t('reports-decisions.search')" :aria-label="t('reports-decisions.search')">
 
             <DataTable dense remember-page :page-size="100" :items="sorted">
@@ -87,17 +120,18 @@ const orDash = (value, format) => (value === null ? '—' : format(value));
                         <SortableHeader :sort="ariaSort('class')" @sort="sortBy('class')">{{ t('reports-decisions.columns.class') }}</SortableHeader>
                         <SortableHeader :sort="ariaSort('quadrant')" @sort="sortBy('quadrant')">{{ t('reports-decisions.columns.quadrant') }}</SortableHeader>
                         <SortableHeader v-for="key in FIGURES" :key="key" :sort="ariaSort(key)" numeric @sort="sortBy(key)">
-                            <template v-if="ABBREVIATED.includes(key)">
-                                <abbr :title="t(`reports-decisions.columnNames.${key}`)" aria-hidden="true">{{ t(`reports-decisions.columns.${key}`) }}</abbr>
-                                <VisuallyHidden>{{ t(`reports-decisions.columnNames.${key}`) }}</VisuallyHidden>
-                            </template>
-                            <template v-else>{{ t(`reports-decisions.columns.${key}`) }}</template>
+                            <span class="product-decisions__heading">
+                                {{ t(`reports-decisions.columns.${key}`) }}
+                                <span v-if="UNITS.includes(key)" class="product-decisions__unit">{{ t(`reports-decisions.units.${key}`) }}</span>
+                            </span>
                         </SortableHeader>
                         <template v-if="current">
                             <SortableHeader :sort="ariaSort('onHand')" numeric @sort="sortBy('onHand')">{{ t('reports-decisions.columns.stock') }}</SortableHeader>
                             <SortableHeader :sort="ariaSort('cover')" numeric @sort="sortBy('cover')">
-                                <abbr :title="t('reports-decisions.columnNames.cover')" aria-hidden="true">{{ t('reports-decisions.columns.cover') }}</abbr>
-                                <VisuallyHidden>{{ t('reports-decisions.columnNames.cover') }}</VisuallyHidden>
+                                <span class="product-decisions__heading">
+                                    {{ t('reports-decisions.columns.cover') }}
+                                    <span class="product-decisions__unit">{{ t('reports-decisions.units.cover') }}</span>
+                                </span>
                             </SortableHeader>
                         </template>
                         <th class="product-decisions__strip">{{ t('reports-decisions.columns.events') }}</th>
@@ -117,7 +151,7 @@ const orDash = (value, format) => (value === null ? '—' : format(value));
                                 <span class="product-decisions__type">{{ product.typeName }}</span>
                             </button>
                         </td>
-                        <td v-if="current"><VerdictBadge :verdict="product.verdict" /></td>
+                        <td v-if="current"><VerdictBadge :verdict="product.verdict" :reason="reasonSentence(product, analysis, t)" /></td>
                         <td><ClassChip :abc-class="product.class" /></td>
                         <td class="product-decisions__quadrant">{{ orDash(product.quadrant, (quadrant) => t(`reports.analysis.quadrants.${quadrant}`)) }}</td>
                         <td class="data-table__cell--number">{{ product.units }}</td>
@@ -150,6 +184,13 @@ const orDash = (value, format) => (value === null ? '—' : format(value));
 <style scoped>
 .product-decisions { min-width: 0; }
 .product-decisions__body { display: flex; flex-direction: column; gap: var(--space-4); }
+.product-decisions__how { max-width: 48rem; }
+.product-decisions__explain { margin: 0; color: var(--color-muted); font-size: var(--font-size-sm); line-height: 1.5; }
+.product-decisions__list { display: flex; flex-direction: column; gap: var(--space-1); margin: var(--space-1) 0 0; padding-left: var(--space-4); }
+.product-decisions__verdicts { display: grid; grid-template-columns: max-content 1fr; align-items: baseline; gap: var(--space-2) var(--space-3); margin: var(--space-2) 0 0; }
+.product-decisions__meaning { margin: 0; }
+.product-decisions__heading { display: inline-flex; flex-direction: column; align-items: flex-end; line-height: 1.2; }
+.product-decisions__unit { max-width: 5.5rem; color: var(--color-muted); white-space: normal; text-align: right; font-size: var(--font-size-2xs); font-weight: 400; text-transform: none; letter-spacing: normal; }
 .product-decisions__search { width: 100%; max-width: 20rem; }
 
 .product-decisions__product {

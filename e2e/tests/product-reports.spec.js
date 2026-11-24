@@ -1,9 +1,9 @@
 import { test, expect } from './support/test.js';
 import { unique } from './support/unique.js';
 import { choose } from './support/select.js';
-import { createEvent, createProduct, createType, placeOrder, restock } from './support/api.js';
+import { createDiscountRule, createEvent, createProduct, createType, placeOrder, restock } from './support/api.js';
 
-test('the product report ranks what sold and tells one product story', async ({ page, request }) => {
+test('the product report ranks what sold and opens its decision sheet', async ({ page, request }) => {
     const event = await createEvent(request);
     const product = await createProduct(request, { name: unique('Carte'), sellingPrice: 500 });
     await restock(request, product, { quantity: 20, totalPaid: 2_000 });
@@ -17,18 +17,72 @@ test('the product report ranks what sold and tells one product story', async ({ 
     await row.click();
 
     await expect(page).toHaveURL(/product=/);
-    const story = page.getByRole('article', { name: product.displayName });
-    await expect(story).toContainText('17 en stock aujourd');
-    await expect(story.getByRole('region', { name: 'Ventes par mois' })).toBeVisible();
-    await expect(story.getByRole('region', { name: 'Mouvements de stock' })).toBeVisible();
-    await expect(story.getByRole('region', { name: 'Remises' })).toBeVisible();
+    const sheet = page.getByRole('article', { name: product.displayName });
+    await expect(sheet.getByRole('link', { name: 'Page du produit' })).toBeVisible();
+    await expect(sheet.getByRole('region', { name: 'Pourquoi ce verdict' })).toBeVisible();
+    const receipt = sheet.getByRole('region', { name: "D'où vient la marge" });
+    await expect(receipt).toContainText('15,00');
+    await expect(receipt).toContainText('3,00');
+    await expect(receipt).toContainText('12,00');
+    await expect(sheet.getByRole('region', { name: "Où il s'est vendu" })).toContainText(event.name);
+    await expect(sheet.getByRole('region', { name: 'Ventes par mois' })).toHaveCount(0);
+    await expect(sheet.getByRole('region', { name: 'Remises' })).toHaveCount(0);
 
+    await sheet.getByRole('button', { name: 'Fermer le détail' }).click();
+    await expect(page).not.toHaveURL(/product=/);
+    await expect(sheet).toHaveCount(0);
+});
+
+test('the report tells what sold at full price from what sold discounted', async ({ page, request }) => {
+    const event = await createEvent(request);
+    const product = await createProduct(request, { name: unique('Carte'), sellingPrice: 400 });
+    await restock(request, product, { quantity: 20, totalPaid: 2_000 });
+    await createDiscountRule(request, {
+        name: unique('3 cartes pour 10 €'),
+        conditions: [{ quantity: 3, targets: [{ kind: 'product', id: product.id }] }],
+        action: { kind: 'fixedPrice', value: 1_000 },
+    });
+    await placeOrder(request, `${event.startDate}T10:00`, [{ product, quantity: 3 }]);
+    await placeOrder(request, `${event.startDate}T11:00`, [{ product, quantity: 2 }]);
+
+    const year = event.startDate.slice(0, 4);
+    const analysis = await readAnalysis(request, year);
+    const row = analysis.products.find((candidate) => candidate.id === product.id);
+    expect(row.fullPriceUnits).toBe(2);
+    expect(row.discountedUnits).toBe(3);
+    expect(analysis.totals.discountedUnits).toBe(3);
+
+    await page.goto(`/reports/products?period=${year}`);
+    const palmares = page.getByRole('region', { name: 'Palmarès' });
+    await palmares.getByRole('searchbox', { name: 'Rechercher un produit' }).fill(product.name);
     await palmares.getByRole('button', { name: 'Articles vendus', exact: true }).click();
-    await expect(row).toBeVisible();
+    const palmaresRow = palmares.getByRole('button', { name: `Voir le détail de ${product.displayName}` });
+    await expect(palmaresRow).toContainText('5 vendus, dont 3 remisés');
+
+    await palmaresRow.click();
+    const receipt = page.getByRole('article', { name: product.displayName }).getByRole('region', { name: "D'où vient la marge" });
+    await expect(receipt).toContainText('5 vendus : 2 au plein tarif, 3 remisés');
+    await expect(receipt).toContainText(money(row.gross));
+    await expect(receipt).toContainText(money(row.discount));
+    await expect(receipt).toContainText(money(row.revenue));
 });
 
 const YEAR = '2041';
 const PAST_YEAR = '2025';
+
+const money = (cents) => (cents / 100).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const pace = (value) => value.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const percent = (value) => new RegExp(`${value}\\s+%`);
+
+async function readAnalysis(request, period = YEAR) {
+    const response = await request.get(`/api/reports/products/analysis?period=${period}`);
+    expect(response.status()).toBe(200);
+    return response.json();
+}
+
+const openHow = async (scope) => {
+    await scope.getByRole('button', { name: /Comment c.est calculé/ }).click();
+};
 
 async function arrangeSeason(request) {
     const type = await createType(request, unique('Sticker'), { prefixesNames: false });
@@ -59,6 +113,65 @@ async function arrangeSeason(request) {
 
     return { type, star, cheap, pricey, rare, unsold, late, expo, market };
 }
+
+test.describe('decision sheet', () => {
+    test.use({ viewport: { width: 1600, height: 1000 } });
+
+    test('the sheet says why a product got its verdict with its own figures and receipt', async ({ page, request }) => {
+        const { star, late, expo } = await arrangeSeason(request);
+        const analysis = await readAnalysis(request);
+        const row = analysis.products.find((candidate) => candidate.id === star.id);
+        const type = analysis.types.find((candidate) => candidate.id === row.typeId);
+
+        await page.goto(`/reports/products?period=${YEAR}&view=decisions&product=${star.id}`);
+        const sheet = page.getByRole('article', { name: star.name });
+        await expect(sheet.getByRole('link', { name: 'Page du produit' })).toHaveAttribute('href', `/products/${star.id}`);
+        await expect(sheet).toContainText('À réassortir');
+        await expect(sheet).toContainText("Il se vend bien");
+        await expect(sheet).toContainText(`${row.ordersSinceArrival} commandes depuis son arrivée`);
+        await expect(sheet).toContainText(`${row.units} vendus sur ${row.exposure} commandes`);
+        await expect(sheet).toContainText(pace(row.per100Orders));
+
+        const why = sheet.getByRole('region', { name: 'Pourquoi ce verdict' });
+        await expect(why).toContainText(String(analysis.rules.enoughOrders));
+        await expect(why).toContainText(pace(type.popularFrom));
+        await expect(why).toContainText(pace(type.averagePace));
+        await expect(why).toContainText(percent(analysis.rules.popularPercent));
+        await expect(why).toContainText(money(type.unitMarginFrom));
+        await expect(why).toContainText(money(type.averageUnitMargin));
+        await expect(why).toContainText(percent(analysis.rules.profitablePercent));
+        await expect(why).toContainText('Classe A');
+        await expect(why).toContainText(analysis.busiestEvent.name);
+        await expect(why).toContainText(String(analysis.busiestEvent.orders));
+
+        const receipt = sheet.getByRole('region', { name: "D'où vient la marge" });
+        await expect(receipt).toContainText(money(row.gross));
+        await expect(receipt).toContainText(money(row.discount));
+        await expect(receipt).toContainText(money(row.revenue));
+        await expect(receipt).toContainText(money(row.cost));
+        await expect(receipt).toContainText(money(row.margin));
+        await expect(receipt).toContainText(money(row.unitMargin));
+
+        const where = sheet.getByRole('region', { name: "Où il s'est vendu" });
+        await expect(where.getByRole('listitem').filter({ hasText: expo.name })).toContainText('50');
+
+        await page.goto(`/reports/products?period=${YEAR}&view=decisions&product=${late.id}`);
+        const lateSheet = page.getByRole('article', { name: late.name });
+        await expect(lateSheet).toContainText('Trop tôt');
+        await expect(lateSheet.getByRole('region', { name: "Où il s'est vendu" }).getByRole('listitem').filter({ hasText: expo.name })).toContainText('—');
+    });
+
+    test('a past period gives the sheet no verdict and no stock check', async ({ page, request }) => {
+        const { cheap } = await arrangeSeason(request);
+        await page.goto(`/reports/products?period=${PAST_YEAR}&view=decisions&product=${cheap.id}`);
+        const sheet = page.getByRole('article', { name: cheap.name });
+        await expect(sheet).toContainText('Cette période est terminée');
+        await expect(sheet.getByRole('region', { name: "D'où vient la marge" })).toBeVisible();
+        await expect(sheet).not.toContainText('À réassortir');
+        await expect(sheet).not.toContainText('À arrêter');
+        await expect(sheet).not.toContainText('Épuisé');
+    });
+});
 
 test.describe('decisions', () => {
     test.use({ viewport: { width: 1600, height: 1000 } });
@@ -109,6 +222,20 @@ test.describe('decisions', () => {
         await expect(row(rare)).toHaveCount(0);
         await expect(decisions.getByRole('columnheader', { name: 'Vendus' })).toHaveAttribute('aria-sort', 'descending');
 
+        await openHow(decisions);
+        const analysis = await readAnalysis(request);
+        await expect(decisions).toContainText(percent(analysis.rules.popularPercent));
+        await expect(decisions).toContainText(percent(analysis.rules.profitablePercent));
+        await expect(decisions).toContainText(percent(analysis.rules.classAPercent));
+        await expect(decisions).toContainText(percent(analysis.rules.classBPercent));
+        await expect(decisions).toContainText(String(analysis.rules.enoughOrders));
+        await expect(decisions).toContainText(analysis.busiestEvent.name);
+
+        const badge = row(unsold).getByText('À arrêter');
+        await badge.scrollIntoViewIfNeeded();
+        await badge.hover();
+        await expect(badge).toHaveAccessibleDescription(/Aucune unité vendue sur la période/);
+
         await row(unsold).getByRole('button', { name: `Voir le détail de ${unsold.name}` }).click();
         await expect(page).toHaveURL(/product=/);
         await expect(page.getByRole('article', { name: unsold.name })).toBeVisible();
@@ -141,9 +268,14 @@ test.describe('views on the analysis', () => {
         const { star, pricey, cheap } = await arrangeSeason(request);
         const view = await openView(page, 'concentration', 'Concentration');
 
-        await expect(view).toContainText(/2 produits sur 6 apportent 80\s+% de la marge/);
-        await expect(view).toContainText(/3 n.en apportent que 5\s+%/);
+        await expect(view).toContainText(/2 produits sur 6 apportent 89\s+% de la marge/);
+        await expect(view).toContainText(/3 n.en apportent que 4\s+%/);
         for (const label of ['Classe A', 'Classe B', 'Classe C']) await expect(view).toContainText(label);
+        await openHow(view);
+        const { rules } = await readAnalysis(request);
+        await expect(view).toContainText(percent(rules.classAPercent));
+        await expect(view).toContainText(percent(rules.classBPercent));
+        await expect(view).toContainText(/additionne la marge/);
 
         await select(view, star).focus();
         await expect(select(view, star)).toHaveAccessibleDescription(/200,00/);
@@ -167,6 +299,15 @@ test.describe('views on the analysis', () => {
         for (const quadrant of ['Vedette', 'Cheval de trait', 'Énigme', 'Poids mort']) await expect(panel).toContainText(quadrant);
         await expect(panel).toContainText('13,3');
         await expect(panel).toContainText('2,00');
+        const analysis = await readAnalysis(request);
+        const stickers = analysis.types.find((candidate) => candidate.id === type.id);
+        await expect(panel).toContainText(pace(stickers.popularFrom));
+        await expect(panel).toContainText(pace(stickers.averagePace));
+        await expect(panel).toContainText(percent(analysis.rules.popularPercent));
+        await expect(panel).toContainText(money(stickers.unitMarginFrom));
+        await expect(panel).toContainText(money(stickers.averageUnitMargin));
+        await expect(panel).toContainText(percent(analysis.rules.profitablePercent));
+        await openHow(view);
 
         const apart = view.getByRole('region', { name: 'Hors matrice' });
         await expect(select(apart, late)).toBeVisible();
@@ -192,6 +333,9 @@ test.describe('views on the analysis', () => {
 
         await expect(view).toContainText(expo.name);
         await expect(view).toContainText('100 commandes');
+        await openHow(view);
+        await expect(view).toContainText(`l'événement le plus chargé de la période, ${expo.name}`);
+        await expect(view).toContainText('20 en stock × 160 commandes ÷ 10 vendus = 320 commandes');
         const item = (product) => view.getByRole('listitem').filter({ has: select(page, product) });
         await expect(item(star)).toContainText('Épuisé');
         await expect(item(star)).toContainText('80 vendus');
@@ -233,6 +377,9 @@ test.describe('views on the analysis', () => {
         await expect(table.getByRole('link', { name: market.name })).toHaveAttribute('href', `/events/${market.id}`);
         await expect(table.getByRole('columnheader', { name: /^Total/ })).toHaveCount(1);
         await expect(table.getByRole('columnheader', { name: /Hors événement/ })).toHaveCount(0);
+
+        await openHow(view);
+        await expect(view).toContainText(/le plus haut taux du tableau/);
 
         const cells = (product) => table.getByRole('row').filter({ has: select(page, product) }).getByRole('cell');
         await expect(cells(star).nth(0)).toContainText('50');

@@ -6,9 +6,15 @@
     "total": "Total",
     "orders": "{count} order | {count} orders",
     "key": {
-        "label": "Sold per 100 orders of the event:",
+        "label": "Tint: units sold per 100 orders of the event. The darker, the faster it sells.",
         "upTo": "up to {rate}",
         "absent": "not on sale"
+    },
+    "how": {
+        "cell": "Each cell gives the units of this product sold at this event. \"0\": on sale, but nothing sold.",
+        "tint": "The tint measures units sold per 100 orders of the event, not raw units, so a small event and a big one can be compared. The darkest goes up to {top} per 100 orders, the highest rate in the table.",
+        "absent": "\"—\": the product was not on sale at this event, because it arrived later or was already sold out.",
+        "total": "Total: the units sold over the whole period, outside events included."
     },
     "tip": {
         "units": "{event}: {count} sold, {rate} per 100 orders | {event}: {count} sold, {rate} per 100 orders",

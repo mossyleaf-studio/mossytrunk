@@ -1,0 +1,76 @@
+{
+    "choose": "Choisissez un produit dans le palmarès pour voir pourquoi il a son verdict, d'où vient sa marge et où il s'est vendu.",
+    "openProduct": "Page du produit",
+    "close": "Fermer le détail",
+    "past": "Cette période est terminée : le verdict et le stock ne se lisent que sur une période qui va jusqu'à aujourd'hui.",
+    "archived": "Ce produit est archivé : les produits archivés ne sont pas analysés, seule sa marge est donnée.",
+    "why": {
+        "title": "Pourquoi ce verdict",
+        "unjudged": "Pas jugé",
+        "time": {
+            "label": "Temps en vente",
+            "figure": "{count} commande depuis son arrivée | {count} commandes depuis son arrivée",
+            "limit": "Il en faut {enough}, et au moins la moitié des {total} commandes de la période.",
+            "tooFew": "Trop tôt : pas assez de commandes",
+            "late": "Trop tôt : arrivé tard dans la période",
+            "enough": "Assez de commandes pour juger"
+        },
+        "pace": {
+            "label": "Rythme",
+            "figure": "{units} vendus sur {exposure} commandes pendant qu'il était en vente : {pace} pour 100 commandes",
+            "none": "Aucune commande depuis son arrivée",
+            "limit": "Limite {limit} : {percent} % du rythme moyen des {type}, {average}.",
+            "noLimit": "Pas de limite : aucun produit de ce type n'est encore jugé.",
+            "popular": "Se vend bien",
+            "unpopular": "Se vend peu"
+        },
+        "margin": {
+            "label": "Marge par unité",
+            "figure": "{margin} par unité vendue",
+            "none": "Rien vendu",
+            "limit": "Limite {limit} : {percent} % de leur marge moyenne par unité, {average}.",
+            "noLimit": "Pas de limite : aucun produit de ce type n'est encore jugé.",
+            "profitable": "Rapporte bien",
+            "unprofitable": "Rapporte peu"
+        },
+        "class": {
+            "label": "Part de la marge",
+            "figure": "{class}, rang {rank} sur {count} par marge",
+            "limit": "Classe A : les produits qui font les premiers {a} % de la marge, classe B jusqu'à {b} %, classe C le reste.",
+            "A": "Parmi ceux qui rapportent le plus",
+            "B": "Rapporte moyennement",
+            "C": "Parmi ceux qui rapportent le moins"
+        },
+        "stock": {
+            "label": "Stock",
+            "figure": "{count} en stock",
+            "cover": "{count} en stock, tient {cover} commandes",
+            "limit": "Comparé aux {orders} commandes de {event}, l'événement le plus chargé de la période.",
+            "out": "Épuisé",
+            "low": "Stock court",
+            "ok": "Le stock suffit"
+        }
+    },
+    "receipt": {
+        "title": "D'où vient la marge",
+        "sold": "{count} vendu | {count} vendus",
+        "discounted": "{count} remisé | {count} remisés",
+        "split": "{sold} : {full} au plein tarif, {discounted}",
+        "nothing": "Rien vendu sur la période : pas de marge.",
+        "gross": "Plein tarif",
+        "discount": "Remises",
+        "discountDetail": "{average} en moyenne par unité remisée, {share} de leur plein tarif",
+        "noDiscount": "Aucune unité remisée",
+        "revenue": "Encaissé",
+        "cost": "Coût d'achat",
+        "unknownCost": "Coût d'achat inconnu pour une partie des unités : la marge réelle est plus basse.",
+        "margin": "Marge",
+        "unitMargin": "Marge par unité, sur {sold}"
+    },
+    "where": {
+        "title": "Où il s'est vendu",
+        "units": "{count} vendu | {count} vendus",
+        "offEvent": "Hors événement",
+        "absent": "— : pas en vente pendant l'événement (arrivé après, ou déjà épuisé)."
+    }
+}

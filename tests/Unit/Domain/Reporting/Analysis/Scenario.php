@@ -36,6 +36,11 @@ final class Scenario
         ]);
     }
 
+    public static function busyYear(): OrderCalendar
+    {
+        return OrderCalendar::of([new SellingDay('2026-03-01', 250, null), new SellingDay('2026-09-01', 160, null)]);
+    }
+
     public static function units(Ulid $mousse, Ulid $lichen, Ulid $nouveau): UnitsByEvent
     {
         return UnitsByEvent::of([

@@ -13,8 +13,8 @@ final readonly class Exposure
         public ?string $soldOutAfter,
         public int $units,
         public int $orders,
-        private int $sinceArrival,
-        private int $periodOrders,
+        public int $sinceArrival,
+        public int $periodOrders,
     ) {
     }
 
@@ -33,7 +33,17 @@ final readonly class Exposure
 
     public function tooEarly(): bool
     {
-        return $this->sinceArrival < self::ENOUGH_ORDERS || 2 * $this->sinceArrival < $this->periodOrders;
+        return $this->tooFewOrders() || $this->arrivedLate();
+    }
+
+    public function tooFewOrders(): bool
+    {
+        return $this->sinceArrival < self::ENOUGH_ORDERS;
+    }
+
+    public function arrivedLate(): bool
+    {
+        return 2 * $this->sinceArrival < $this->periodOrders;
     }
 
     public function coverOrders(int $onHand): ?int

@@ -1,0 +1,76 @@
+{
+    "choose": "Pick a product in the best sellers to see why it got its verdict, where its margin comes from and where it sold.",
+    "openProduct": "Product page",
+    "close": "Close the details",
+    "past": "This period is over: the verdict and the stock only read on a period that runs up to today.",
+    "archived": "This product is archived: archived products are not analysed, only its margin is given.",
+    "why": {
+        "title": "Why this verdict",
+        "unjudged": "Not judged",
+        "time": {
+            "label": "Time on sale",
+            "figure": "{count} order since it arrived | {count} orders since it arrived",
+            "limit": "It needs {enough}, and at least half of the period's {total} orders.",
+            "tooFew": "Too early: not enough orders",
+            "late": "Too early: arrived late in the period",
+            "enough": "Enough orders to judge"
+        },
+        "pace": {
+            "label": "Pace",
+            "figure": "{units} sold over {exposure} orders while on sale: {pace} per 100 orders",
+            "none": "No order since it arrived",
+            "limit": "Limit {limit}: {percent} % of the average pace of the {type}, {average}.",
+            "noLimit": "No limit: no product of this type is judged yet.",
+            "popular": "Sells well",
+            "unpopular": "Sells little"
+        },
+        "margin": {
+            "label": "Margin per unit",
+            "figure": "{margin} per unit sold",
+            "none": "Nothing sold",
+            "limit": "Limit {limit}: {percent} % of their average margin per unit, {average}.",
+            "noLimit": "No limit: no product of this type is judged yet.",
+            "profitable": "Earns well",
+            "unprofitable": "Earns little"
+        },
+        "class": {
+            "label": "Share of the margin",
+            "figure": "{class}, rank {rank} of {count} by margin",
+            "limit": "Class A: the products that make the first {a} % of the margin, class B up to {b} %, class C the rest.",
+            "A": "Among those that earn the most",
+            "B": "Earns moderately",
+            "C": "Among those that earn the least"
+        },
+        "stock": {
+            "label": "Stock",
+            "figure": "{count} in stock",
+            "cover": "{count} in stock, lasts {cover} orders",
+            "limit": "Compared with the {orders} orders of {event}, the busiest event of the period.",
+            "out": "Sold out",
+            "low": "Short stock",
+            "ok": "The stock is enough"
+        }
+    },
+    "receipt": {
+        "title": "Where the margin comes from",
+        "sold": "{count} sold | {count} sold",
+        "discounted": "{count} discounted | {count} discounted",
+        "split": "{sold}: {full} at full price, {discounted}",
+        "nothing": "Nothing sold in the period: no margin.",
+        "gross": "Full price",
+        "discount": "Discounts",
+        "discountDetail": "{average} on average per discounted unit, {share} of their full price",
+        "noDiscount": "No unit discounted",
+        "revenue": "Cashed",
+        "cost": "Buying cost",
+        "unknownCost": "Buying cost unknown for some units: the real margin is lower.",
+        "margin": "Margin",
+        "unitMargin": "Margin per unit, over {sold}"
+    },
+    "where": {
+        "title": "Where it sold",
+        "units": "{count} sold | {count} sold",
+        "offEvent": "Outside events",
+        "absent": "—: not on sale during the event (arrived after, or already sold out)."
+    }
+}

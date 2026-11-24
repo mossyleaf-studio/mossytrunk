@@ -9,14 +9,14 @@ import AbcConcentration from '../components/reports/AbcConcentration.vue';
 import EventHeat from '../components/reports/EventHeat.vue';
 import ProductDecisions from '../components/reports/ProductDecisions.vue';
 import ProductPalmares from '../components/reports/ProductPalmares.vue';
-import ProductStory from '../components/reports/ProductStory.vue';
+import ProductSheet from '../components/reports/ProductSheet.vue';
 import QuadrantMatrix from '../components/reports/QuadrantMatrix.vue';
 import StockCover from '../components/reports/StockCover.vue';
 import { formatCents } from '../composables/useMoney.js';
 import { LAST_TWELVE_MONTHS, SINCE_THE_START, VIEWS, useProductReports } from '../composables/useProductReports.js';
 
 const { t } = useI18n();
-const { period, productId, view, report, analysis, story, loadAll, loadStory } = useProductReports();
+const { period, productId, view, report, analysis, loadAll } = useProductReports();
 const busy = ref(false);
 
 const periodOptions = computed(() => [
@@ -25,20 +25,29 @@ const periodOptions = computed(() => [
     { value: SINCE_THE_START, label: t('reports.period.all') },
 ]);
 const totals = computed(() => report.value?.totals ?? null);
+const byId = (products) => products?.find((product) => product.id === productId.value) ?? null;
+const analysed = computed(() => byId(analysis.value?.products));
+const sheet = computed(() => (analysis.value ? analysed.value ?? byId(report.value?.products) : null));
+
+let opener = null;
 
 async function select(product) {
     productId.value = product.id === productId.value ? '' : product.id;
-    await loadStory();
+    opener = productId.value ? document.activeElement : null;
     await nextTick();
     if (productId.value && window.matchMedia(view.value !== 'palmares' ? '(width < 110rem)' : '(max-width: 64rem)').matches) {
         const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        document.getElementById('product-story-title')?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' });
+        const title = document.getElementById('product-sheet-title');
+        title?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' });
+        title?.focus({ preventScroll: true });
     }
 }
 
-function closeStory() {
+async function closeSheet() {
     productId.value = '';
-    loadStory();
+    await nextTick();
+    if (opener?.isConnected) opener.focus();
+    opener = null;
 }
 
 watch(period, async () => {
@@ -56,7 +65,7 @@ onMounted(loadAll);
 
         <div v-if="report" :class="['product-reports', { 'product-reports--busy': busy }]" :aria-busy="busy">
             <p class="product-reports__summary">
-                <template v-if="totals.units > 0">{{ t('reports.summary', { revenue: formatCents(totals.revenue), units: totals.units, discount: formatCents(totals.discount) }) }}</template>
+                <template v-if="totals.units > 0">{{ t('reports.summary', { revenue: formatCents(totals.revenue), units: totals.units }) }} {{ t('reports.summaryDiscounted', { count: totals.discountedUnits, discount: formatCents(totals.discount) }, totals.discountedUnits) }}</template>
                 <template v-else>{{ t('reports.summaryEmpty') }}</template>
             </p>
 
@@ -65,19 +74,19 @@ onMounted(loadAll);
             </ChoiceGroup>
 
             <template v-if="view === 'palmares'">
-                <div v-if="report.products.length" :class="['product-reports__grid', { 'product-reports__grid--story': story }]">
+                <div v-if="report.products.length" class="product-reports__grid">
                     <ProductPalmares :products="report.products" :selected-id="productId" @select="select" />
-                    <ProductStory v-if="story" :key="story.product.id" :story="story" class="product-reports__story" @close="closeStory" />
-                    <p v-else class="product-reports__hint">{{ t('reports.story.choose') }}</p>
+                    <ProductSheet v-if="sheet" :key="sheet.id" :product="sheet" :analysis="analysed ? analysis : null" class="product-reports__sheet" @close="closeSheet" />
+                    <p v-else class="product-reports__hint">{{ t('reports-sheet.choose') }}</p>
                 </div>
             </template>
-            <div v-else-if="analysis" :class="['product-reports__wide', { 'product-reports__wide--story': story }]">
+            <div v-else-if="analysis" :class="['product-reports__wide', { 'product-reports__wide--sheet': sheet }]">
                 <ProductDecisions v-if="view === 'decisions'" :analysis="analysis" :selected-id="productId" @select="select" />
                 <AbcConcentration v-else-if="view === 'concentration'" :analysis="analysis" :selected-id="productId" @select="select" />
                 <QuadrantMatrix v-else-if="view === 'matrix'" :analysis="analysis" :selected-id="productId" @select="select" />
                 <StockCover v-else-if="view === 'stock'" :analysis="analysis" :selected-id="productId" @select="select" />
                 <EventHeat v-else-if="view === 'events'" :analysis="analysis" :selected-id="productId" @select="select" />
-                <ProductStory v-if="story" :key="story.product.id" :story="story" class="product-reports__story" @close="closeStory" />
+                <ProductSheet v-if="sheet" :key="sheet.id" :product="sheet" :analysis="analysed ? analysis : null" class="product-reports__sheet" @close="closeSheet" />
             </div>
         </div>
     </AppLayout>
@@ -108,19 +117,19 @@ onMounted(loadAll);
 
 .product-reports__grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr); gap: var(--space-6); align-items: start; }
 .product-reports__wide { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-6); align-items: start; }
-.product-reports__wide--story { grid-template-columns: minmax(0, 1fr) minmax(0, 28rem); }
-.product-reports__story { position: sticky; top: var(--space-4); max-height: calc(100vh - var(--space-6)); overflow-y: auto; }
+.product-reports__wide--sheet { grid-template-columns: minmax(0, 1fr) minmax(0, 28rem); }
+.product-reports__sheet { position: sticky; top: var(--space-4); max-height: calc(100vh - var(--space-6)); overflow-y: auto; }
 .product-reports__hint { margin: var(--space-6) 0 0; padding: var(--space-5); border: 0.0625rem dashed var(--color-border-strong); border-radius: var(--radius); color: var(--color-muted); font-size: var(--font-size); }
 
 @media (width < 110rem) {
-    .product-reports__wide--story { grid-template-columns: minmax(0, 1fr); }
-    .product-reports__wide .product-reports__story { position: static; order: -1; max-height: none; overflow: visible; }
+    .product-reports__wide--sheet { grid-template-columns: minmax(0, 1fr); }
+    .product-reports__wide .product-reports__sheet { position: static; order: -1; width: 100%; max-width: 40rem; max-height: none; overflow: visible; }
 }
 
 @media (max-width: 64rem) {
     .product-reports__grid { grid-template-columns: minmax(0, 1fr); }
 
-    .product-reports__story { position: static; order: -1; max-height: none; overflow: visible; }
+    .product-reports__sheet { position: static; order: -1; max-height: none; overflow: visible; }
     .product-reports__hint { display: none; }
 }
 </style>

@@ -7,7 +7,6 @@ namespace App\Domain\Discount;
 use App\Domain\Discount\Exception\DiscountStartedToday;
 use App\Domain\Discount\Exception\ValidityEndsBeforeStart;
 use App\Domain\Shared\BusinessTime;
-use App\Domain\Shared\DateRange;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Embeddable]
@@ -70,14 +69,6 @@ final readonly class ValidityPeriod
         }
 
         return self::between($this->start, $yesterday);
-    }
-
-    public function within(DateRange $period): ?DateRange
-    {
-        $start = null === $this->start || $this->start < $period->start() ? $period->start() : $this->start;
-        $end = null === $this->end || $this->end > $period->end() ? $period->end() : $this->end;
-
-        return $end < $start ? null : DateRange::fromDates($start, $end);
     }
 
     public function start(): ?\DateTimeImmutable

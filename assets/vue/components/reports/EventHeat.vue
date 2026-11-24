@@ -5,6 +5,7 @@ import BaseCard from '../ui/BaseCard.vue';
 import ChartTip from '../ui/ChartTip.vue';
 import DataTable from '../ui/DataTable.vue';
 import EmptyState from '../ui/EmptyState.vue';
+import FormDisclosure from '../ui/FormDisclosure.vue';
 import { formatRate } from '../../composables/useProductAnalysis.js';
 import { formatDateSpan } from '../../composables/useDate.js';
 
@@ -48,6 +49,13 @@ const tip = (column, units) => (units === null
                 </span>
                 <span class="event-heat__key-item"><span class="event-heat__dash" aria-hidden="true">—</span>{{ t('reports-events.key.absent') }}</span>
             </p>
+
+            <FormDisclosure :title="t('reports.analysis.how.title')">
+                <p class="event-heat__how">{{ t('reports-events.how.cell') }}</p>
+                <p class="event-heat__how">{{ t('reports-events.how.tint', { top: bound(3) }) }}</p>
+                <p class="event-heat__how">{{ t('reports-events.how.absent') }}</p>
+                <p class="event-heat__how">{{ t('reports-events.how.total') }}</p>
+            </FormDisclosure>
 
             <DataTable fit dense>
                 <template #head>
@@ -104,6 +112,7 @@ const tip = (column, units) => (units === null
 
 .event-heat__key { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-4); margin: 0; color: var(--color-muted); font-size: var(--font-size-sm); }
 .event-heat__key-item { display: inline-flex; align-items: center; gap: var(--space-2); }
+.event-heat__how { max-width: 48rem; margin: 0; color: var(--color-muted); font-size: var(--font-size-sm); }
 .event-heat__swatch { width: 1.25rem; height: 0.75rem; border-radius: var(--radius-sm); }
 .event-heat__dash { color: var(--color-muted); }
 

@@ -6,7 +6,8 @@
         "all": "Since the start",
         "year": "Year {year}"
     },
-    "summary": "{revenue} cashed for {units} items sold, of which {discount} given away in discounts.",
+    "summary": "{revenue} cashed for {units} items sold.",
+    "summaryDiscounted": "None was discounted. | {count} was discounted, giving {discount} away in discounts. | {count} were discounted, giving {discount} away in discounts.",
     "summaryEmpty": "No sale in this period.",
     "palmares": {
         "title": "Best sellers",
@@ -35,35 +36,6 @@
         "search": "Search a product",
         "noMatch": "No sold product matches."
     },
-    "story": {
-        "choose": "Pick a product in the best sellers to see how it sold, how its stock moved and when it was discounted.",
-        "onHand": "{count} in stock today",
-        "openProduct": "Product page",
-        "close": "Close the details"
-    },
-    "sales": {
-        "title": "Sales per month",
-        "tooltip": "{units} sold, {revenue} cashed",
-        "none": "No sale in the period."
-    },
-    "flow": {
-        "title": "Stock movements",
-        "in": "In",
-        "out": "Out",
-        "stock": "Stock at month end",
-        "tooltipIn": "In: {count}",
-        "tooltipOut": "Out: {sold} sold, {lost} lost, {used} used as supply",
-        "tooltipStock": "Stock end of {month}: {count}"
-    },
-    "discounts": {
-        "title": "Discounts",
-        "covered": "Discounted {days} days out of {total}, {amount} given away in discounts.",
-        "none": "No discount concerned it in the period.",
-        "rule": "{name}, from {from} to {to}",
-        "share": "Discounted share",
-        "shareTooltip": "{month}: {share} of the full price given in discounts"
-    },
-    "months": "Months",
     "views": {
         "label": "View",
         "palmares": "Best sellers",
@@ -88,7 +60,7 @@
             "reprice": "It sells well but earns little per unit: a workhorse.",
             "watch": "It is unpopular without being class A.",
             "keep": "It sells and its stock is enough: nothing to do.",
-            "too_early": "Under 150 orders since it arrived, or under half of the period's orders: too early to judge."
+            "too_early": "Not enough orders since it arrived, or under half of the period's orders: too early to judge."
         },
         "classes": {
             "A": "Class A",
@@ -104,6 +76,37 @@
         "stock": {
             "out": "Out of stock",
             "low": "Low stock"
+        },
+        "reasons": {
+            "too_few_orders": "Only {orders} orders since it arrived: {enough} are needed to judge.",
+            "arrived_late": "It arrived late and saw only {orders} orders, under half of the period's {half}.",
+            "nothing_sold": "No unit sold in the period.",
+            "unpopular_tail": "It sells little ({pace} per 100 orders, limit {limit}) and is among those earning the least (class C).",
+            "sold_out": "It sells well ({pace} per 100 orders) and none is left in stock.",
+            "sold_out_top_earner": "It sells little ({pace} per 100 orders, limit {limit}) but earns a lot (class A), and none is left in stock.",
+            "low_cover": "It sells well ({pace} per 100 orders), but the stock lasts only {cover} orders, less than the {orders} of {event}.",
+            "low_cover_top_earner": "It sells little ({pace} per 100 orders, limit {limit}) but earns a lot (class A), and the stock lasts only {cover} orders, less than the {orders} of {event}.",
+            "workhorse": "It sells well ({pace} per 100 orders) but earns {margin} per unit, under the limit of {limit}.",
+            "unpopular": "It sells little ({pace} per 100 orders, limit {limit}) without being among the top earners.",
+            "top_earner": "It sells little ({pace} per 100 orders, limit {limit}) but earns a lot (class A).",
+            "fine": "It sells well ({pace} per 100 orders), earns {margin} per unit and its stock is enough."
+        },
+        "how": {
+            "title": "How it is calculated",
+            "pace": "The pace is the number of units sold per 100 orders placed while it was on sale: since it arrived, or only until its last sale when it is sold out.",
+            "unitMargin": "The margin per unit is what was cashed minus the buying cost, divided by the units sold.",
+            "classes": "Products are ranked by margin. Class A: those making the first {a}% of the margin. Class B: up to {b}%. Class C: all the rest.",
+            "quadrants": {
+                "star": "Star: sells well and earns a lot per unit.",
+                "workhorse": "Workhorse: sells well but earns little per unit.",
+                "puzzle": "Puzzle: sells little but earns a lot per unit.",
+                "dog": "Dog: sells little and earns little per unit."
+            },
+            "cover": "\"Lasts N orders\": the units in stock × the orders placed while it was on sale ÷ the units sold, rounded down.",
+            "lowStock": "Low stock: it lasts fewer orders than {event} had ({orders}).",
+            "margin": "The margin is what was cashed minus the buying cost of the units sold.",
+            "discounted": "Discounted: a unit sold whose order line carries a share of a discount.",
+            "fullPrice": "Full price: a unit sold without any share of a discount."
         }
     }
 }

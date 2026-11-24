@@ -13,5 +13,13 @@
         "lead": "Too early to judge or nothing sold: these products are not placed.",
         "units": "{n} sold | {n} sold"
     },
-    "past": "This period is over: verdicts only read on a period that runs up to today."
+    "past": "This period is over: verdicts only read on a period that runs up to today.",
+    "limit": "limit",
+    "lines": {
+        "pace": "Vertical line: pace limit {limit}, that is {percent}% of the average pace of {type} ({average}).",
+        "unitMargin": "Horizontal line: margin limit {limit} per unit, that is {percent}% of their average margin per unit ({average})."
+    },
+    "how": {
+        "lines": "Each type has its own two lines, drawn from the average of its judged products. Right of the vertical line, the product sells well: its pace reaches {pace}% of the type's average pace. Above the horizontal line, it earns well: its margin per unit reaches {margin}% of the type's average margin per unit."
+    }
 }

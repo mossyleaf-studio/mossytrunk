@@ -29,7 +29,7 @@ final class OrderRecapTest extends TestCase
             self::sales($foret, 'A3', 1, 1_500),
             self::sales($riviere, 'A4', 2, 3_000),
             self::sales($mousse, null, 5, 2_000, cost: 0),
-            new ProductSales('Ancien produit', $deletedId, 'Ancien produit', null, 1, Money::cents(900), Money::cents(900), Money::cents(100), false),
+            new ProductSales('Ancien produit', $deletedId, 'Ancien produit', null, 1, Money::cents(900), Money::cents(900), Money::cents(100), false, 0, Money::zero()),
         ], [
             (string) $foret->id() => $foret,
             (string) $riviere->id() => $riviere,
@@ -49,6 +49,6 @@ final class OrderRecapTest extends TestCase
 
     private static function sales(Product $product, ?string $variant, int $quantity, int $sales, int $cost = 100): ProductSales
     {
-        return new ProductSales($product->displayName(), $product->id(), $product->displayName(), $variant, $quantity, Money::cents($sales), Money::cents($sales), Money::cents($cost * $quantity), 0 === $cost);
+        return new ProductSales($product->displayName(), $product->id(), $product->displayName(), $variant, $quantity, Money::cents($sales), Money::cents($sales), Money::cents($cost * $quantity), 0 === $cost, 0, Money::zero());
     }
 }

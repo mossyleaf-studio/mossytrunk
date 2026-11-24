@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Domain\Reporting\Analysis;
 
 use App\Domain\Reporting\Analysis\Exposure;
-use App\Domain\Reporting\Analysis\OrderCalendar;
-use App\Domain\Reporting\Analysis\SellingDay;
 use PHPUnit\Framework\TestCase;
 
 final class ExposureTest extends TestCase
@@ -32,13 +30,12 @@ final class ExposureTest extends TestCase
     public function testALateArrivalIsTooEarlyToJudge(): void
     {
         $nouveau = Exposure::of(Scenario::calendar(), '2026-09-20', 5);
-        $busyYear = OrderCalendar::of([new SellingDay('2026-03-01', 250, null), new SellingDay('2026-09-01', 160, null)]);
 
-        self::assertSame([44, 11.4, true, 220], [$nouveau->orders, $nouveau->per100Orders(), $nouveau->tooEarly(), $nouveau->coverOrders(25)]);
+        self::assertSame([44, 44, 11.4, true, 220], [$nouveau->orders, $nouveau->sinceArrival, $nouveau->per100Orders(), $nouveau->tooEarly(), $nouveau->coverOrders(25)]);
         self::assertFalse($nouveau->onSaleDuring(Scenario::expo()));
         self::assertTrue($nouveau->onSaleDuring(Scenario::market()));
-        self::assertTrue(Exposure::of($busyYear, '2026-08-01', 30)->tooEarly());
-        self::assertFalse(Exposure::of($busyYear, '2026-01-01', 30)->tooEarly());
+        self::assertTrue(Exposure::of(Scenario::busyYear(), '2026-08-01', 30)->tooEarly());
+        self::assertFalse(Exposure::of(Scenario::busyYear(), '2026-01-01', 30)->tooEarly());
     }
 
     public function testNoOrdersOrNoSalesDoNotDivideByZero(): void

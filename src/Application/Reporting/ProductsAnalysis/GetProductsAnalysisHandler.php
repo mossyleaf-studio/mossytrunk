@@ -7,16 +7,17 @@ namespace App\Application\Reporting\ProductsAnalysis;
 use App\Application\Reporting\ProductSalesLedger;
 use App\Application\Reporting\ReportPeriod;
 use App\Application\Reporting\SalesCalendar;
+use App\Application\Reporting\SoldFigures;
 use App\Domain\Product\ProductRepository;
 use App\Domain\Reporting\Analysis\Arrival;
 use App\Domain\Reporting\Analysis\Exposure;
 use App\Domain\Reporting\Analysis\MarginClass;
 use App\Domain\Reporting\Analysis\OrderCalendar;
+use App\Domain\Reporting\Analysis\Reason;
 use App\Domain\Reporting\Analysis\SoldEvent;
 use App\Domain\Reporting\Analysis\StockLevel;
 use App\Domain\Reporting\Analysis\TypeBenchmark;
 use App\Domain\Reporting\Analysis\UnitsByEvent;
-use App\Domain\Reporting\Analysis\Verdict;
 use App\Domain\Reporting\ProductSales;
 use App\Domain\Reporting\StockPotential;
 use App\Domain\Shared\DateRange;
@@ -52,6 +53,13 @@ final readonly class GetProductsAnalysisHandler
         $busiest = $calendar->busiestEvent();
 
         return new ProductsAnalysisView(
+            [
+                'enoughOrders' => Exposure::ENOUGH_ORDERS,
+                'popularPercent' => TypeBenchmark::POPULAR_PERCENT,
+                'profitablePercent' => TypeBenchmark::PROFITABLE_PERCENT,
+                'classAPercent' => MarginClass::A_UNDER_PERCENT,
+                'classBPercent' => MarginClass::B_UNDER_PERCENT,
+            ],
             ['choice' => $choice, 'from' => $range->start()->format('Y-m-d'), 'to' => $range->end()->format('Y-m-d'), 'current' => $current],
             $calendar->orders(),
             $calendar->offEventOrders(),
@@ -61,6 +69,7 @@ final readonly class GetProductsAnalysisHandler
             $rows,
             [
                 'units' => array_sum(array_column($rows, 'units')),
+                'discountedUnits' => array_sum(array_column($rows, 'discountedUnits')),
                 'revenue' => array_sum(array_column($rows, 'revenue')),
                 'margin' => array_sum(array_column($rows, 'margin')),
                 'onHand' => array_sum(array_column($rows, 'onHand')),
@@ -128,7 +137,7 @@ final readonly class GetProductsAnalysisHandler
     /**
      * @param array{class: MarginClass, cumulative: Money} $rank
      *
-     * @return array{id: string, name: string, typeId: string, typeName: string, units: int, revenue: int, margin: int, unknownCost: bool, unitMargin: int|null, availableSince: string, exposure: int, per100Orders: float|null, class: string, quadrant: string|null, cumulativeMargin: int, onHand: int, coverOrders: int|null, stock: string|null, byEvent: list<int|null>, offEvent: int, verdict: string|null}
+     * @return array{id: string, name: string, typeId: string, typeName: string, units: int, fullPriceUnits: int, discountedUnits: int, gross: int, discountedGross: int, discount: int, revenue: int, cost: int, margin: int, unknownCost: bool, unitMargin: int|null, availableSince: string, exposure: int, ordersSinceArrival: int, per100Orders: float|null, class: string, quadrant: string|null, cumulativeMargin: int, onHand: int, coverOrders: int|null, stock: string|null, byEvent: list<int|null>, offEvent: int, reason: string|null, verdict: string|null}
      */
     private static function row(AnalysedProduct $analysed, array $rank, TypeBenchmark $benchmark, OrderCalendar $calendar, UnitsByEvent $units, bool $current): array
     {
@@ -137,19 +146,18 @@ final readonly class GetProductsAnalysisHandler
         $quadrant = $benchmark->quadrant($exposure, $analysed->margin());
         $cover = $current ? $exposure->coverOrders($analysed->onHand) : null;
         $stock = $current ? StockLevel::of($analysed->onHand, $cover, $calendar->busiestEventOrders()) : null;
+        $reason = null === $stock ? null : Reason::of($exposure, $rank['class'], $quadrant, $stock);
 
         return [
             'id' => (string) $product->id(),
             'name' => $product->displayName(),
             'typeId' => $analysed->typeKey(),
             'typeName' => $product->type()->name(),
-            'units' => $exposure->units,
-            'revenue' => $analysed->revenue()->amount(),
-            'margin' => $analysed->margin()->amount(),
-            'unknownCost' => $analysed->unknownCost(),
+            ...SoldFigures::of($analysed->sold),
             'unitMargin' => TypeBenchmark::unitMargin($analysed->margin(), $exposure->units)?->amount(),
             'availableSince' => $exposure->arrival,
             'exposure' => $exposure->orders,
+            'ordersSinceArrival' => $exposure->sinceArrival,
             'per100Orders' => $exposure->per100Orders(),
             'class' => $rank['class']->value,
             'quadrant' => $quadrant?->value,
@@ -159,7 +167,8 @@ final readonly class GetProductsAnalysisHandler
             'stock' => $stock?->value,
             'byEvent' => $units->row($product->id(), $calendar->events(), $exposure),
             'offEvent' => $units->offEvent($product->id()),
-            'verdict' => null === $stock ? null : Verdict::of($exposure, $rank['class'], $quadrant, $stock)->value,
+            'reason' => $reason?->value,
+            'verdict' => $reason?->verdict()->value,
         ];
     }
 
@@ -175,14 +184,14 @@ final readonly class GetProductsAnalysisHandler
      * @param array<string, AnalysedProduct> $analysed
      * @param array<string, TypeBenchmark>   $benchmarks
      *
-     * @return list<array{id: string, name: string, judged: int, popularFrom: float|null, unitMarginFrom: int|null}>
+     * @return list<array{id: string, name: string, judged: int, averagePace: float|null, popularFrom: float|null, averageUnitMargin: int|null, unitMarginFrom: int|null}>
      */
     private static function types(array $analysed, array $benchmarks): array
     {
         $types = [];
         foreach ($analysed as $product) {
             $benchmark = $benchmarks[$product->typeKey()];
-            $types[$product->typeKey()] = ['id' => $product->typeKey(), 'name' => $product->product->type()->name(), 'judged' => $benchmark->judged, 'popularFrom' => $benchmark->popularFrom(), 'unitMarginFrom' => $benchmark->unitMarginFrom()?->amount()];
+            $types[$product->typeKey()] = ['id' => $product->typeKey(), 'name' => $product->product->type()->name(), 'judged' => $benchmark->judged, 'averagePace' => $benchmark->averagePace(), 'popularFrom' => $benchmark->popularFrom(), 'averageUnitMargin' => $benchmark->averageUnitMargin()?->amount(), 'unitMarginFrom' => $benchmark->unitMarginFrom()?->amount()];
         }
 
         return array_values($types);

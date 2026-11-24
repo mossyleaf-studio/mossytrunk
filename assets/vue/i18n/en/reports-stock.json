@@ -21,5 +21,9 @@
     "lasts": "lasts {count} order | lasts {count} orders",
     "noSales": "not selling",
     "showAll": "Show the {count} products",
-    "showLess": "Show the first {count}"
+    "showLess": "Show the first {count}",
+    "howCover": "“Lasts N orders”: how many orders the stock lasts at the product's pace, that is the units in stock × the orders placed while it was on sale ÷ the units sold, rounded down.",
+    "howExample": "Example, {name}: {onHand} in stock × {exposure} orders ÷ {units} sold = {cover}.",
+    "howLow": "Running low: the stock lasts fewer orders than the busiest event of the period, {event}, which took {orders}.",
+    "howNoSales": "A product with no sale in the period has no pace: we cannot say how many orders its stock lasts."
 }

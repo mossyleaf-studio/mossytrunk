@@ -66,11 +66,6 @@ class DiscountCondition
         return $this->targets->exists(static fn (int $key, ConditionTarget $target): bool => $target->matches($productId, $typeId, $variant, $collectionId));
     }
 
-    public function concernsProduct(Product $product): bool
-    {
-        return $this->targets->exists(static fn (int $key, ConditionTarget $target): bool => $target->concernsProduct($product));
-    }
-
     public function has(Product|ProductType $subject, ?string $variant, ?DesignCollection $collection = null): bool
     {
         return $this->targets->exists(static fn (int $key, ConditionTarget $target): bool => $target->is($subject, $variant, $collection));

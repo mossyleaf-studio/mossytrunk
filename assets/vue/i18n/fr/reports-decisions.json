@@ -14,11 +14,11 @@
         "class": "Classe",
         "quadrant": "Quadrant",
         "units": "Vendus",
-        "pace": "/100 cmd.",
+        "pace": "Rythme",
         "margin": "Marge",
-        "unitMargin": "Marge unit.",
+        "unitMargin": "Marge",
         "stock": "Stock",
-        "cover": "Tient (cmd.)",
+        "cover": "Tient",
         "events": "Par événement"
     },
     "strip": {
@@ -26,9 +26,23 @@
         "absent": "{event} : pas en vente",
         "offEvent": "Hors événement"
     },
-    "columnNames": {
-        "pace": "Vendus pour 100 commandes",
-        "unitMargin": "Marge par unité vendue",
-        "cover": "Commandes couvertes par le stock"
+    "units": {
+        "pace": "pour 100 commandes",
+        "unitMargin": "par unité",
+        "cover": "commandes"
+    },
+    "how": {
+        "limits": "Chaque produit est comparé aux produits de son type. Il se vend bien quand son rythme atteint {popular} % du rythme moyen de son type. Il rapporte bien quand sa marge par unité atteint {profitable} % de la marge moyenne par unité de son type.",
+        "type": "{type} : rythme moyen {average}, limite {limit} ; marge moyenne par unité {marginAverage}, limite {marginLimit}.",
+        "quadrant": "Le quadrant croise ces deux limites :",
+        "verdictsIntro": "Ce que veut dire chaque verdict :",
+        "verdicts": {
+            "restock": "il se vend bien (rythme au-dessus de la limite, ou classe A) et son stock est épuisé ou court.",
+            "discontinue": "aucune unité vendue, ou il se vend peu et il est de classe C.",
+            "reprice": "il se vend bien mais sa marge par unité est sous la limite de son type.",
+            "watch": "il se vend peu et il est de classe B.",
+            "keep": "il se vend bien avec une marge par unité au-dessus de la limite et assez de stock, ou il se vend peu mais il est de classe A.",
+            "too_early": "moins de {enough} commandes depuis son arrivée, ou moins de la moitié des {orders} commandes de la période : on ne juge pas encore."
+        }
     }
 }

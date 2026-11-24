@@ -13,5 +13,13 @@
         "lead": "Trop tôt pour juger ou rien vendu : ces produits ne sont pas placés.",
         "units": "{n} vendu | {n} vendus"
     },
-    "past": "Cette période est terminée : les verdicts ne se lisent que sur une période qui va jusqu'à aujourd'hui."
+    "past": "Cette période est terminée : les verdicts ne se lisent que sur une période qui va jusqu'à aujourd'hui.",
+    "limit": "limite",
+    "lines": {
+        "pace": "Ligne verticale : rythme limite {limit}, soit {percent} % du rythme moyen des {type} ({average}).",
+        "unitMargin": "Ligne horizontale : marge limite {limit} par unité, soit {percent} % de leur marge moyenne par unité ({average})."
+    },
+    "how": {
+        "lines": "Chaque type a ses deux lignes, tirées de la moyenne de ses produits jugés. À droite de la ligne verticale, le produit se vend bien : son rythme atteint {pace} % du rythme moyen du type. Au-dessus de la ligne horizontale, il rapporte bien : sa marge par unité atteint {margin} % de la marge moyenne par unité du type."
+    }
 }

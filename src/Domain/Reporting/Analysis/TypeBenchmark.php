@@ -34,14 +34,26 @@ final readonly class TypeBenchmark
         return new self($this->judged + 1, $this->paces + $pace, $this->units + $exposure->units, $this->margin->add($margin));
     }
 
+    public function averagePace(): ?float
+    {
+        return 0 === $this->judged ? null : round($this->paces / $this->judged, 1);
+    }
+
     public function popularFrom(): ?float
     {
-        return 0 === $this->judged ? null : round($this->paces / $this->judged * self::POPULAR_PERCENT / 100, 1);
+        $average = $this->averagePace();
+
+        return null === $average ? null : round($average * self::POPULAR_PERCENT / 100, 1);
+    }
+
+    public function averageUnitMargin(): ?Money
+    {
+        return self::unitMargin($this->margin, $this->units);
     }
 
     public function unitMarginFrom(): ?Money
     {
-        return 0 === $this->units ? null : $this->margin->prorate(self::PROFITABLE_PERCENT, 100 * $this->units);
+        return $this->averageUnitMargin()?->prorate(self::PROFITABLE_PERCENT, 100);
     }
 
     public function quadrant(Exposure $exposure, Money $margin): ?Quadrant

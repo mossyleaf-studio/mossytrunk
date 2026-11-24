@@ -13,5 +13,8 @@
     },
     "cumulated": "Marge cumulée",
     "axis": "Produits du plus rentable au moins rentable",
-    "tip": "{rank}. {name} : {margin} de marge, {share} cumulés, classe {abcClass}"
+    "tip": "{rank}. {name} : {margin} de marge, {share} cumulés, classe {abcClass}",
+    "how": {
+        "curve": "La courbe additionne la marge des produits, du plus rentable au moins rentable. Chaque ligne en pointillés marque une part de la marge totale : la classe d'un produit dépend de la ligne où la courbe le place."
+    }
 }

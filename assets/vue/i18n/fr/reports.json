@@ -6,7 +6,8 @@
         "all": "Depuis le début",
         "year": "Année {year}"
     },
-    "summary": "{revenue} encaissés pour {units} articles vendus, dont {discount} laissés en remises.",
+    "summary": "{revenue} encaissés pour {units} articles vendus.",
+    "summaryDiscounted": "Aucun n'a été remisé. | {count} a été remisé, pour {discount} laissés en remises. | {count} ont été remisés, pour {discount} laissés en remises.",
     "summaryEmpty": "Aucune vente sur cette période.",
     "palmares": {
         "title": "Palmarès",
@@ -35,35 +36,6 @@
         "search": "Rechercher un produit",
         "noMatch": "Aucun produit vendu ne correspond."
     },
-    "story": {
-        "choose": "Choisissez un produit dans le palmarès pour voir comment il s'est vendu, comment son stock a bougé et quand il était remisé.",
-        "onHand": "{count} en stock aujourd'hui",
-        "openProduct": "Fiche produit",
-        "close": "Fermer le détail"
-    },
-    "sales": {
-        "title": "Ventes par mois",
-        "tooltip": "{units} vendus, {revenue} encaissés",
-        "none": "Aucune vente sur la période."
-    },
-    "flow": {
-        "title": "Mouvements de stock",
-        "in": "Entrées",
-        "out": "Sorties",
-        "stock": "Stock en fin de mois",
-        "tooltipIn": "Entrées : {count}",
-        "tooltipOut": "Sorties : {sold} vendus, {lost} perdus, {used} en fourniture",
-        "tooltipStock": "Stock fin {month} : {count}"
-    },
-    "discounts": {
-        "title": "Remises",
-        "covered": "Remisé {days} jours sur {total}, {amount} laissés en remises.",
-        "none": "Aucune remise ne le concernait sur la période.",
-        "rule": "{name}, du {from} au {to}",
-        "share": "Part remisée",
-        "shareTooltip": "{month} : {share} du plein tarif laissé en remises"
-    },
-    "months": "Mois",
     "views": {
         "label": "Vue",
         "palmares": "Palmarès",
@@ -88,7 +60,7 @@
             "reprice": "Il se vend bien mais rapporte peu par unité : cheval de trait.",
             "watch": "Il est peu demandé sans être de classe A.",
             "keep": "Il se vend et son stock suffit : rien à faire.",
-            "too_early": "Moins de 150 commandes depuis son arrivée, ou moins de la moitié de celles de la période : trop tôt pour juger."
+            "too_early": "Pas assez de commandes depuis son arrivée, ou moins de la moitié de celles de la période : trop tôt pour juger."
         },
         "classes": {
             "A": "Classe A",
@@ -104,6 +76,37 @@
         "stock": {
             "out": "Épuisé",
             "low": "Stock court"
+        },
+        "reasons": {
+            "too_few_orders": "Seulement {orders} commandes depuis son arrivée : il en faut {enough} pour juger.",
+            "arrived_late": "Arrivé tard, il n'a vu que {orders} commandes, moins de la moitié des {half} de la période.",
+            "nothing_sold": "Aucune unité vendue sur la période.",
+            "unpopular_tail": "Il se vend peu ({pace} pour 100 commandes, limite {limit}) et il fait partie des produits qui rapportent le moins (classe C).",
+            "sold_out": "Il se vend bien ({pace} pour 100 commandes) et il n'y en a plus en stock.",
+            "sold_out_top_earner": "Il se vend peu ({pace} pour 100 commandes, limite {limit}) mais il rapporte beaucoup (classe A), et il n'y en a plus en stock.",
+            "low_cover": "Il se vend bien ({pace} pour 100 commandes), mais le stock ne tient que {cover} commandes, moins que les {orders} de {event}.",
+            "low_cover_top_earner": "Il se vend peu ({pace} pour 100 commandes, limite {limit}) mais il rapporte beaucoup (classe A), et le stock ne tient que {cover} commandes, moins que les {orders} de {event}.",
+            "workhorse": "Il se vend bien ({pace} pour 100 commandes) mais rapporte {margin} par unité, sous la limite de {limit}.",
+            "unpopular": "Il se vend peu ({pace} pour 100 commandes, limite {limit}) sans être parmi ceux qui rapportent le plus.",
+            "top_earner": "Il se vend peu ({pace} pour 100 commandes, limite {limit}) mais il rapporte beaucoup (classe A).",
+            "fine": "Il se vend bien ({pace} pour 100 commandes), rapporte {margin} par unité et son stock suffit."
+        },
+        "how": {
+            "title": "Comment c'est calculé",
+            "pace": "Le rythme, c'est le nombre d'unités vendues pour 100 commandes passées pendant qu'il était en vente : depuis son arrivée, ou seulement jusqu'à sa dernière vente s'il est épuisé.",
+            "unitMargin": "La marge par unité, c'est ce qui est encaissé moins le coût d'achat, divisé par les unités vendues.",
+            "classes": "Les produits sont classés par marge. Classe A : ceux qui font les {a} % premiers de la marge. Classe B : jusqu'à {b} %. Classe C : tout le reste.",
+            "quadrants": {
+                "star": "Vedette : se vend bien et rapporte beaucoup par unité.",
+                "workhorse": "Cheval de trait : se vend bien mais rapporte peu par unité.",
+                "puzzle": "Énigme : se vend peu mais rapporte beaucoup par unité.",
+                "dog": "Poids mort : se vend peu et rapporte peu par unité."
+            },
+            "cover": "« Tient N commandes » : les unités en stock × les commandes passées pendant qu'il était en vente ÷ les unités vendues, arrondi en dessous.",
+            "lowStock": "Stock court : il tient moins de commandes que {event} n'en a eu ({orders}).",
+            "margin": "La marge, c'est ce qui est encaissé moins le coût d'achat des unités vendues.",
+            "discounted": "Remisé : une unité vendue dont la ligne de commande porte une part de remise.",
+            "fullPrice": "Plein tarif : une unité vendue sans aucune part de remise."
         }
     }
 }

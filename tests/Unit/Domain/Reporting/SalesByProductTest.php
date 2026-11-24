@@ -18,9 +18,9 @@ final class SalesByProductTest extends TestCase
         $sticker = new Ulid();
 
         $sales = SalesByProduct::of([
-            new ProductSales('Sticker', $sticker, 'Sticker', null, 2, Money::cents(800), Money::cents(800), Money::zero(), true),
-            new ProductSales('Print', $print, 'Print', null, 3, Money::cents(4_500), Money::cents(4_500), Money::cents(900), false),
-            new ProductSales('Inconnu', null, 'Inconnu', null, 1, Money::cents(9_000), Money::cents(9_000), Money::zero(), true),
+            new ProductSales('Sticker', $sticker, 'Sticker', null, 2, Money::cents(800), Money::cents(800), Money::zero(), true, 0, Money::zero()),
+            new ProductSales('Print', $print, 'Print', null, 3, Money::cents(4_500), Money::cents(4_500), Money::cents(900), false, 0, Money::zero()),
+            new ProductSales('Inconnu', null, 'Inconnu', null, 1, Money::cents(9_000), Money::cents(9_000), Money::zero(), true, 0, Money::zero()),
         ]);
 
         self::assertSame(['Print', 'Sticker'], array_map(static fn (ProductSales $product): string => $product->productName, $sales->ranked()));

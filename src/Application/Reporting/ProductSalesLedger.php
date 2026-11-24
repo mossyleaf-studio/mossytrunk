@@ -21,9 +21,4 @@ interface ProductSalesLedger
     public function within(DateRange $period): array;
 
     public function ofProduct(Ulid $productId, ?DateRange $period = null): ?ProductSales;
-
-    /**
-     * @return array<string, ProductSales>
-     */
-    public function monthlyOf(Ulid $productId): array;
 }

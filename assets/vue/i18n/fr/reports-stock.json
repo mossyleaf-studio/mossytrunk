@@ -21,5 +21,9 @@
     "lasts": "tient {count} commande | tient {count} commandes",
     "noSales": "ne se vend pas",
     "showAll": "Afficher les {count} produits",
-    "showLess": "Afficher les {count} premiers"
+    "showLess": "Afficher les {count} premiers",
+    "howCover": "« Tient N commandes » : combien de commandes le stock tient au rythme du produit, soit les unités en stock × les commandes passées pendant qu'il était en vente ÷ les unités vendues, arrondi en dessous.",
+    "howExample": "Exemple, {name} : {onHand} en stock × {exposure} commandes ÷ {units} vendus = {cover}.",
+    "howLow": "Stock court : le stock tient moins de commandes que l'événement le plus chargé de la période, {event}, qui en a reçu {orders}.",
+    "howNoSales": "Un produit sans vente sur la période n'a pas de rythme : on ne peut pas dire combien de commandes son stock tient."
 }
