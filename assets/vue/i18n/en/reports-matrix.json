@@ -1,0 +1,17 @@
+{
+    "title": "Matrix",
+    "lead": "Each judged product, placed within its type by its sales pace and its margin per unit.",
+    "empty": "No orders in this period.",
+    "noneJudged": "No product can be judged yet in this period.",
+    "axis": {
+        "pace": "Pace, units per 100 orders",
+        "unitMargin": "Margin per unit"
+    },
+    "dot": "{name}: {rate} per 100 orders, {amount} per unit, {quadrant}",
+    "apart": {
+        "title": "Off the matrix",
+        "lead": "Too early to judge or nothing sold: these products are not placed.",
+        "units": "{n} sold | {n} sold"
+    },
+    "past": "This period is over: verdicts only read on a period that runs up to today."
+}

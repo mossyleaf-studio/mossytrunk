@@ -57,7 +57,7 @@ async function arrangeSeason(request) {
         await Promise.all(sales.slice(i, i + 10).map(([event, product], j) => placeOrder(request, `${event.startDate}T1${(i + j) % 8}:${String((i + j) % 60).padStart(2, '0')}`, [{ product }])));
     }
 
-    return { star, cheap, pricey, rare, unsold, late, expo, market };
+    return { type, star, cheap, pricey, rare, unsold, late, expo, market };
 }
 
 test.describe('decisions', () => {
@@ -123,5 +123,129 @@ test.describe('decisions', () => {
         await page.goto(`/reports/products?period=${YEAR}&view=decisions&sort=valueOf`);
         await expect(row(star)).toBeVisible();
         await expect(decisions.getByRole('columnheader', { name: 'Marge', exact: true })).toHaveAttribute('aria-sort', 'descending');
+    });
+});
+
+test.describe('views on the analysis', () => {
+    test.use({ viewport: { width: 1600, height: 1000 } });
+
+    const openView = async (page, key, label, query = '') => {
+        await page.goto(`/reports/products?period=${YEAR}${query}`);
+        await page.getByRole('group', { name: 'Vue' }).getByRole('button', { name: label }).click();
+        await expect(page).toHaveURL(new RegExp(`view=${key}`));
+        return page.getByRole('region', { name: label, exact: true });
+    };
+    const select = (scope, product) => scope.getByRole('button', { name: `Voir le détail de ${product.name}` });
+
+    test('the concentration view says how many products bring the margin and opens a product from the curve', async ({ page, request }) => {
+        const { star, pricey, cheap } = await arrangeSeason(request);
+        const view = await openView(page, 'concentration', 'Concentration');
+
+        await expect(view).toContainText(/2 produits sur 6 apportent 80\s+% de la marge/);
+        await expect(view).toContainText(/3 n.en apportent que 5\s+%/);
+        for (const label of ['Classe A', 'Classe B', 'Classe C']) await expect(view).toContainText(label);
+
+        await select(view, star).focus();
+        await expect(select(view, star)).toHaveAccessibleDescription(/200,00/);
+        await expect(select(view, star)).toHaveAccessibleDescription(/classe A/);
+        await select(view, cheap).focus();
+        await expect(select(view, cheap)).toHaveAccessibleDescription(/classe C/);
+
+        await select(view, pricey).click();
+        await expect(page).toHaveURL(/product=/);
+        await expect(select(view, pricey)).toHaveAttribute('aria-pressed', 'true');
+        await expect(page.getByRole('article', { name: pricey.name })).toBeVisible();
+    });
+
+    test('the matrix view places the judged products of a type and lists the others apart', async ({ page, request }) => {
+        const { type, star, cheap, pricey, rare, unsold, late } = await arrangeSeason(request);
+        const view = await openView(page, 'matrix', 'Matrice');
+
+        const panel = view.getByRole('region', { name: type.name });
+        for (const product of [star, cheap, pricey, rare]) await expect(select(panel, product)).toBeVisible();
+        for (const product of [unsold, late]) await expect(select(panel, product)).toHaveCount(0);
+        for (const quadrant of ['Vedette', 'Cheval de trait', 'Énigme', 'Poids mort']) await expect(panel).toContainText(quadrant);
+        await expect(panel).toContainText('13,3');
+        await expect(panel).toContainText('2,00');
+
+        const apart = view.getByRole('region', { name: 'Hors matrice' });
+        await expect(select(apart, late)).toBeVisible();
+        await expect(apart).toContainText('Trop tôt');
+        await expect(select(apart, unsold)).toBeVisible();
+        await expect(apart).toContainText('À arrêter');
+        await expect(select(apart, unsold)).toHaveAccessibleDescription(/0 vendu/);
+        for (const product of [star, cheap, pricey, rare]) await expect(select(apart, product)).toHaveCount(0);
+
+        await select(panel, cheap).click();
+        await expect(page).toHaveURL(/product=/);
+        await expect(select(panel, cheap)).toHaveAttribute('aria-pressed', 'true');
+        await expect(page.getByRole('article', { name: cheap.name })).toBeVisible();
+
+        await choose(page, page.getByRole('combobox', { name: 'Période' }), `Année ${PAST_YEAR}`);
+        await expect(page).toHaveURL(/view=matrix/);
+        await expect(view).toContainText('Cette période est terminée');
+    });
+
+    test('the stock view shows how long each stock lasts, sorts it and has no stock reading on a past period', async ({ page, request }) => {
+        const { star, cheap, pricey, rare, unsold, expo } = await arrangeSeason(request);
+        const view = await openView(page, 'stock', 'Stock');
+
+        await expect(view).toContainText(expo.name);
+        await expect(view).toContainText('100 commandes');
+        const item = (product) => view.getByRole('listitem').filter({ has: select(page, product) });
+        await expect(item(star)).toContainText('Épuisé');
+        await expect(item(star)).toContainText('80 vendus');
+        await expect(item(star)).toContainText('0 en stock');
+        await expect(item(pricey)).toContainText('10 vendus');
+        await expect(item(pricey)).toContainText('20 en stock');
+        await expect(item(pricey)).toContainText('tient 320 commandes');
+        await expect(item(rare)).toContainText('tient 640 commandes');
+        await expect(item(unsold)).toContainText('10 en stock');
+        await expect(item(unsold)).not.toContainText('tient');
+        await expect(select(page, star)).toHaveAccessibleDescription(/Épuisé/);
+        await expect(select(page, pricey)).toHaveAccessibleDescription(/tient 320 commandes/);
+        await expect(view.getByRole('listitem').first()).toContainText('Épuisé');
+
+        await view.getByRole('group', { name: 'Classer par' }).getByRole('button', { name: 'Unités en stock' }).click();
+        await expect(page).toHaveURL(/stockSort=onHand/);
+        await expect(view.getByRole('listitem').first()).toContainText(cheap.name);
+        await page.reload();
+        await expect(view.getByRole('listitem').first()).toContainText(cheap.name);
+
+        await select(view, pricey).click();
+        await expect(page).toHaveURL(/product=/);
+        await expect(page.getByRole('article', { name: pricey.name })).toBeVisible();
+
+        await choose(page, page.getByRole('combobox', { name: 'Période' }), `Année ${PAST_YEAR}`);
+        await expect(page).toHaveURL(/view=stock/);
+        await expect(view.getByText(/tient \d+ commandes/)).toHaveCount(0);
+        await expect(view.getByText('Épuisé')).toHaveCount(0);
+        await expect(view).toContainText("Le stock se lit à aujourd'hui");
+    });
+
+    test('the events view gives the units of each product at each event, a dash where it was not on sale', async ({ page, request }) => {
+        const { star, cheap, late, expo, market } = await arrangeSeason(request);
+        const view = await openView(page, 'events', 'Événements');
+
+        const table = view.getByRole('table');
+        await expect(table.getByRole('columnheader').filter({ has: page.getByRole('link', { name: expo.name }) })).toHaveCount(1);
+        await expect(table.getByRole('link', { name: expo.name })).toHaveAttribute('href', `/events/${expo.id}`);
+        await expect(table.getByRole('link', { name: market.name })).toHaveAttribute('href', `/events/${market.id}`);
+        await expect(table.getByRole('columnheader', { name: /^Total/ })).toHaveCount(1);
+        await expect(table.getByRole('columnheader', { name: /Hors événement/ })).toHaveCount(0);
+
+        const cells = (product) => table.getByRole('row').filter({ has: select(page, product) }).getByRole('cell');
+        await expect(cells(star).nth(0)).toContainText('50');
+        await expect(cells(star).nth(1)).toContainText('30');
+        await expect(cells(star).nth(2)).toContainText('80');
+        await expect(cells(cheap).nth(0)).toContainText('40');
+        await expect(cells(cheap).nth(1)).toContainText('20');
+        await expect(cells(late).nth(0)).toContainText('—');
+        await expect(cells(late).nth(1)).toContainText('8');
+        await expect(cells(star).nth(0)).not.toContainText('—');
+
+        await select(table, late).click();
+        await expect(page).toHaveURL(/product=/);
+        await expect(page.getByRole('article', { name: late.name })).toBeVisible();
     });
 });

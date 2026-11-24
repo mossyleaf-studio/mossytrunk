@@ -1,0 +1,25 @@
+{
+    "title": "Stock",
+    "empty": "Aucune commande sur cette période : rien à comparer au stock.",
+    "past": "Le stock se lit à aujourd'hui : choisis une période qui va jusqu'à aujourd'hui pour voir combien de commandes il couvre.",
+    "headline": "{stock} : {out}, {low}.",
+    "units": "{count} unité en stock | {count} unités en stock",
+    "out": "{count} produit épuisé | {count} produits épuisés",
+    "low": "{count} à stock court",
+    "busiest": "Le plus gros événement, {event}, a reçu {orders} : un stock qui en tient moins est court.",
+    "orders": "{count} commande | {count} commandes",
+    "legendSold": "Vendus sur la période",
+    "legendStock": "Encore en stock",
+    "sortBy": "Classer par",
+    "sorts": {
+        "shortest": "Stock le plus court",
+        "longest": "Stock le plus long",
+        "onHand": "Unités en stock"
+    },
+    "figures": "{sold} · {stock}",
+    "onHand": "{count} en stock",
+    "lasts": "tient {count} commande | tient {count} commandes",
+    "noSales": "ne se vend pas",
+    "showAll": "Afficher les {count} produits",
+    "showLess": "Afficher les {count} premiers"
+}

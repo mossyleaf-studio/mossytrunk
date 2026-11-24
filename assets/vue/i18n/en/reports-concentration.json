@@ -1,0 +1,17 @@
+{
+    "title": "Concentration",
+    "empty": "No orders in this period: no margin to share out.",
+    "noMargin": "No product made a margin in this period.",
+    "head": "{count} product out of {total} brings {share} of the margin | {count} products out of {total} bring {share} of the margin",
+    "tail": "{count} brings only {share} | {count} bring only {share}",
+    "sentence": "{head}; {tail}",
+    "products": "{count} product | {count} products",
+    "legendMargin": "{amount} margin ({share})",
+    "bars": {
+        "margin": "Margin",
+        "products": "Products"
+    },
+    "cumulated": "Cumulative margin",
+    "axis": "Products from most to least profitable",
+    "tip": "{rank}. {name}: {margin} margin, {share} cumulative, class {abcClass}"
+}

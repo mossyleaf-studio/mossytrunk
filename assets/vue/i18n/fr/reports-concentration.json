@@ -1,0 +1,17 @@
+{
+    "title": "Concentration",
+    "empty": "Aucune commande sur cette période : aucune marge à répartir.",
+    "noMargin": "Aucun produit n'a dégagé de marge sur cette période.",
+    "head": "{count} produit sur {total} apporte {share} de la marge | {count} produits sur {total} apportent {share} de la marge",
+    "tail": "{count} n'en apporte que {share} | {count} n'en apportent que {share}",
+    "sentence": "{head} ; {tail}",
+    "products": "{count} produit | {count} produits",
+    "legendMargin": "{amount} de marge ({share})",
+    "bars": {
+        "margin": "Marge",
+        "products": "Produits"
+    },
+    "cumulated": "Marge cumulée",
+    "axis": "Produits du plus rentable au moins rentable",
+    "tip": "{rank}. {name} : {margin} de marge, {share} cumulés, classe {abcClass}"
+}

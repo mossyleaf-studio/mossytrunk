@@ -1,0 +1,17 @@
+{
+    "title": "Matrice",
+    "lead": "Chaque produit jugé, placé dans son type selon son rythme de vente et sa marge par unité.",
+    "empty": "Aucune commande sur cette période.",
+    "noneJudged": "Aucun produit n'est encore jugé sur cette période.",
+    "axis": {
+        "pace": "Rythme, unités pour 100 commandes",
+        "unitMargin": "Marge par unité"
+    },
+    "dot": "{name} : {rate} pour 100 commandes, {amount} par unité, {quadrant}",
+    "apart": {
+        "title": "Hors matrice",
+        "lead": "Trop tôt pour juger ou rien vendu : ces produits ne sont pas placés.",
+        "units": "{n} vendu | {n} vendus"
+    },
+    "past": "Cette période est terminée : les verdicts ne se lisent que sur une période qui va jusqu'à aujourd'hui."
+}

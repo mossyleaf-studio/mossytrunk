@@ -1,0 +1,19 @@
+{
+    "title": "Événements",
+    "empty": "Aucune commande sur cette période : aucun événement à comparer.",
+    "product": "Produit",
+    "offEvent": "Hors événement",
+    "total": "Total",
+    "orders": "{count} commande | {count} commandes",
+    "key": {
+        "label": "Vendus pour 100 commandes de l'événement :",
+        "upTo": "jusqu'à {rate}",
+        "absent": "pas en vente"
+    },
+    "tip": {
+        "units": "{event} : {count} vendu, {rate} pour 100 commandes | {event} : {count} vendus, {rate} pour 100 commandes",
+        "absent": "{event} : pas en vente"
+    },
+    "showAll": "Afficher les {count} produits",
+    "showLess": "Afficher les {count} premiers"
+}

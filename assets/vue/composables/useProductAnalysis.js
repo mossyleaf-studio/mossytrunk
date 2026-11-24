@@ -15,6 +15,8 @@ export const QUADRANTS = ['star', 'workhorse', 'puzzle', 'dog'];
 
 export const CLASSES = ['A', 'B', 'C'];
 
+export const classTone = (abcClass) => `var(--color-ordinal-${CLASSES.indexOf(abcClass) + 1})`;
+
 const paceFormatter = perLocale((locale) => new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }));
 
 export const formatRate = (rate) => paceFormatter().format(rate);

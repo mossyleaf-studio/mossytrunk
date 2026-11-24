@@ -1,0 +1,19 @@
+{
+    "title": "Events",
+    "empty": "No orders in this period: no event to compare.",
+    "product": "Product",
+    "offEvent": "Outside events",
+    "total": "Total",
+    "orders": "{count} order | {count} orders",
+    "key": {
+        "label": "Sold per 100 orders of the event:",
+        "upTo": "up to {rate}",
+        "absent": "not on sale"
+    },
+    "tip": {
+        "units": "{event}: {count} sold, {rate} per 100 orders | {event}: {count} sold, {rate} per 100 orders",
+        "absent": "{event}: not on sale"
+    },
+    "showAll": "Show all {count} products",
+    "showLess": "Show the first {count}"
+}

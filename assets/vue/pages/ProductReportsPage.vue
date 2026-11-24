@@ -5,9 +5,13 @@ import { useI18n } from 'vue-i18n';
 import AppLayout from '../layouts/AppLayout.vue';
 import BaseSelect from '../components/ui/BaseSelect.vue';
 import ChoiceGroup from '../components/ui/ChoiceGroup.vue';
+import AbcConcentration from '../components/reports/AbcConcentration.vue';
+import EventHeat from '../components/reports/EventHeat.vue';
 import ProductDecisions from '../components/reports/ProductDecisions.vue';
 import ProductPalmares from '../components/reports/ProductPalmares.vue';
 import ProductStory from '../components/reports/ProductStory.vue';
+import QuadrantMatrix from '../components/reports/QuadrantMatrix.vue';
+import StockCover from '../components/reports/StockCover.vue';
 import { formatCents } from '../composables/useMoney.js';
 import { LAST_TWELVE_MONTHS, SINCE_THE_START, VIEWS, useProductReports } from '../composables/useProductReports.js';
 
@@ -26,7 +30,7 @@ async function select(product) {
     productId.value = product.id === productId.value ? '' : product.id;
     await loadStory();
     await nextTick();
-    if (productId.value && window.matchMedia(view.value === 'decisions' ? '(width < 110rem)' : '(max-width: 64rem)').matches) {
+    if (productId.value && window.matchMedia(view.value !== 'palmares' ? '(width < 110rem)' : '(max-width: 64rem)').matches) {
         const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         document.getElementById('product-story-title')?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' });
     }
@@ -67,8 +71,12 @@ onMounted(loadAll);
                     <p v-else class="product-reports__hint">{{ t('reports.story.choose') }}</p>
                 </div>
             </template>
-            <div v-else-if="view === 'decisions' && analysis" :class="['product-reports__wide', { 'product-reports__wide--story': story }]">
-                <ProductDecisions :analysis="analysis" :selected-id="productId" @select="select" />
+            <div v-else-if="analysis" :class="['product-reports__wide', { 'product-reports__wide--story': story }]">
+                <ProductDecisions v-if="view === 'decisions'" :analysis="analysis" :selected-id="productId" @select="select" />
+                <AbcConcentration v-else-if="view === 'concentration'" :analysis="analysis" :selected-id="productId" @select="select" />
+                <QuadrantMatrix v-else-if="view === 'matrix'" :analysis="analysis" :selected-id="productId" @select="select" />
+                <StockCover v-else-if="view === 'stock'" :analysis="analysis" :selected-id="productId" @select="select" />
+                <EventHeat v-else-if="view === 'events'" :analysis="analysis" :selected-id="productId" @select="select" />
                 <ProductStory v-if="story" :key="story.product.id" :story="story" class="product-reports__story" @close="closeStory" />
             </div>
         </div>

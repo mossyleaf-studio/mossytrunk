@@ -4,7 +4,7 @@ import { queryText } from './useQueryState.js';
 
 export const LAST_TWELVE_MONTHS = '12m';
 export const SINCE_THE_START = 'all';
-export const VIEWS = ['palmares', 'decisions'];
+export const VIEWS = ['palmares', 'decisions', 'concentration', 'matrix', 'stock', 'events'];
 
 export function useProductReports() {
     const api = useApi();

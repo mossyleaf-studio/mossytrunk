@@ -1,6 +1,6 @@
 <script setup>
 import { useI18n } from 'vue-i18n';
-import { CLASSES } from '../../composables/useProductAnalysis.js';
+import { classTone } from '../../composables/useProductAnalysis.js';
 
 defineProps({
     abcClass: { type: String, required: true },
@@ -11,7 +11,7 @@ const { t } = useI18n();
 
 <template>
     <span class="class-chip" :title="t(`reports.analysis.classes.${abcClass}`)">
-        <span class="class-chip__swatch" :style="{ background: `var(--color-ordinal-${CLASSES.indexOf(abcClass) + 1})` }" aria-hidden="true" />
+        <span class="class-chip__swatch" :style="{ background: classTone(abcClass) }" aria-hidden="true" />
         {{ abcClass }}
     </span>
 </template>

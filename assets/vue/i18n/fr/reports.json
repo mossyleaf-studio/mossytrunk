@@ -67,7 +67,11 @@
     "views": {
         "label": "Vue",
         "palmares": "Palmarès",
-        "decisions": "Décisions"
+        "decisions": "Décisions",
+        "concentration": "Concentration",
+        "matrix": "Matrice",
+        "stock": "Stock",
+        "events": "Événements"
     },
     "analysis": {
         "verdicts": {

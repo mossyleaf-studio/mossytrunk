@@ -34,6 +34,8 @@
     --color-ordinal-1: var(--color-accent-strong);
     --color-ordinal-2: color-mix(in oklch, var(--color-accent) 78%, var(--color-surface-hueless));
     --color-ordinal-3: color-mix(in oklch, var(--color-accent) 58%, var(--color-surface-hueless));
+    --color-heat-1: color-mix(in oklch, var(--color-accent) 25%, var(--color-surface-hueless));
+    --color-heat-2: color-mix(in oklch, var(--color-accent) 45%, var(--color-surface-hueless));
     --color-backdrop: rgb(17 17 17 / 35%);
 
     --radius: 0.5rem;

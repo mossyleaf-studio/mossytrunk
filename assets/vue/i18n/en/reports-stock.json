@@ -1,0 +1,25 @@
+{
+    "title": "Stock",
+    "empty": "No order in this period: nothing to compare with the stock.",
+    "past": "Stock is read as of today: pick a period that reaches today to see how many orders it covers.",
+    "headline": "{stock}: {out}, {low}.",
+    "units": "{count} unit in stock | {count} units in stock",
+    "out": "{count} product sold out | {count} products sold out",
+    "low": "{count} running low",
+    "busiest": "The busiest event, {event}, took {orders}: a stock that covers fewer is running low.",
+    "orders": "{count} order | {count} orders",
+    "legendSold": "Sold in the period",
+    "legendStock": "Still in stock",
+    "sortBy": "Rank by",
+    "sorts": {
+        "shortest": "Shortest stock",
+        "longest": "Longest stock",
+        "onHand": "Units in stock"
+    },
+    "figures": "{sold} · {stock}",
+    "onHand": "{count} in stock",
+    "lasts": "lasts {count} order | lasts {count} orders",
+    "noSales": "not selling",
+    "showAll": "Show the {count} products",
+    "showLess": "Show the first {count}"
+}
