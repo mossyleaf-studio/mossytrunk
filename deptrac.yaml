@@ -1,3 +1,4 @@
+# Synced from ~/Sites/mossyleaf-studio/toolchain: edit it there, then run its ./sync.
 deptrac:
   paths:
     - ./src

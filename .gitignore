@@ -42,6 +42,5 @@ yarn-error.log
 /e2e/shots/
 
 ###> ci ###
-/ci-build.tgz
 ###< ci ###
 .DS_Store

@@ -1,3 +1,4 @@
+# Synced from ~/Sites/mossyleaf-studio/toolchain: edit it there, then run its ./sync.
 name: CI
 
 on:
@@ -10,52 +11,29 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  IMAGE: docker.io/injust/mossytrunk
-
 jobs:
-  build:
+  checks:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - uses: ./.github/actions/dev-stack
         with:
           save-cache: 'true'
 
-      - run: make ci-build
-
-      - run: make ci-bundle
-
-      - uses: actions/upload-artifact@v4
+      - uses: actions/cache@v4
         with:
-          name: ci-build
-          path: ci-build.tgz
-          retention-days: 1
-          compression-level: 0
+          path: |
+            var/cache/phpstan
+            var/.php-cs-fixer.cache
+            .deptrac.cache
+          key: lint-${{ github.sha }}
+          restore-keys: lint-
 
-      - if: always()
-        run: docker compose down --volumes
-
-  checks:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v5
-
-      - uses: ./.github/actions/dev-stack
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: ci-build
-
-      - run: make ci-unbundle ci-warmup
+      - run: make ci-build ci-warmup
 
       - run: make -j4 --output-sync=target ci-checks
 
@@ -63,7 +41,6 @@ jobs:
         run: docker compose down --volumes
 
   e2e:
-    needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -77,57 +54,79 @@ jobs:
           - { name: shard-3, args: --shard=3/3 }
     name: e2e (${{ matrix.part.name }})
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - uses: ./.github/actions/dev-stack
 
-      - uses: actions/download-artifact@v4
-        with:
-          name: ci-build
-
-      - run: make ci-unbundle
+      - run: make ci-build
 
       - run: make ci-e2e PLAYWRIGHT_ARGS="${{ matrix.part.args }}"
 
       - if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report-${{ matrix.part.name }}
-          path: e2e/playwright-report
+          path: |
+            e2e/playwright-report
+            e2e/test-results
           if-no-files-found: ignore
 
       - if: always()
         run: docker compose --profile e2e down --volumes
 
+  image:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+      tag: ${{ steps.tag.outputs.sha }}
+      image: ${{ steps.tag.outputs.image }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - id: tag
+        run: |
+          echo "sha=$(git rev-parse --short=7 HEAD)" >> "$GITHUB_OUTPUT"
+          echo "image=$(make -s print-IMAGE)" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: prod
+          platforms: linux/amd64
+          outputs: type=image,name=${{ steps.tag.outputs.image }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: |
+            type=gha,scope=prod
+            type=gha,scope=dev
+          cache-to: type=gha,scope=prod,mode=max
+
   publish:
-    needs: [checks, e2e]
+    needs: [checks, e2e, image]
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v4
 
-      - id: tag
-        run: echo "sha=$(git rev-parse --short=7 HEAD)" >> "$GITHUB_OUTPUT"
-
-      - uses: docker/setup-buildx-action@v3
-
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          target: prod
-          platforms: linux/amd64
-          push: true
-          tags: |
-            ${{ env.IMAGE }}:${{ steps.tag.outputs.sha }}
-            ${{ env.IMAGE }}:latest
-          cache-from: |
-            type=gha,scope=prod
-            type=gha,scope=dev
-          cache-to: type=gha,scope=prod,mode=max
+      - run: docker buildx imagetools create --tag "$IMAGE:$TAG" --tag "$IMAGE:latest" "$IMAGE@$DIGEST"
+        env:
+          IMAGE: ${{ needs.image.outputs.image }}
+          TAG: ${{ needs.image.outputs.tag }}
+          DIGEST: ${{ needs.image.outputs.digest }}

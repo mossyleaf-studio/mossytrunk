@@ -1,5 +1,6 @@
+# Synced from ~/Sites/mossyleaf-studio/toolchain: edit it there, then run its ./sync.
 name: Dev stack
-description: Build the dev image from the cache and pull the service images in the background
+description: Build the dev image from the cache, restore vendor and node_modules, and pull the service images in the background
 inputs:
   save-cache:
     description: Whether this job writes the dev image layers back to the cache
@@ -7,17 +8,30 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: docker/setup-buildx-action@v3
+    - uses: docker/setup-buildx-action@v4
 
     - name: Pull service images in the background
       shell: bash
       run: nohup docker compose --profile e2e pull --quiet --ignore-buildable database oidc node playwright > /tmp/pull.log 2>&1 &
+
+    - id: image
+      name: Name of the dev image (compose.yaml, service php)
+      shell: bash
+      run: echo "name=$(docker compose config --format json | jq -r .services.php.image)" >> "$GITHUB_OUTPUT"
 
     - uses: docker/build-push-action@v6
       with:
         context: .
         target: dev
         load: true
-        tags: mossytrunk-dev
+        tags: ${{ steps.image.outputs.name }}
         cache-from: type=gha,scope=dev
         cache-to: ${{ inputs.save-cache == 'true' && 'type=gha,scope=dev,mode=max' || '' }}
+
+    - name: Restore vendor and node_modules
+      uses: actions/cache@v4
+      with:
+        path: |
+          vendor
+          node_modules
+        key: deps-${{ hashFiles('composer.lock', 'package-lock.json') }}
