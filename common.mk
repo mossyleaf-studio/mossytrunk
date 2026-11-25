@@ -19,8 +19,14 @@ DEPLOY_FILES ?= deploy/compose.yaml deploy/.env.dist deploy/README.md
 # Hooks: services each stack starts, and what the gate runs.
 UP_SERVICES ?= php database node oidc
 CI_SERVICES ?= php database oidc
-CHECKS ?= cs phpstan deptrac audit test test-js
+CHECKS ?= cs phpstan deptrac audit crap test-js
+PHPUNIT = php bin/phpunit
 PHPUNIT_ARGS ?=
+# crap: every src method keeps a CRAP score at or below CRAP_MAX (PHPUnit coverage needs pcov in the dev image).
+# pcov ships disabled in the dev image (enabled, it slows all PHP 2x) and crap turns it on for its run.
+# It skips #[Group('timing')] tests: coverage slows code 2-4x, so wall-clock budgets run without it (make test).
+CRAP_MAX ?= 10
+CRAP_REPORT = var/coverage/crap4j.xml
 
 # e2e: E2E_ENV adds `docker compose exec` flags to its console commands, E2E_RESET runs before the database
 # is rebuilt, E2E_SEED after it, E2E_LANES > 1 copies the e2e database for parallel Playwright workers.
@@ -39,7 +45,7 @@ OUTPUT_SYNC = $(if $(filter output-sync,$(.FEATURES)),--output-sync=target)
 BUILD = docker buildx build --platform $(PLATFORM) --target prod -t $(IMAGE):$(TAG) -t $(IMAGE):latest
 NEEDS_DEPLOY_TARGET = @test -n "$(DEPLOY_HOST)" -a -n "$(DEPLOY_DIR)" || { echo "Set DEPLOY_HOST and DEPLOY_DIR (e.g. in .deploy.env)"; exit 1; }
 
-.PHONY: up down build install assets assets-e2e db db-test fixtures migration test test-unit test-functional test-js deptrac phpstan cs cs-fix audit audit-php audit-js e2e e2e-run qa ci ci-up ci-build ci-warmup ci-checks ci-e2e image push deploy deploy-files
+.PHONY: up down build install assets assets-e2e db db-test fixtures migration test crap test-unit test-functional test-js deptrac phpstan cs cs-fix audit audit-php audit-js e2e e2e-run qa ci ci-up ci-build ci-warmup ci-checks ci-e2e image push deploy deploy-files
 
 up: ## Start the dev stack (URLs at the top of the Makefile)
 	$(DC) up -d --wait $(UP_SERVICES)
@@ -75,7 +81,12 @@ migration: ## Generate a migration from mapping changes
 	$(CONSOLE) doctrine:migrations:diff --no-interaction
 
 test: db-test ## PHPUnit (unit + functional)
-	$(PHP) php bin/phpunit $(PHPUNIT_ARGS)
+	$(PHP) $(PHPUNIT) $(PHPUNIT_ARGS)
+
+crap: PHPUNIT = php -d pcov.enabled=1 bin/phpunit
+crap: PHPUNIT_ARGS = --coverage-crap4j $(CRAP_REPORT) --exclude-group timing
+crap: test ## PHPUnit with coverage, fails when a src method has a CRAP score above CRAP_MAX
+	$(PHP) php bin/crap $(CRAP_REPORT) $(CRAP_MAX)
 
 test-unit:
 	$(PHP) php bin/phpunit --testsuite unit

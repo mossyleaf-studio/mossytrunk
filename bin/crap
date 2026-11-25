@@ -1,6 +1,9 @@
 #!/usr/bin/env php
 <?php
 
+// Synced from ~/Sites/mossyleaf-studio/toolchain: edit it there, then run its ./sync.
+// Lists the methods of a Crap4J report above the threshold (default 10), worst first; exits 1 if any.
+
 declare(strict_types=1);
 
 $report = $argv[1] ?? 'var/coverage/crap4j.xml';

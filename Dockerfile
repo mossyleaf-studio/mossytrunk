@@ -57,4 +57,6 @@ CMD ["--config", "/etc/frankenphp/Caddyfile", "--adapter", "caddyfile"]
 
 FROM base AS dev
 
-RUN install-php-extensions pcov
+# Coverage for make crap, which turns it on (-d pcov.enabled=1): enabled, pcov slows all PHP 2x.
+RUN install-php-extensions pcov \
+    && echo 'pcov.enabled=0' > "$PHP_INI_DIR/conf.d/zz-pcov.ini"
