@@ -20,6 +20,8 @@ DEPLOY_FILES ?= deploy/compose.yaml deploy/.env.dist deploy/README.md
 UP_SERVICES ?= php database node oidc
 CI_SERVICES ?= php database oidc
 CHECKS ?= cs phpstan deptrac audit crap test-js
+# Checks that need the CPU to themselves (wall-clock budgets): they run after CHECKS, not beside them.
+CHECKS_AFTER ?=
 PHPUNIT = php bin/phpunit
 PHPUNIT_ARGS ?=
 # crap: every src method keeps a CRAP score at or below CRAP_MAX (PHPUnit coverage needs pcov in the dev image).
@@ -156,6 +158,7 @@ ci-e2e: ## Playwright on the production build (PLAYWRIGHT_ARGS to pick projects 
 	$(MAKE) e2e-run E2E_ASSETS_DIR=build
 
 ci-checks: $(CHECKS)
+	$(if $(CHECKS_AFTER),$(MAKE) $(CHECKS_AFTER))
 
 image: ## Build the production image locally (IMAGE, TAG, PLATFORM)
 	$(BUILD) --load .
